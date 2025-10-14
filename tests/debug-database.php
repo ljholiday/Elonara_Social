@@ -38,8 +38,8 @@ try {
 }
 
 // Test table existence
-echo "Testing vt_config table: ";
-$exists = $db->getVar("SHOW TABLES LIKE 'vt_config'");
+echo "Testing config table: ";
+$exists = $db->getVar("SHOW TABLES LIKE 'config'");
 echo $exists ? "Exists\n" : "Missing\n";
 
 // Test simple insert with detailed error reporting
@@ -61,7 +61,7 @@ try {
         exit;
     }
 
-    $query = "INSERT INTO vt_config (option_name, option_value, autoload) VALUES (?, ?, ?)";
+    $query = "INSERT INTO config (option_name, option_value, autoload) VALUES (?, ?, ?)";
     echo "Query: $query\n";
 
     $stmt = $pdo->prepare($query);
@@ -72,7 +72,7 @@ try {
         echo "Direct PDO insert successful, ID: $insert_id\n";
 
         // Clean up
-        $pdo->exec("DELETE FROM vt_config WHERE option_name = '{$test_data['option_name']}'");
+        $pdo->exec("DELETE FROM config WHERE option_name = '{$test_data['option_name']}'");
     } else {
         echo "Direct PDO insert failed\n";
         print_r($stmt->errorInfo());
@@ -97,7 +97,7 @@ try {
         echo "VT_Database insert successful, ID: $result\n";
 
         // Verify
-        $retrieved = $db->getVar("SELECT option_value FROM vt_config WHERE option_name = '{$test_data2['option_name']}'");
+        $retrieved = $db->getVar("SELECT option_value FROM config WHERE option_name = '{$test_data2['option_name']}'");
         echo "Retrieved value: $retrieved\n";
 
         // Clean up

@@ -87,14 +87,14 @@ final class BlueskyService
         $pdo = $this->database->pdo();
 
         // Check if identity exists
-        $stmt = $pdo->prepare('SELECT id FROM vt_member_identities WHERE user_id = ?');
+        $stmt = $pdo->prepare('SELECT id FROM member_identities WHERE user_id = ?');
         $stmt->execute([$userId]);
         $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($existing) {
             // Update existing
             $stmt = $pdo->prepare('
-                UPDATE vt_member_identities
+                UPDATE member_identities
                 SET did = ?, handle = ?, access_jwt = ?, refresh_jwt = ?,
                     at_protocol_did = ?, at_protocol_handle = ?, at_protocol_pds = ?,
                     pds_url = ?, is_verified = 1, updated_at = NOW()
@@ -113,7 +113,7 @@ final class BlueskyService
             ]);
         } else {
             // Get user email
-            $userStmt = $pdo->prepare('SELECT email, display_name FROM vt_users WHERE id = ?');
+            $userStmt = $pdo->prepare('SELECT email, display_name FROM users WHERE id = ?');
             $userStmt->execute([$userId]);
             $user = $userStmt->fetch(\PDO::FETCH_ASSOC);
 
@@ -123,7 +123,7 @@ final class BlueskyService
 
             // Insert new
             $stmt = $pdo->prepare('
-                INSERT INTO vt_member_identities
+                INSERT INTO member_identities
                 (user_id, email, display_name, did, handle, at_protocol_did, at_protocol_handle, at_protocol_pds, access_jwt, refresh_jwt, pds_url, is_verified, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
             ');
@@ -153,7 +153,7 @@ final class BlueskyService
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare('
             SELECT did, handle, access_jwt as accessJwt, refresh_jwt as refreshJwt
-            FROM vt_member_identities
+            FROM member_identities
             WHERE user_id = ? AND is_verified = 1
         ');
         $stmt->execute([$userId]);
@@ -223,7 +223,7 @@ final class BlueskyService
     {
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare('
-            UPDATE vt_member_identities
+            UPDATE member_identities
             SET did = NULL, handle = NULL, access_jwt = NULL, refresh_jwt = NULL,
                 is_verified = 0, updated_at = NOW()
             WHERE user_id = ?
@@ -346,7 +346,7 @@ final class BlueskyService
 
         } while ($cursor !== null && $page < $maxPages);
 
-        // Store in vt_social table
+        // Store in social table
         $this->cacheFollowers($userId, $credentials['did'], $credentials['handle'], $allFollowers);
 
         return [
@@ -370,14 +370,14 @@ final class BlueskyService
         ]);
 
         // Check if record exists
-        $stmt = $pdo->prepare('SELECT id FROM vt_social WHERE user_id = ?');
+        $stmt = $pdo->prepare('SELECT id FROM social WHERE user_id = ?');
         $stmt->execute([$userId]);
         $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($existing) {
             // Update
             $stmt = $pdo->prepare('
-                UPDATE vt_social
+                UPDATE social
                 SET at_protocol_handle = ?, bluesky_did = ?, connection_data = ?,
                     last_sync = NOW(), connection_status = ?
                 WHERE user_id = ?
@@ -386,7 +386,7 @@ final class BlueskyService
         } else {
             // Insert
             $stmt = $pdo->prepare('
-                INSERT INTO vt_social
+                INSERT INTO social
                 (user_id, at_protocol_handle, bluesky_did, connection_data, connection_status, last_sync, created_at)
                 VALUES (?, ?, ?, ?, ?, NOW(), NOW())
             ');
@@ -404,7 +404,7 @@ final class BlueskyService
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare('
             SELECT connection_data, last_sync
-            FROM vt_social
+            FROM social
             WHERE user_id = ? AND connection_status = ?
         ');
         $stmt->execute([$userId, 'active']);

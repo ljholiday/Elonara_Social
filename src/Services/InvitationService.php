@@ -56,7 +56,7 @@ final class InvitationService
 
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare('
-            INSERT INTO vt_community_invitations
+            INSERT INTO community_invitations
             (community_id, invited_by_member_id, invited_email, invitation_token, message, status, expires_at, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
         ');
@@ -93,7 +93,7 @@ final class InvitationService
 
         $stmt = $this->database->pdo()->prepare(
             "SELECT id, invited_email, invitation_token, status, created_at
-             FROM vt_community_invitations
+             FROM community_invitations
              WHERE community_id = :community_id
              ORDER BY created_at DESC"
         );
@@ -115,7 +115,7 @@ final class InvitationService
         }
 
         $stmt = $this->database->pdo()->prepare(
-            "DELETE FROM vt_community_invitations
+            "DELETE FROM community_invitations
              WHERE id = :id AND community_id = :community_id"
         );
         $success = $stmt->execute([
@@ -144,7 +144,7 @@ final class InvitationService
 
         $stmt = $this->database->pdo()->prepare(
             "SELECT id, community_id, invited_email, invited_user_id, expires_at
-             FROM vt_community_invitations
+             FROM community_invitations
              WHERE invitation_token = :token AND status = 'pending'
              LIMIT 1"
         );
@@ -222,7 +222,7 @@ final class InvitationService
 
         if ($isBlueskyInvite && $invitedDid !== '') {
             $stmt = $this->database->pdo()->prepare(
-                'UPDATE vt_community_members SET at_protocol_did = :did WHERE id = :id'
+                'UPDATE community_members SET at_protocol_did = :did WHERE id = :id'
             );
             $stmt->execute([
                 ':did' => $invitedDid,
@@ -468,7 +468,7 @@ final class InvitationService
 
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare("
-            SELECT COUNT(*) FROM vt_community_invitations
+            SELECT COUNT(*) FROM community_invitations
             WHERE community_id = ? AND LOWER(invited_email) = ? AND status = 'pending'
         ");
         $stmt->execute([$entityId, $normalizedEmail]);
@@ -496,7 +496,7 @@ final class InvitationService
             $parts[] = 'accepted_at = NOW()';
         }
 
-        $sql = 'UPDATE vt_community_invitations SET ' . implode(', ', $parts) . ' WHERE id = :id';
+        $sql = 'UPDATE community_invitations SET ' . implode(', ', $parts) . ' WHERE id = :id';
         $stmt = $this->database->pdo()->prepare($sql);
         $stmt->execute($params);
     }
@@ -527,7 +527,7 @@ final class InvitationService
     private function fetchCommunity(int $communityId): ?array
     {
         $stmt = $this->database->pdo()->prepare(
-            'SELECT id, name FROM vt_communities WHERE id = :id LIMIT 1'
+            'SELECT id, name FROM communities WHERE id = :id LIMIT 1'
         );
         $stmt->execute([':id' => $communityId]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -551,7 +551,7 @@ final class InvitationService
         $fieldList = implode(', ', $fields);
 
         $stmt = $this->database->pdo()->prepare(
-            "SELECT {$fieldList} FROM vt_events WHERE id = :id LIMIT 1"
+            "SELECT {$fieldList} FROM events WHERE id = :id LIMIT 1"
         );
         $stmt->execute([':id' => $eventId]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -566,7 +566,7 @@ final class InvitationService
         }
 
         $stmt = $this->database->pdo()->prepare(
-            "SELECT role FROM vt_community_members WHERE community_id = :community_id AND user_id = :user_id LIMIT 1"
+            "SELECT role FROM community_members WHERE community_id = :community_id AND user_id = :user_id LIMIT 1"
         );
         $stmt->execute([
             ':community_id' => $communityId,
@@ -798,7 +798,7 @@ final class InvitationService
 
                 $pdo = $this->database->pdo();
                 $stmt = $pdo->prepare('
-                    INSERT INTO vt_community_invitations
+                    INSERT INTO community_invitations
                     (community_id, invited_by_member_id, invited_email, invitation_token, message, status, expires_at, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
                 ');

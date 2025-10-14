@@ -36,7 +36,7 @@ final class CommunityMemberService
                 role,
                 status,
                 joined_at
-             FROM vt_community_members
+             FROM community_members
              WHERE community_id = :community_id AND status = 'active'
              ORDER BY
                 CASE WHEN display_name IS NULL OR display_name = '' THEN 1 ELSE 0 END,
@@ -59,7 +59,7 @@ final class CommunityMemberService
     {
         $stmt = $this->database->pdo()->prepare(
             "SELECT role
-             FROM vt_community_members
+             FROM community_members
              WHERE community_id = :community_id
                AND user_id = :user_id
                AND status = 'active'
@@ -84,7 +84,7 @@ final class CommunityMemberService
     {
         $stmt = $this->database->pdo()->prepare(
             "SELECT 1
-             FROM vt_community_members
+             FROM community_members
              WHERE community_id = :community_id
                AND user_id = :user_id
                AND status = 'active'
@@ -120,7 +120,7 @@ final class CommunityMemberService
 
         try {
             $stmt = $pdo->prepare(
-                "SELECT id FROM vt_community_members
+                "SELECT id FROM community_members
                  WHERE community_id = :community_id AND user_id = :user_id
                  LIMIT 1"
             );
@@ -132,7 +132,7 @@ final class CommunityMemberService
 
             if ($existingId) {
                 $update = $pdo->prepare(
-                    "UPDATE vt_community_members
+                    "UPDATE community_members
                      SET email = :email,
                          display_name = :display_name,
                          role = :role,
@@ -149,7 +149,7 @@ final class CommunityMemberService
                 $memberId = (int)$existingId;
             } else {
                 $insert = $pdo->prepare(
-                    "INSERT INTO vt_community_members
+                    "INSERT INTO community_members
                         (community_id, user_id, email, display_name, role, status, joined_at)
                      VALUES
                         (:community_id, :user_id, :email, :display_name, :role, 'active', NOW())"
@@ -198,7 +198,7 @@ final class CommunityMemberService
         }
 
         $stmt = $this->database->pdo()->prepare(
-            "UPDATE vt_community_members
+            "UPDATE community_members
              SET role = :role
              WHERE id = :id AND community_id = :community_id"
         );
@@ -232,7 +232,7 @@ final class CommunityMemberService
         }
 
         $stmt = $this->database->pdo()->prepare(
-            "DELETE FROM vt_community_members WHERE id = :id AND community_id = :community_id"
+            "DELETE FROM community_members WHERE id = :id AND community_id = :community_id"
         );
 
         $success = $stmt->execute([
@@ -256,7 +256,7 @@ final class CommunityMemberService
     {
         $stmt = $this->database->pdo()->prepare(
             "SELECT id, community_id, user_id, email, display_name, role, status
-             FROM vt_community_members
+             FROM community_members
              WHERE community_id = :community_id AND id = :id
              LIMIT 1"
         );
@@ -273,7 +273,7 @@ final class CommunityMemberService
     private function countAdmins(int $communityId): int
     {
         $stmt = $this->database->pdo()->prepare(
-            "SELECT COUNT(*) FROM vt_community_members
+            "SELECT COUNT(*) FROM community_members
              WHERE community_id = :community_id
                AND role = 'admin'
                AND status = 'active'"
@@ -289,8 +289,8 @@ final class CommunityMemberService
     private function refreshMemberCount(int $communityId): void
     {
         $stmt = $this->database->pdo()->prepare(
-            "UPDATE vt_communities SET member_count = (
-                SELECT COUNT(*) FROM vt_community_members
+            "UPDATE communities SET member_count = (
+                SELECT COUNT(*) FROM community_members
                 WHERE community_id = :community_id_for_count AND status = 'active'
             )
             WHERE id = :community_id"

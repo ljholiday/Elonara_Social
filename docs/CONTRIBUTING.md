@@ -76,7 +76,7 @@ Use short-lived branches and keep PRs focused — the repo favors reviewable, in
 - Keep logic minimal—prepare data in controllers/services, render in templates.
 - Escape output with `htmlspecialchars()` or helper functions.
 - No inline scripts longer than three lines; place behavior in `public/assets/js`.
-- Name templates using the `*-content.php` pattern and include them with `vt_render`.
+- Name templates using the `*-content.php` pattern and include them with `render`.
 
 ### JavaScript (`public/assets/js`)
 
@@ -121,7 +121,7 @@ Never call validators inside services — it leads to inconsistent error handlin
 
 ### Bluesky Integration
 
-- Credential handling lives in `src/Services/BlueskyService.php`. It stores DID/handle pairs in `vt_member_identities`.
+- Credential handling lives in `src/Services/BlueskyService.php`. It stores DID/handle pairs in `member_identities`.
 - Invitation flows are coordinated by `src/Services/InvitationService.php`:
   - Community invites accept via `/invitation/accept?token=...`.
   - Event invites accept via `/rsvp/{token}` (see `templates/guest-rsvp.php`).

@@ -112,7 +112,7 @@ final class CircleService
         }
 
         $placeholders = implode(',', array_fill(0, count($userIds), '?'));
-        $sql = "SELECT DISTINCT community_id FROM vt_community_members WHERE user_id IN ($placeholders) AND status = 'active'";
+        $sql = "SELECT DISTINCT community_id FROM community_members WHERE user_id IN ($placeholders) AND status = 'active'";
 
         $stmt = $this->db->pdo()->prepare($sql);
         foreach ($userIds as $index => $id) {
@@ -138,7 +138,7 @@ final class CircleService
         }
 
         $placeholders = implode(',', array_fill(0, count($communityIds), '?'));
-        $sql = "SELECT DISTINCT user_id FROM vt_community_members WHERE community_id IN ($placeholders) AND status = 'active'";
+        $sql = "SELECT DISTINCT user_id FROM community_members WHERE community_id IN ($placeholders) AND status = 'active'";
 
         $stmt = $this->db->pdo()->prepare($sql);
         foreach ($communityIds as $index => $id) {

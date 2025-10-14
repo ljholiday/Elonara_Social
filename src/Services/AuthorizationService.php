@@ -340,7 +340,7 @@ final class AuthorizationService
 
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare('
-            SELECT COUNT(*) FROM vt_community_members
+            SELECT COUNT(*) FROM community_members
             WHERE community_id = ? AND user_id = ? AND status = ?
         ');
         $stmt->execute([$communityId, $userId, 'active']);
@@ -369,7 +369,7 @@ final class AuthorizationService
         // Check if user has admin role in community
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare('
-            SELECT COUNT(*) FROM vt_community_members
+            SELECT COUNT(*) FROM community_members
             WHERE community_id = ? AND user_id = ? AND role = ? AND status = ?
         ');
         $stmt->execute([$communityId, $userId, 'admin', 'active']);
@@ -389,7 +389,7 @@ final class AuthorizationService
         try {
             $pdo = $this->database->pdo();
             $stmt = $pdo->prepare('
-                SELECT role FROM vt_users WHERE id = ?
+                SELECT role FROM users WHERE id = ?
             ');
             $stmt->execute([$userId]);
 
@@ -416,7 +416,7 @@ final class AuthorizationService
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare('
             SELECT id, title, slug, privacy, creator_id, created_at
-            FROM vt_communities
+            FROM communities
             WHERE id = ?
         ');
         $stmt->execute([$communityId]);

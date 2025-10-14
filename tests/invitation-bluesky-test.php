@@ -35,7 +35,7 @@ try {
 
     // Community
     $stmt = $pdo->prepare(
-        'INSERT INTO vt_communities (name, slug, creator_id, creator_email, created_by)
+        'INSERT INTO communities (name, slug, creator_id, creator_email, created_by)
          VALUES (:name, :slug, :creator_id, :creator_email, :created_by)'
     );
     $stmt->execute([
@@ -60,7 +60,7 @@ try {
     $invitedDid = 'did:plc:' . substr(bin2hex(random_bytes(10)), 0, 16);
     $invitationToken = bin2hex(random_bytes(32));
     $stmt = $pdo->prepare(
-        'INSERT INTO vt_community_invitations
+        'INSERT INTO community_invitations
             (community_id, invited_by_member_id, invited_email, invitation_token, message, status, expires_at, created_at)
          VALUES
             (:community_id, :invited_by_member_id, :invited_email, :invitation_token, :message, \'pending\', :expires_at, NOW())'
@@ -121,7 +121,7 @@ try {
 
     // Confirm invitation state
     $stmt = $pdo->prepare(
-        'SELECT status, invited_user_id FROM vt_community_invitations WHERE invitation_token = :token LIMIT 1'
+        'SELECT status, invited_user_id FROM community_invitations WHERE invitation_token = :token LIMIT 1'
     );
     $stmt->execute([':token' => $invitationToken]);
     $invitationRow = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -131,7 +131,7 @@ try {
 
     // Confirm DID stored on membership
     $stmt = $pdo->prepare(
-        'SELECT at_protocol_did FROM vt_community_members WHERE id = :id LIMIT 1'
+        'SELECT at_protocol_did FROM community_members WHERE id = :id LIMIT 1'
     );
     $stmt->execute([':id' => $inviteeMemberId]);
     $memberRow = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -146,7 +146,7 @@ try {
 } finally {
     // Remove invitee membership first
     if ($communityId !== null && $inviteeId !== null) {
-        $pdo->prepare('DELETE FROM vt_community_members WHERE community_id = :community_id AND user_id = :user_id')
+        $pdo->prepare('DELETE FROM community_members WHERE community_id = :community_id AND user_id = :user_id')
             ->execute([
                 ':community_id' => $communityId,
                 ':user_id' => $inviteeId,
@@ -155,33 +155,33 @@ try {
 
     // Remove host membership
     if ($hostMemberId !== null) {
-        $pdo->prepare('DELETE FROM vt_community_members WHERE id = :id')
+        $pdo->prepare('DELETE FROM community_members WHERE id = :id')
             ->execute([':id' => $hostMemberId]);
     }
 
     // Delete invitation
     if ($invitationToken !== null) {
-        $pdo->prepare('DELETE FROM vt_community_invitations WHERE invitation_token = :token')
+        $pdo->prepare('DELETE FROM community_invitations WHERE invitation_token = :token')
             ->execute([':token' => $invitationToken]);
     }
 
     // Delete community
     if ($communityId !== null) {
-        $pdo->prepare('DELETE FROM vt_communities WHERE id = :id')
+        $pdo->prepare('DELETE FROM communities WHERE id = :id')
             ->execute([':id' => $communityId]);
     }
 
     // Delete Bluesky credentials
     if ($inviteeId !== null) {
-        $pdo->prepare('DELETE FROM vt_member_identities WHERE user_id = :user_id')
+        $pdo->prepare('DELETE FROM member_identities WHERE user_id = :user_id')
             ->execute([':user_id' => $inviteeId]);
     }
 
     // Delete user profiles and users
     foreach (array_filter([$inviteeId, $hostId]) as $userId) {
-        $pdo->prepare('DELETE FROM vt_user_profiles WHERE user_id = :user_id')
+        $pdo->prepare('DELETE FROM user_profiles WHERE user_id = :user_id')
             ->execute([':user_id' => $userId]);
-        $pdo->prepare('DELETE FROM vt_users WHERE id = :id')
+        $pdo->prepare('DELETE FROM users WHERE id = :id')
             ->execute([':id' => $userId]);
     }
 }

@@ -5,7 +5,7 @@
 **Status:** ✅ Complete (Local and Production)
 
 **Changes:**
-- Removed redundant `visibility` column from `vt_communities` table
+- Removed redundant `visibility` column from `communities` table
 - Standardized on `privacy` field throughout codebase
 - Updated all templates, managers, and services to use `privacy` instead of `visibility`
 

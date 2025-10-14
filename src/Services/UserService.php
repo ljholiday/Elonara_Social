@@ -28,7 +28,7 @@ final class UserService
     {
         $stmt = $this->db->pdo()->prepare(
             'SELECT id, username, email, display_name, bio, avatar_url, cover_url, cover_alt, role, created_at, updated_at
-             FROM vt_users
+             FROM users
              WHERE id = :id
              LIMIT 1'
         );
@@ -47,7 +47,7 @@ final class UserService
     {
         $stmt = $this->db->pdo()->prepare(
             'SELECT id, username, email, display_name, bio, avatar_url, cover_url, cover_alt, role, created_at, updated_at
-             FROM vt_users
+             FROM users
              WHERE username = :username
              LIMIT 1'
         );
@@ -159,7 +159,7 @@ final class UserService
         $updates[] = 'updated_at = :updated_at';
         $params[':updated_at'] = date('Y-m-d H:i:s');
 
-        $sql = 'UPDATE vt_users SET ' . implode(', ', $updates) . ' WHERE id = :id LIMIT 1';
+        $sql = 'UPDATE users SET ' . implode(', ', $updates) . ' WHERE id = :id LIMIT 1';
         $stmt = $this->db->pdo()->prepare($sql);
         $stmt->execute($params);
 
@@ -178,7 +178,7 @@ final class UserService
         // Recent conversations
         $stmt = $this->db->pdo()->prepare(
             'SELECT id, title, slug, created_at, "conversation" as type
-             FROM vt_conversations
+             FROM conversations
              WHERE author_id = :user_id
              ORDER BY created_at DESC
              LIMIT :limit'
@@ -191,8 +191,8 @@ final class UserService
         // Recent replies
         $stmt = $this->db->pdo()->prepare(
             'SELECT r.id, r.created_at, c.title, c.slug as conversation_slug, "reply" as type
-             FROM vt_conversation_replies r
-             JOIN vt_conversations c ON r.conversation_id = c.id
+             FROM conversation_replies r
+             JOIN conversations c ON r.conversation_id = c.id
              WHERE r.author_id = :user_id
              ORDER BY r.created_at DESC
              LIMIT :limit'
@@ -219,17 +219,17 @@ final class UserService
         $pdo = $this->db->pdo();
 
         // Count conversations
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM vt_conversations WHERE author_id = :id');
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM conversations WHERE author_id = :id');
         $stmt->execute([':id' => $userId]);
         $conversationCount = (int)$stmt->fetchColumn();
 
         // Count replies
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM vt_conversation_replies WHERE author_id = :id');
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM conversation_replies WHERE author_id = :id');
         $stmt->execute([':id' => $userId]);
         $replyCount = (int)$stmt->fetchColumn();
 
         // Count communities (as member)
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM vt_community_members WHERE user_id = :id');
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM community_members WHERE user_id = :id');
         $stmt->execute([':id' => $userId]);
         $communityCount = (int)$stmt->fetchColumn();
 

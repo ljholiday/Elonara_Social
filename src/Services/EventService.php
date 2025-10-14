@@ -33,7 +33,7 @@ final class EventService
     public function listRecent(int $limit = 20): array
     {
         $sql = "SELECT id, title, event_date, slug, description
-                FROM vt_events
+                FROM events
                 ORDER BY event_date DESC
                 LIMIT :lim";
 
@@ -57,8 +57,8 @@ final class EventService
         $email = $viewerEmail !== null ? trim($viewerEmail) : $this->lookupUserEmail($viewerId);
 
         $sql = "SELECT DISTINCT e.id, e.title, e.event_date, e.slug, e.description
-                FROM vt_events e
-                LEFT JOIN vt_guests g ON g.event_id = e.id
+                FROM events e
+                LEFT JOIN guests g ON g.event_id = e.id
                 WHERE e.event_status = 'active'
                   AND e.status = 'active'
                   AND (
@@ -96,7 +96,7 @@ final class EventService
         if (ctype_digit($slugOrId)) {
             $stmt = $pdo->prepare(
                 "SELECT id, title, event_date, slug, description, author_id, event_status, privacy, guest_limit
-                 FROM vt_events
+                 FROM events
                  WHERE id = :id
                  LIMIT 1"
             );
@@ -104,7 +104,7 @@ final class EventService
         } else {
             $stmt = $pdo->prepare(
                 "SELECT id, title, event_date, slug, description, author_id, event_status, privacy, guest_limit
-                 FROM vt_events
+                 FROM events
                  WHERE slug = :slug
                  LIMIT 1"
             );
@@ -131,7 +131,7 @@ final class EventService
         $createdAt = date('Y-m-d H:i:s');
 
         $stmt = $pdo->prepare(
-            "INSERT INTO vt_events (
+            "INSERT INTO events (
                 title,
                 slug,
                 description,
@@ -201,7 +201,7 @@ final class EventService
         $updatedAt = date('Y-m-d H:i:s');
 
         $stmt = $pdo->prepare(
-            "UPDATE vt_events
+            "UPDATE events
              SET title = :title,
                  description = :description,
                  event_date = :event_date,
@@ -231,7 +231,7 @@ final class EventService
         $slug = (string)($event['slug'] ?? $slugOrId);
         $pdo = $this->db->pdo();
 
-        $stmt = $pdo->prepare('DELETE FROM vt_events WHERE slug = :slug LIMIT 1');
+        $stmt = $pdo->prepare('DELETE FROM events WHERE slug = :slug LIMIT 1');
         $stmt->execute([':slug' => $slug]);
 
         return $stmt->rowCount() === 1;
@@ -249,7 +249,7 @@ final class EventService
         $pdo = $this->db->pdo();
         $stmt = $pdo->prepare('
             SELECT id, title, slug, description, event_date, location, author_id, community_id, created_at
-            FROM vt_events
+            FROM events
             WHERE community_id = :community_id
             ORDER BY event_date DESC, created_at DESC
             LIMIT :limit
@@ -274,7 +274,7 @@ final class EventService
         $base = $slug;
         $i = 1;
 
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM vt_events WHERE slug = :slug');
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM events WHERE slug = :slug');
 
         while (true) {
             $stmt->execute([':slug' => $slug]);
@@ -291,7 +291,7 @@ final class EventService
             return null;
         }
 
-        $stmt = $this->db->pdo()->prepare('SELECT email FROM vt_users WHERE id = :id LIMIT 1');
+        $stmt = $this->db->pdo()->prepare('SELECT email FROM users WHERE id = :id LIMIT 1');
         $stmt->bindValue(':id', $viewerId, PDO::PARAM_INT);
         $stmt->execute();
 

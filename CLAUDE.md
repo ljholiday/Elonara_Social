@@ -131,7 +131,7 @@ Access via: `app_service('service.name')`
 - `config/schema.sql` is single source of truth
 - Use PDO with prepared statements
 - Use transactions for multi-step operations
-- All table names prefixed with `vt_`
+- All table names prefixed with ``
 
 **Security**:
 - All input validated/sanitized
@@ -228,7 +228,7 @@ social_elonara/
 Modern approach:
 ```php
 $db = app_service('database.connection');
-$stmt = $db->prepare("SELECT * FROM vt_events WHERE id = ?");
+$stmt = $db->prepare("SELECT * FROM events WHERE id = ?");
 $stmt->execute([$id]);
 $event = $stmt->fetch();
 ```
@@ -236,7 +236,7 @@ $event = $stmt->fetch();
 Legacy approach (still used in many places):
 ```php
 $db = VT_Database::getInstance();
-$result = $db->prepare("SELECT * FROM vt_events WHERE id = ?");
+$result = $db->prepare("SELECT * FROM events WHERE id = ?");
 $result->execute([$id]);
 $event = $result->fetch();
 ```

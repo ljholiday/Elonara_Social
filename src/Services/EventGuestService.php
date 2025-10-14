@@ -10,7 +10,7 @@ use RuntimeException;
 /**
  * EventGuestService
  *
- * Encapsulates vt_guests CRUD operations so modern controllers avoid the legacy
+ * Encapsulates guests CRUD operations so modern controllers avoid the legacy
  * VT_Guest_Manager dependency.
  */
 final class EventGuestService
@@ -23,7 +23,7 @@ final class EventGuestService
     {
         $stmt = $this->database->pdo()->prepare(
             "SELECT id
-             FROM vt_guests
+             FROM guests
              WHERE event_id = :event_id
                AND email = :email
                AND status != 'declined'
@@ -46,7 +46,7 @@ final class EventGuestService
     public function createGuest(int $eventId, string $email, string $token, string $notes = '', string $invitationSource = 'direct'): int
     {
         $stmt = $this->database->pdo()->prepare(
-            "INSERT INTO vt_guests
+            "INSERT INTO guests
                 (event_id, email, name, status, rsvp_token, notes, invitation_source, rsvp_date)
              VALUES (:event_id, :email, '', 'pending', :token, :notes, :invitation_source, NOW())"
         );
@@ -81,7 +81,7 @@ final class EventGuestService
                     rsvp_token,
                     rsvp_date,
                     temporary_guest_id
-             FROM vt_guests
+             FROM guests
              WHERE event_id = :event_id
              ORDER BY rsvp_date DESC, id DESC"
         );
@@ -99,7 +99,7 @@ final class EventGuestService
     {
         $stmt = $this->database->pdo()->prepare(
             "SELECT *
-             FROM vt_guests
+             FROM guests
              WHERE id = :id AND event_id = :event_id
              LIMIT 1"
         );
@@ -116,7 +116,7 @@ final class EventGuestService
     public function deleteGuest(int $eventId, int $guestId): void
     {
         $stmt = $this->database->pdo()->prepare(
-            "DELETE FROM vt_guests WHERE id = :id AND event_id = :event_id"
+            "DELETE FROM guests WHERE id = :id AND event_id = :event_id"
         );
 
         $stmt->execute([
@@ -132,7 +132,7 @@ final class EventGuestService
     public function updateGuestToken(int $eventId, int $guestId, string $token): void
     {
         $stmt = $this->database->pdo()->prepare(
-            "UPDATE vt_guests
+            "UPDATE guests
              SET rsvp_token = :token, rsvp_date = NOW()
              WHERE id = :id AND event_id = :event_id"
         );
@@ -168,8 +168,8 @@ final class EventGuestService
                 e.allow_plus_ones,
                 e.max_guests,
                 e.guest_limit
-             FROM vt_guests g
-             JOIN vt_events e ON g.event_id = e.id
+             FROM guests g
+             JOIN events e ON g.event_id = e.id
              WHERE g.rsvp_token = :token
              LIMIT 1"
         );
@@ -203,7 +203,7 @@ final class EventGuestService
             return false;
         }
 
-        $sql = "UPDATE vt_guests SET " . implode(', ', $columns) . " WHERE rsvp_token = :token";
+        $sql = "UPDATE guests SET " . implode(', ', $columns) . " WHERE rsvp_token = :token";
         $stmt = $this->database->pdo()->prepare($sql);
         $stmt->execute($params);
 
@@ -213,7 +213,7 @@ final class EventGuestService
     public function countGuestsByStatus(int $eventId, string $status): int
     {
         $stmt = $this->database->pdo()->prepare(
-            "SELECT COUNT(*) FROM vt_guests
+            "SELECT COUNT(*) FROM guests
              WHERE event_id = :event_id AND status = :status"
         );
 

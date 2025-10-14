@@ -29,7 +29,7 @@ final class ConversationService
                     created_at,
                     reply_count,
                     last_reply_date
-                FROM vt_conversations
+                FROM conversations
                 ORDER BY COALESCE(updated_at, created_at) DESC
                 LIMIT :lim";
 
@@ -51,9 +51,9 @@ final class ConversationService
             $stmt = $pdo->prepare(
                 "SELECT conv.id, conv.title, conv.slug, conv.content, conv.author_id, conv.author_name, conv.created_at, conv.reply_count, conv.last_reply_date, conv.community_id, conv.privacy, com.privacy AS community_privacy,
                         u.username AS author_username, u.display_name AS author_display_name, u.email AS author_email, u.avatar_url AS author_avatar_url
-                 FROM vt_conversations conv
-                 LEFT JOIN vt_communities com ON conv.community_id = com.id
-                 LEFT JOIN vt_users u ON conv.author_id = u.id
+                 FROM conversations conv
+                 LEFT JOIN communities com ON conv.community_id = com.id
+                 LEFT JOIN users u ON conv.author_id = u.id
                  WHERE conv.id = :id
                  LIMIT 1"
             );
@@ -62,9 +62,9 @@ final class ConversationService
             $stmt = $pdo->prepare(
                 "SELECT conv.id, conv.title, conv.slug, conv.content, conv.author_id, conv.author_name, conv.created_at, conv.reply_count, conv.last_reply_date, conv.community_id, conv.privacy, com.privacy AS community_privacy,
                         u.username AS author_username, u.display_name AS author_display_name, u.email AS author_email, u.avatar_url AS author_avatar_url
-                 FROM vt_conversations conv
-                 LEFT JOIN vt_communities com ON conv.community_id = com.id
-                 LEFT JOIN vt_users u ON conv.author_id = u.id
+                 FROM conversations conv
+                 LEFT JOIN communities com ON conv.community_id = com.id
+                 LEFT JOIN users u ON conv.author_id = u.id
                  WHERE conv.slug = :slug
                  LIMIT 1"
             );
@@ -95,7 +95,7 @@ final class ConversationService
         $now = date('Y-m-d H:i:s');
 
         $stmt = $pdo->prepare(
-            "INSERT INTO vt_conversations (
+            "INSERT INTO conversations (
                 title,
                 slug,
                 content,
@@ -227,15 +227,15 @@ final class ConversationService
                 com.name AS community_name,
                 com.slug AS community_slug,
                 com.privacy AS community_privacy
-            FROM vt_conversations conv
-            LEFT JOIN vt_communities com ON conv.community_id = com.id
+            FROM conversations conv
+            LEFT JOIN communities com ON conv.community_id = com.id
             $where
             ORDER BY COALESCE(conv.updated_at, conv.created_at) DESC
             LIMIT $fetchLimit OFFSET $offset";
 
         $countSql = "SELECT COUNT(*)
-            FROM vt_conversations conv
-            LEFT JOIN vt_communities com ON conv.community_id = com.id
+            FROM conversations conv
+            LEFT JOIN communities com ON conv.community_id = com.id
             $where";
 
         $countStmt = $this->db->pdo()->prepare($countSql);
@@ -306,8 +306,8 @@ final class ConversationService
 
         $stmt = $this->db->pdo()->prepare(
             "SELECT DISTINCT e.id
-             FROM vt_events e
-             LEFT JOIN vt_guests g ON g.event_id = e.id
+             FROM events e
+             LEFT JOIN guests g ON g.event_id = e.id
              WHERE e.event_status = 'active'
                AND e.status = 'active'
                AND (
@@ -326,7 +326,7 @@ final class ConversationService
 
     private function lookupUserEmail(int $viewerId): ?string
     {
-        $stmt = $this->db->pdo()->prepare('SELECT email FROM vt_users WHERE id = :id LIMIT 1');
+        $stmt = $this->db->pdo()->prepare('SELECT email FROM users WHERE id = :id LIMIT 1');
         $stmt->bindValue(':id', $viewerId, PDO::PARAM_INT);
         $stmt->execute();
 
@@ -365,7 +365,7 @@ final class ConversationService
 
     private function lookupCommunityPrivacy(int $communityId): ?string
     {
-        $stmt = $this->db->pdo()->prepare('SELECT privacy FROM vt_communities WHERE id = :id LIMIT 1');
+        $stmt = $this->db->pdo()->prepare('SELECT privacy FROM communities WHERE id = :id LIMIT 1');
         $stmt->bindValue(':id', $communityId, PDO::PARAM_INT);
         $stmt->execute();
 
@@ -384,8 +384,8 @@ final class ConversationService
         $stmt = $this->db->pdo()->prepare(
             'SELECT r.id, r.conversation_id, r.parent_reply_id, r.content, r.image_url, r.image_alt, r.author_name, r.created_at, r.depth_level,
                     u.id AS author_id, u.username AS author_username, u.display_name AS author_display_name, u.email AS author_email, u.avatar_url AS author_avatar_url
-             FROM vt_conversation_replies r
-             LEFT JOIN vt_users u ON r.author_id = u.id
+             FROM conversation_replies r
+             LEFT JOIN users u ON r.author_id = u.id
              WHERE r.conversation_id = :cid
              ORDER BY r.created_at ASC'
         );
@@ -452,7 +452,7 @@ final class ConversationService
         $now = date('Y-m-d H:i:s');
 
         $stmt = $pdo->prepare(
-            'INSERT INTO vt_conversation_replies (conversation_id, parent_reply_id, content, image_url, image_alt, author_id, author_name, author_email, depth_level, created_at, updated_at)
+            'INSERT INTO conversation_replies (conversation_id, parent_reply_id, content, image_url, image_alt, author_id, author_name, author_email, depth_level, created_at, updated_at)
              VALUES (:conversation_id, :parent_reply_id, :content, :image_url, :image_alt, :author_id, :author_name, :author_email, :depth_level, :created_at, :updated_at)'
         );
 
@@ -507,7 +507,7 @@ final class ConversationService
         $now = date('Y-m-d H:i:s');
 
         $stmt = $pdo->prepare(
-            "UPDATE vt_conversations
+            "UPDATE conversations
              SET title = :title,
                  content = :content,
                  updated_at = :updated_at
@@ -535,7 +535,7 @@ final class ConversationService
         $slug = (string)($conversation['slug'] ?? $slugOrId);
         $pdo = $this->db->pdo();
 
-        $stmt = $pdo->prepare('DELETE FROM vt_conversations WHERE slug = :slug LIMIT 1');
+        $stmt = $pdo->prepare('DELETE FROM conversations WHERE slug = :slug LIMIT 1');
         $stmt->execute([':slug' => $slug]);
 
         return $stmt->rowCount() === 1;
@@ -555,8 +555,8 @@ final class ConversationService
             SELECT c.id, c.title, c.slug, c.content, c.author_id, c.event_id, c.community_id,
                    c.created_at, c.reply_count, c.last_reply_date,
                    u.username AS author_name
-            FROM vt_conversations c
-            LEFT JOIN vt_users u ON c.author_id = u.id
+            FROM conversations c
+            LEFT JOIN users u ON c.author_id = u.id
             WHERE c.event_id = :event_id
             ORDER BY c.created_at DESC
             LIMIT :limit
@@ -582,8 +582,8 @@ final class ConversationService
             SELECT c.id, c.title, c.slug, c.content, c.author_id, c.event_id, c.community_id,
                    c.created_at, c.reply_count, c.last_reply_date,
                    u.username AS author_name
-            FROM vt_conversations c
-            LEFT JOIN vt_users u ON c.author_id = u.id
+            FROM conversations c
+            LEFT JOIN users u ON c.author_id = u.id
             WHERE c.community_id = :community_id
             ORDER BY c.created_at DESC
             LIMIT :limit
@@ -608,7 +608,7 @@ final class ConversationService
         $base = $slug;
         $i = 1;
 
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM vt_conversations WHERE slug = :slug');
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM conversations WHERE slug = :slug');
 
         while (true) {
             $stmt->execute([':slug' => $slug]);
@@ -625,7 +625,7 @@ final class ConversationService
     public function getReply(int $replyId): ?array
     {
         $pdo = $this->db->pdo();
-        $stmt = $pdo->prepare('SELECT * FROM vt_conversation_replies WHERE id = :id');
+        $stmt = $pdo->prepare('SELECT * FROM conversation_replies WHERE id = :id');
         $stmt->execute([':id' => $replyId]);
         $reply = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $reply !== false ? $reply : null;
@@ -650,7 +650,7 @@ final class ConversationService
         $now = date('Y-m-d H:i:s');
 
         $stmt = $pdo->prepare(
-            'UPDATE vt_conversation_replies
+            'UPDATE conversation_replies
              SET content = :content, updated_at = :updated_at
              WHERE id = :id'
         );
@@ -673,7 +673,7 @@ final class ConversationService
         }
 
         $pdo = $this->db->pdo();
-        $stmt = $pdo->prepare('DELETE FROM vt_conversation_replies WHERE id = :id');
+        $stmt = $pdo->prepare('DELETE FROM conversation_replies WHERE id = :id');
         return $stmt->execute([':id' => $replyId]);
     }
 }

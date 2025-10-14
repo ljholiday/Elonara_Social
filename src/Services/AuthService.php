@@ -60,7 +60,7 @@ final class AuthService
 
         $stmt = $this->database->pdo()->prepare(
             "SELECT id, username, email, display_name, status, created_at, updated_at
-             FROM vt_users
+             FROM users
              WHERE id = :id
              LIMIT 1"
         );
@@ -109,7 +109,7 @@ final class AuthService
 
         $stmt = $this->database->pdo()->prepare(
             "SELECT id, username, email, password_hash, display_name, status, created_at, updated_at
-             FROM vt_users
+             FROM users
              WHERE (email = :email_identifier OR username = :username_identifier)
                AND status = 'active'
              LIMIT 1"
@@ -230,7 +230,7 @@ final class AuthService
         $now = date('Y-m-d H:i:s');
 
         $stmt = $pdo->prepare(
-            "INSERT INTO vt_users (
+            "INSERT INTO users (
                 username,
                 email,
                 password_hash,
@@ -276,7 +276,7 @@ final class AuthService
 
         $stmt = $this->database->pdo()->prepare(
             "SELECT id, username, email, display_name, status, created_at, updated_at
-             FROM vt_users
+             FROM users
              WHERE id = :id
              LIMIT 1"
         );
@@ -311,7 +311,7 @@ final class AuthService
         }
 
         $stmt = $this->database->pdo()->prepare(
-            "SELECT 1 FROM vt_users WHERE username = :username LIMIT 1"
+            "SELECT 1 FROM users WHERE username = :username LIMIT 1"
         );
         $stmt->execute([':username' => $username]);
 
@@ -325,7 +325,7 @@ final class AuthService
         }
 
         $stmt = $this->database->pdo()->prepare(
-            "SELECT 1 FROM vt_users WHERE email = :email LIMIT 1"
+            "SELECT 1 FROM users WHERE email = :email LIMIT 1"
         );
         $stmt->execute([':email' => $email]);
 
@@ -336,7 +336,7 @@ final class AuthService
     {
         try {
             $stmt = $this->database->pdo()->prepare(
-                "INSERT INTO vt_user_profiles (user_id, display_name)
+                "INSERT INTO user_profiles (user_id, display_name)
                  VALUES (:user_id, :display_name)"
             );
             $stmt->execute([
@@ -351,7 +351,7 @@ final class AuthService
     private function updateLastLogin(int $userId): void
     {
         $stmt = $this->database->pdo()->prepare(
-            "UPDATE vt_users SET last_login_at = :last_login_at WHERE id = :id"
+            "UPDATE users SET last_login_at = :last_login_at WHERE id = :id"
         );
         $stmt->execute([
             ':last_login_at' => date('Y-m-d H:i:s'),
@@ -375,7 +375,7 @@ final class AuthService
         }
 
         $pdo = $this->database->pdo();
-        $stmt = $pdo->prepare("SELECT id FROM vt_users WHERE email = :email AND status = 'active' LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email AND status = 'active' LIMIT 1");
         $stmt->execute([':email' => $email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -391,7 +391,7 @@ final class AuthService
         $expiresAt = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
         $insertStmt = $pdo->prepare(
-            "INSERT INTO vt_password_reset_tokens (user_id, token, expires_at)
+            "INSERT INTO password_reset_tokens (user_id, token, expires_at)
              VALUES (:user_id, :token, :expires_at)"
         );
         $insertStmt->execute([
@@ -422,7 +422,7 @@ final class AuthService
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare(
             "SELECT id, user_id, expires_at, used_at
-             FROM vt_password_reset_tokens
+             FROM password_reset_tokens
              WHERE token = :token
              LIMIT 1"
         );
@@ -473,7 +473,7 @@ final class AuthService
         $pdo = $this->database->pdo();
 
         $updateStmt = $pdo->prepare(
-            "UPDATE vt_users
+            "UPDATE users
              SET password_hash = :password_hash, updated_at = :updated_at
              WHERE id = :id"
         );
@@ -484,7 +484,7 @@ final class AuthService
         ]);
 
         $markUsedStmt = $pdo->prepare(
-            "UPDATE vt_password_reset_tokens
+            "UPDATE password_reset_tokens
              SET used_at = :used_at
              WHERE token = :token"
         );
@@ -511,7 +511,7 @@ final class AuthService
 
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare(
-            "INSERT INTO vt_email_verification_tokens (user_id, email, token, expires_at)
+            "INSERT INTO email_verification_tokens (user_id, email, token, expires_at)
              VALUES (:user_id, :email, :token, :expires_at)"
         );
         $stmt->execute([
@@ -546,7 +546,7 @@ final class AuthService
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare(
             "SELECT id, user_id, email, expires_at, verified_at
-             FROM vt_email_verification_tokens
+             FROM email_verification_tokens
              WHERE token = :token
              LIMIT 1"
         );
@@ -575,7 +575,7 @@ final class AuthService
         }
 
         $markVerifiedStmt = $pdo->prepare(
-            "UPDATE vt_email_verification_tokens
+            "UPDATE email_verification_tokens
              SET verified_at = :verified_at
              WHERE id = :id"
         );
@@ -643,7 +643,7 @@ final class AuthService
         }
 
         $pdo = $this->database->pdo();
-        $stmt = $pdo->prepare('UPDATE vt_users SET role = ? WHERE id = ?');
+        $stmt = $pdo->prepare('UPDATE users SET role = ? WHERE id = ?');
         $stmt->execute([$role, $userId]);
 
         return $stmt->rowCount() > 0;
@@ -662,7 +662,7 @@ final class AuthService
         }
 
         $pdo = $this->database->pdo();
-        $stmt = $pdo->prepare('SELECT role FROM vt_users WHERE id = ?');
+        $stmt = $pdo->prepare('SELECT role FROM users WHERE id = ?');
         $stmt->execute([$userId]);
 
         $role = $stmt->fetchColumn();

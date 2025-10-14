@@ -62,11 +62,11 @@ final class DatabaseTest
     {
         echo "Verifying core tables... ";
         $requiredTables = [
-            'vt_users',
-            'vt_events',
-            'vt_config',
-            'vt_communities',
-            'vt_conversations',
+            'users',
+            'events',
+            'config',
+            'communities',
+            'conversations',
         ];
 
         try {
@@ -94,18 +94,18 @@ final class DatabaseTest
 
     private function testConfigCrud(): void
     {
-        echo "Testing vt_config CRUD... ";
+        echo "Testing config CRUD... ";
         $optionName = 'codex_test_' . bin2hex(random_bytes(8));
         $optionValue = 'value_' . bin2hex(random_bytes(4));
         $updatedValue = 'updated_' . bin2hex(random_bytes(4));
 
         try {
             $insert = $this->pdo->prepare(
-                "INSERT INTO vt_config (option_name, option_value, autoload) VALUES (:name, :value, 'no')"
+                "INSERT INTO config (option_name, option_value, autoload) VALUES (:name, :value, 'no')"
             );
             $insert->execute([':name' => $optionName, ':value' => $optionValue]);
 
-            $select = $this->pdo->prepare("SELECT option_value FROM vt_config WHERE option_name = :name");
+            $select = $this->pdo->prepare("SELECT option_value FROM config WHERE option_name = :name");
             $select->execute([':name' => $optionName]);
             $fetched = $select->fetchColumn();
 
@@ -116,7 +116,7 @@ final class DatabaseTest
             }
 
             $update = $this->pdo->prepare(
-                "UPDATE vt_config SET option_value = :value WHERE option_name = :name"
+                "UPDATE config SET option_value = :value WHERE option_name = :name"
             );
             $update->execute([':value' => $updatedValue, ':name' => $optionName]);
 
@@ -129,7 +129,7 @@ final class DatabaseTest
                 return;
             }
 
-            $delete = $this->pdo->prepare("DELETE FROM vt_config WHERE option_name = :name");
+            $delete = $this->pdo->prepare("DELETE FROM config WHERE option_name = :name");
             $delete->execute([':name' => $optionName]);
 
             $select->execute([':name' => $optionName]);
@@ -138,7 +138,7 @@ final class DatabaseTest
                 return;
             }
 
-            $this->pass('CRUD flow succeeded on vt_config.');
+            $this->pass('CRUD flow succeeded on config.');
         } catch (\Throwable $e) {
             $this->fail('CRUD flow threw exception: ' . $e->getMessage());
             $this->cleanupConfig($optionName);
@@ -240,7 +240,7 @@ final class DatabaseTest
     {
         $email = 'codex-tester@example.com';
 
-        $stmt = $this->pdo->prepare('SELECT id, display_name FROM vt_users WHERE email = :email LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, display_name FROM users WHERE email = :email LIMIT 1');
         $stmt->execute([':email' => $email]);
         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -256,7 +256,7 @@ final class DatabaseTest
         $username = $baseUsername;
         $suffix = 1;
 
-        $checkUsername = $this->pdo->prepare('SELECT COUNT(*) FROM vt_users WHERE username = :username');
+        $checkUsername = $this->pdo->prepare('SELECT COUNT(*) FROM users WHERE username = :username');
         while (true) {
             $checkUsername->execute([':username' => $username]);
             if ((int)$checkUsername->fetchColumn() === 0) {
@@ -268,7 +268,7 @@ final class DatabaseTest
         $now = '2025-01-01 10:00:00';
 
         $insertUser = $this->pdo->prepare(
-            "INSERT INTO vt_users (username, email, password_hash, display_name, status, created_at, updated_at)
+            "INSERT INTO users (username, email, password_hash, display_name, status, created_at, updated_at)
              VALUES (:username, :email, :password_hash, :display_name, 'active', :created_at, :updated_at)"
         );
 
@@ -295,7 +295,7 @@ final class DatabaseTest
      */
     private function ensureCommunity(array $community, array $creator, int $memberCount): int
     {
-        $stmt = $this->pdo->prepare('SELECT id FROM vt_communities WHERE slug = :slug LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id FROM communities WHERE slug = :slug LIMIT 1');
         $stmt->execute([':slug' => $community['slug']]);
         $existingId = $stmt->fetchColumn();
 
@@ -310,7 +310,7 @@ final class DatabaseTest
 
         if ($existingId !== false) {
             $update = $this->pdo->prepare(
-                "UPDATE vt_communities
+                "UPDATE communities
                  SET name = :name,
                      description = :description,
                      privacy = :privacy,
@@ -324,7 +324,7 @@ final class DatabaseTest
         }
 
         $insert = $this->pdo->prepare(
-            "INSERT INTO vt_communities (
+            "INSERT INTO communities (
                 name,
                 slug,
                 description,
@@ -374,7 +374,7 @@ final class DatabaseTest
     private function ensureMembership(int $communityId, int $userId, string $role): void
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id FROM vt_community_members WHERE community_id = :community_id AND user_id = :user_id LIMIT 1'
+            'SELECT id FROM community_members WHERE community_id = :community_id AND user_id = :user_id LIMIT 1'
         );
         $stmt->execute([
             ':community_id' => $communityId,
@@ -385,7 +385,7 @@ final class DatabaseTest
             return;
         }
 
-        $userStmt = $this->pdo->prepare('SELECT email, display_name FROM vt_users WHERE id = :id LIMIT 1');
+        $userStmt = $this->pdo->prepare('SELECT email, display_name FROM users WHERE id = :id LIMIT 1');
         $userStmt->execute([':id' => $userId]);
         $user = $userStmt->fetch(PDO::FETCH_ASSOC);
         if ($user === false) {
@@ -393,7 +393,7 @@ final class DatabaseTest
         }
 
         $insert = $this->pdo->prepare(
-            "INSERT INTO vt_community_members (
+            "INSERT INTO community_members (
                 community_id,
                 user_id,
                 email,
@@ -430,7 +430,7 @@ final class DatabaseTest
     private function updateMemberCount(int $communityId, int $count): void
     {
         $stmt = $this->pdo->prepare(
-            'UPDATE vt_communities SET member_count = :member_count WHERE id = :id'
+            'UPDATE communities SET member_count = :member_count WHERE id = :id'
         );
         $stmt->execute([
             ':member_count' => $count,
@@ -440,7 +440,7 @@ final class DatabaseTest
 
     private function cleanupConfig(string $optionName): void
     {
-        $stmt = $this->pdo->prepare("DELETE FROM vt_config WHERE option_name = :name");
+        $stmt = $this->pdo->prepare("DELETE FROM config WHERE option_name = :name");
         $stmt->execute([':name' => $optionName]);
     }
 

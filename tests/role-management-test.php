@@ -224,7 +224,7 @@ test("AuthorizationService isSiteAdmin() works with role column", function() use
 // Cleanup: Delete test user
 test("Cleanup test user", function() use ($testUserId) {
     $pdo = vt_service('database.connection')->pdo();
-    $stmt = $pdo->prepare('DELETE FROM vt_users WHERE id = ?');
+    $stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
     $stmt->execute([$testUserId]);
 
     return true;

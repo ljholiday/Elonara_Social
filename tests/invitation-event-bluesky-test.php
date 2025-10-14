@@ -35,7 +35,7 @@ try {
 
     // Create event
     $stmt = $pdo->prepare("
-        INSERT INTO vt_events (
+        INSERT INTO events (
             title,
             slug,
             description,
@@ -122,14 +122,14 @@ try {
     fwrite(STDERR, '❌ ' . $e->getMessage() . PHP_EOL);
 } finally {
     if ($guestId !== null) {
-        $pdo->prepare('DELETE FROM vt_guests WHERE id = :id')->execute([':id' => $guestId]);
+        $pdo->prepare('DELETE FROM guests WHERE id = :id')->execute([':id' => $guestId]);
     }
     if ($eventId !== null) {
-        $pdo->prepare('DELETE FROM vt_events WHERE id = :id')->execute([':id' => $eventId]);
+        $pdo->prepare('DELETE FROM events WHERE id = :id')->execute([':id' => $eventId]);
     }
     if ($hostId !== null) {
-        $pdo->prepare('DELETE FROM vt_user_profiles WHERE user_id = :user_id')->execute([':user_id' => $hostId]);
-        $pdo->prepare('DELETE FROM vt_users WHERE id = :id')->execute([':id' => $hostId]);
+        $pdo->prepare('DELETE FROM user_profiles WHERE user_id = :user_id')->execute([':user_id' => $hostId]);
+        $pdo->prepare('DELETE FROM users WHERE id = :id')->execute([':id' => $hostId]);
     }
 }
 

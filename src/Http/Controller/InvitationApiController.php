@@ -285,7 +285,7 @@ final class InvitationApiController
     private function canManageCommunity(int $communityId, int $viewerId, array $roles): bool
     {
         $stmt = $this->database->pdo()->prepare(
-            "SELECT role FROM vt_community_members WHERE community_id = :community_id AND user_id = :user_id LIMIT 1"
+            "SELECT role FROM community_members WHERE community_id = :community_id AND user_id = :user_id LIMIT 1"
         );
         $stmt->execute([
             ':community_id' => $communityId,

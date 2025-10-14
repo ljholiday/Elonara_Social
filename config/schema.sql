@@ -11,7 +11,7 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_ai_interactions` (
+CREATE TABLE `ai_interactions` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `user_id` bigint unsigned NOT NULL,
   `event_id` mediumint DEFAULT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE `vt_ai_interactions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_analytics` (
+CREATE TABLE `analytics` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `event_id` mediumint NOT NULL,
   `metric_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE `vt_analytics` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_at_protocol_sync` (
+CREATE TABLE `at_protocol_sync` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `entity_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
   `entity_id` mediumint NOT NULL,
@@ -70,7 +70,7 @@ CREATE TABLE `vt_at_protocol_sync` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_at_protocol_sync_log` (
+CREATE TABLE `at_protocol_sync_log` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `entity_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
   `entity_id` mediumint NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE `vt_at_protocol_sync_log` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_communities` (
+CREATE TABLE `communities` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
   `slug` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
@@ -126,7 +126,7 @@ CREATE TABLE `vt_communities` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_community_events` (
+CREATE TABLE `community_events` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `community_id` mediumint NOT NULL,
   `event_id` mediumint NOT NULL,
@@ -144,7 +144,7 @@ CREATE TABLE `vt_community_events` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_community_invitations` (
+CREATE TABLE `community_invitations` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `community_id` mediumint NOT NULL,
   `invited_by_member_id` mediumint NOT NULL,
@@ -169,7 +169,7 @@ CREATE TABLE `vt_community_invitations` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_community_members` (
+CREATE TABLE `community_members` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `community_id` mediumint NOT NULL,
   `user_id` bigint unsigned NOT NULL,
@@ -197,7 +197,7 @@ CREATE TABLE `vt_community_members` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_config` (
+CREATE TABLE `config` (
   `option_name` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `option_value` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
   `autoload` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'yes',
@@ -207,7 +207,7 @@ CREATE TABLE `vt_config` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_conversation_follows` (
+CREATE TABLE `conversation_follows` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `conversation_id` mediumint NOT NULL,
   `user_id` bigint unsigned NOT NULL,
@@ -224,7 +224,7 @@ CREATE TABLE `vt_conversation_follows` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_conversation_replies` (
+CREATE TABLE `conversation_replies` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `conversation_id` mediumint NOT NULL,
   `parent_reply_id` mediumint DEFAULT NULL,
@@ -248,7 +248,7 @@ CREATE TABLE `vt_conversation_replies` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_conversation_topics` (
+CREATE TABLE `conversation_topics` (
   `icon` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT '',
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
@@ -265,7 +265,7 @@ CREATE TABLE `vt_conversation_topics` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_conversations` (
+CREATE TABLE `conversations` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `event_id` mediumint DEFAULT NULL,
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
@@ -298,7 +298,7 @@ CREATE TABLE `vt_conversations` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_event_invitations` (
+CREATE TABLE `event_invitations` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `event_id` mediumint NOT NULL,
   `invited_by_user_id` bigint unsigned NOT NULL,
@@ -324,7 +324,7 @@ CREATE TABLE `vt_event_invitations` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_events` (
+CREATE TABLE `events` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
   `slug` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
@@ -379,7 +379,7 @@ CREATE TABLE `vt_events` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_guests` (
+CREATE TABLE `guests` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `rsvp_token` varchar(64) COLLATE utf8mb4_unicode_520_ci DEFAULT '',
   `temporary_guest_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT '',
@@ -409,7 +409,7 @@ CREATE TABLE `vt_guests` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_member_identities` (
+CREATE TABLE `member_identities` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `user_id` bigint unsigned NOT NULL,
   `email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
@@ -443,7 +443,7 @@ CREATE TABLE `vt_member_identities` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_post_images` (
+CREATE TABLE `post_images` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `event_id` mediumint NOT NULL,
   `user_id` bigint unsigned NOT NULL,
@@ -474,7 +474,7 @@ CREATE TABLE `vt_post_images` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_search` (
+CREATE TABLE `search` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `entity_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
   `entity_id` bigint unsigned NOT NULL,
@@ -500,7 +500,7 @@ CREATE TABLE `vt_search` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_sessions` (
+CREATE TABLE `sessions` (
   `id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
   `user_id` bigint unsigned DEFAULT NULL,
   `guest_token` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -515,7 +515,7 @@ CREATE TABLE `vt_sessions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_social` (
+CREATE TABLE `social` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `user_id` bigint unsigned NOT NULL,
   `guest_id` mediumint DEFAULT NULL,
@@ -534,7 +534,7 @@ CREATE TABLE `vt_social` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_user_activity_tracking` (
+CREATE TABLE `user_activity_tracking` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `user_id` bigint unsigned NOT NULL,
   `activity_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
@@ -549,7 +549,7 @@ CREATE TABLE `vt_user_activity_tracking` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_user_profiles` (
+CREATE TABLE `user_profiles` (
   `id` mediumint NOT NULL AUTO_INCREMENT,
   `user_id` bigint unsigned NOT NULL,
   `display_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT '',
@@ -588,7 +588,7 @@ CREATE TABLE `vt_user_profiles` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_users` (
+CREATE TABLE `users` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `username` varchar(60) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `email` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -612,7 +612,7 @@ CREATE TABLE `vt_users` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_password_reset_tokens` (
+CREATE TABLE `password_reset_tokens` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `user_id` bigint unsigned NOT NULL,
   `token` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -624,12 +624,12 @@ CREATE TABLE `vt_password_reset_tokens` (
   KEY `user_id` (`user_id`),
   KEY `expires_at` (`expires_at`),
   KEY `used_at` (`used_at`),
-  CONSTRAINT `vt_password_reset_tokens_user_fk` FOREIGN KEY (`user_id`) REFERENCES `vt_users` (`id`) ON DELETE CASCADE
+  CONSTRAINT `password_reset_tokens_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vt_email_verification_tokens` (
+CREATE TABLE `email_verification_tokens` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `user_id` bigint unsigned NOT NULL,
   `email` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -643,7 +643,7 @@ CREATE TABLE `vt_email_verification_tokens` (
   KEY `email` (`email`),
   KEY `expires_at` (`expires_at`),
   KEY `verified_at` (`verified_at`),
-  CONSTRAINT `vt_email_verification_tokens_user_fk` FOREIGN KEY (`user_id`) REFERENCES `vt_users` (`id`) ON DELETE CASCADE
+  CONSTRAINT `email_verification_tokens_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

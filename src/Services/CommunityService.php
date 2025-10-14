@@ -28,7 +28,7 @@ final class CommunityService
                     privacy,
                     member_count,
                     event_count
-                FROM vt_communities
+                FROM communities
                 WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")";
 
         $stmt = $this->db->pdo()->prepare($sql);
@@ -68,7 +68,7 @@ final class CommunityService
                     privacy,
                     member_count,
                     event_count
-                FROM vt_communities
+                FROM communities
                 ORDER BY COALESCE(created_at, id) DESC
                 LIMIT :lim";
         $stmt = $this->db->pdo()->prepare($sql);
@@ -117,7 +117,7 @@ final class CommunityService
                     privacy,
                     member_count,
                     event_count
-                FROM vt_communities
+                FROM communities
                 $where
                 ORDER BY COALESCE(created_at, id) DESC
                 LIMIT $limit";
@@ -156,7 +156,7 @@ final class CommunityService
         if (ctype_digit($slugOrId)) {
             $stmt = $pdo->prepare(
                 "SELECT id, name AS title, slug, description, created_at, privacy, member_count, event_count, creator_id
-                 FROM vt_communities
+                 FROM communities
                  WHERE id = :id
                  LIMIT 1"
             );
@@ -164,7 +164,7 @@ final class CommunityService
         } else {
             $stmt = $pdo->prepare(
                 "SELECT id, name AS title, slug, description, created_at, privacy, member_count, event_count, creator_id
-                 FROM vt_communities
+                 FROM communities
                  WHERE slug = :slug
                  LIMIT 1"
             );
@@ -195,7 +195,7 @@ final class CommunityService
         $now = date('Y-m-d H:i:s');
 
         $stmt = $pdo->prepare(
-            "INSERT INTO vt_communities (
+            "INSERT INTO communities (
                 name,
                 slug,
                 description,
@@ -245,7 +245,7 @@ final class CommunityService
     $communityId = (int)$pdo->lastInsertId();
 
     $stmtMember = $pdo->prepare("
-        INSERT INTO vt_community_members (
+        INSERT INTO community_members (
             community_id,
             user_id,
             role,
@@ -294,7 +294,7 @@ final class CommunityService
         $updatedAt = date('Y-m-d H:i:s');
 
         $stmt = $pdo->prepare(
-            "UPDATE vt_communities
+            "UPDATE communities
              SET name = :name,
                  description = :description,
                  privacy = :privacy,
@@ -324,7 +324,7 @@ final class CommunityService
         $slug = (string)($community['slug'] ?? $slugOrId);
         $pdo = $this->db->pdo();
 
-        $stmt = $pdo->prepare('DELETE FROM vt_communities WHERE slug = :slug LIMIT 1');
+        $stmt = $pdo->prepare('DELETE FROM communities WHERE slug = :slug LIMIT 1');
         $stmt->execute([':slug' => $slug]);
 
         return $stmt->rowCount() === 1;
@@ -343,7 +343,7 @@ final class CommunityService
         $base = $slug;
         $i = 1;
 
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM vt_communities WHERE slug = :slug');
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM communities WHERE slug = :slug');
 
         while (true) {
             $stmt->execute([':slug' => $slug]);
@@ -362,7 +362,7 @@ final class CommunityService
 
         $pdo = $this->db->pdo();
         $stmt = $pdo->prepare(
-            "SELECT id FROM vt_community_members
+            "SELECT id FROM community_members
              WHERE community_id = :community_id
                AND user_id = :user_id
                AND status = 'active'
@@ -411,7 +411,7 @@ final class CommunityService
         }
 
         $stmt = $pdo->prepare(
-            "INSERT INTO vt_community_members (
+            "INSERT INTO community_members (
                 community_id,
                 user_id,
                 email,
@@ -443,9 +443,9 @@ final class CommunityService
         $memberId = (int)$pdo->lastInsertId();
 
         $updateStmt = $pdo->prepare(
-            "UPDATE vt_communities
+            "UPDATE communities
              SET member_count = (
-                 SELECT COUNT(*) FROM vt_community_members
+                 SELECT COUNT(*) FROM community_members
                  WHERE community_id = :count_community_id AND status = 'active'
              )
              WHERE id = :where_community_id"
