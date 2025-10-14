@@ -291,11 +291,14 @@ final class CommunityMemberService
         $stmt = $this->database->pdo()->prepare(
             "UPDATE vt_communities SET member_count = (
                 SELECT COUNT(*) FROM vt_community_members
-                WHERE community_id = :community_id AND status = 'active'
+                WHERE community_id = :community_id_for_count AND status = 'active'
             )
             WHERE id = :community_id"
         );
 
-        $stmt->execute([':community_id' => $communityId]);
+        $stmt->execute([
+            ':community_id_for_count' => $communityId,
+            ':community_id' => $communityId,
+        ]);
     }
 }

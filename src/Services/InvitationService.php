@@ -12,6 +12,7 @@ final class InvitationService
 {
     private const TOKEN_LENGTH = 32;
     private const EXPIRY_DAYS = 7;
+    private const EVENT_TOKEN_LENGTH = 64;
 
     public function __construct(
         private Database $database,
@@ -155,7 +156,10 @@ final class InvitationService
 
         $invitationId = (int)$invitation['id'];
         $communityId = (int)$invitation['community_id'];
-        $invitedEmail = strtolower((string)($invitation['invited_email'] ?? ''));
+        $invitedEmailRaw = (string)($invitation['invited_email'] ?? '');
+        $invitedEmail = strtolower(trim($invitedEmailRaw));
+        $isBlueskyInvite = \str_starts_with($invitedEmail, 'bsky:');
+        $invitedDid = $isBlueskyInvite ? strtolower(trim(substr($invitedEmail, 5))) : '';
         $expiresAt = $invitation['expires_at'] ?? null;
 
         if ($expiresAt !== null && $expiresAt !== '' && strtotime((string)$expiresAt) < time()) {
@@ -173,8 +177,25 @@ final class InvitationService
         }
 
         $userEmail = strtolower((string)($user->email ?? ''));
-        if ($userEmail === '' || $userEmail !== $invitedEmail) {
-            return $this->failure('This invitation was sent to a different email address.', 403);
+
+        if ($isBlueskyInvite) {
+            if ($invitedDid === '') {
+                return $this->failure('Invalid Bluesky invitation.', 400);
+            }
+
+            $credentials = $this->bluesky->getCredentials($viewerId);
+            if ($credentials === null) {
+                return $this->failure('Connect your Bluesky account to accept this invitation.', 403);
+            }
+
+            $userDid = strtolower((string)($credentials['did'] ?? ''));
+            if ($userDid === '' || $userDid !== $invitedDid) {
+                return $this->failure('This invitation was sent to a different Bluesky account.', 403);
+            }
+        } else {
+            if ($userEmail === '' || $userEmail !== $invitedEmail) {
+                return $this->failure('This invitation was sent to a different email address.', 403);
+            }
         }
 
         if ($this->communityMembers->isMember($communityId, $viewerId)) {
@@ -197,6 +218,16 @@ final class InvitationService
         }
 
         $this->updateCommunityInvitation($invitationId, 'accepted', $viewerId, true);
+
+        if ($isBlueskyInvite && $invitedDid !== '') {
+            $stmt = $this->database->pdo()->prepare(
+                'UPDATE vt_community_members SET at_protocol_did = :did WHERE id = :id'
+            );
+            $stmt->execute([
+                ':did' => $invitedDid,
+                ':id' => $memberId,
+            ]);
+        }
 
         return $this->success([
             'message' => 'You have successfully joined the community!',
@@ -420,13 +451,25 @@ final class InvitationService
      */
     private function isAlreadyInvited(string $type, int $entityId, string $email): bool
     {
-        $email = $this->sanitizer->email($email);
+        $normalizedEmail = strtolower(trim($email));
+        if ($normalizedEmail === '') {
+            return false;
+        }
+
+        if (!\str_starts_with($normalizedEmail, 'bsky:')) {
+            $normalizedEmail = strtolower($this->sanitizer->email($email));
+        }
+
+        if ($normalizedEmail === '') {
+            return false;
+        }
+
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare("
             SELECT COUNT(*) FROM vt_community_invitations
-            WHERE community_id = ? AND invited_email = ? AND status = 'pending'
+            WHERE community_id = ? AND LOWER(invited_email) = ? AND status = 'pending'
         ");
-        $stmt->execute([$entityId, $email]);
+        $stmt->execute([$entityId, $normalizedEmail]);
 
         return (int)$stmt->fetchColumn() > 0;
     }
@@ -599,7 +642,7 @@ final class InvitationService
 
         if ($cachedResult['success'] && !empty($cachedResult['followers'])) {
             foreach ($cachedResult['followers'] as $follower) {
-                $did = $follower['did'] ?? '';
+                $did = strtolower(trim((string)($follower['did'] ?? '')));
                 if ($did !== '') {
                     $followersMap[$did] = $follower;
                 }
@@ -613,11 +656,18 @@ final class InvitationService
 
         $eventName = $event['title'] ?? 'an event';
 
+        $processed = [];
+
         foreach ($followerDids as $did) {
-            $did = trim($did);
+            $did = strtolower(trim((string)$did));
             if ($did === '') {
                 continue;
             }
+
+            if (isset($processed[$did])) {
+                continue;
+            }
+            $processed[$did] = true;
 
             // Use bsky: prefix to indicate DID-based invitation
             $email = 'bsky:' . $did;
@@ -704,7 +754,7 @@ final class InvitationService
 
         if ($cachedResult['success'] && !empty($cachedResult['followers'])) {
             foreach ($cachedResult['followers'] as $follower) {
-                $did = $follower['did'] ?? '';
+                $did = strtolower(trim((string)($follower['did'] ?? '')));
                 if ($did !== '') {
                     $followersMap[$did] = $follower;
                 }
@@ -718,11 +768,18 @@ final class InvitationService
 
         $communityName = $community['name'] ?? 'a community';
 
+        $processed = [];
+
         foreach ($followerDids as $did) {
-            $did = trim($did);
+            $did = strtolower(trim((string)$did));
             if ($did === '') {
                 continue;
             }
+
+            if (isset($processed[$did])) {
+                continue;
+            }
+            $processed[$did] = true;
 
             // Use bsky: prefix to indicate DID-based invitation
             $email = 'bsky:' . $did;
@@ -823,5 +880,186 @@ final class InvitationService
             'message' => $message,
             'data' => [],
         ];
+    }
+
+    /**
+     * Fetch event invitation context by guest RSVP token.
+     *
+     * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
+     */
+    public function getEventInvitationByToken(string $token): array
+    {
+        $token = trim($token);
+        if ($token === '' || strlen($token) !== self::EVENT_TOKEN_LENGTH) {
+            return $this->failure('Invalid RSVP token.', 400);
+        }
+
+        $guest = $this->eventGuests->findGuestByToken($token);
+        if ($guest === null) {
+            return $this->failure('RSVP invitation not found.', 404);
+        }
+
+        $event = [
+            'id' => (int)$guest['event_id'],
+            'title' => (string)($guest['event_title'] ?? ''),
+            'slug' => (string)($guest['event_slug'] ?? ''),
+            'event_date' => (string)($guest['event_date'] ?? ''),
+            'event_time' => (string)($guest['event_time'] ?? ''),
+            'venue_info' => (string)($guest['venue_info'] ?? ''),
+            'description' => (string)($guest['event_description'] ?? ''),
+            'featured_image' => (string)($guest['featured_image'] ?? ''),
+            'allow_plus_ones' => (bool)((int)($guest['allow_plus_ones'] ?? 1) === 1),
+            'max_guests' => (int)($guest['max_guests'] ?? 0),
+            'guest_limit' => (int)($guest['guest_limit'] ?? 0),
+        ];
+
+        $guestData = [
+            'id' => (int)$guest['id'],
+            'email' => (string)$guest['email'],
+            'name' => (string)$guest['name'],
+            'phone' => (string)$guest['phone'],
+            'status' => strtolower((string)$guest['status'] ?? 'pending'),
+            'dietary_restrictions' => (string)($guest['dietary_restrictions'] ?? ''),
+            'plus_one' => (int)($guest['plus_one'] ?? 0),
+            'plus_one_name' => (string)($guest['plus_one_name'] ?? ''),
+            'notes' => (string)($guest['notes'] ?? ''),
+            'rsvp_date' => (string)($guest['rsvp_date'] ?? ''),
+            'invitation_source' => (string)($guest['invitation_source'] ?? ''),
+        ];
+
+        return $this->success([
+            'guest' => $guestData,
+            'event' => $event,
+            'token' => $token,
+            'is_bluesky' => \str_starts_with(strtolower($guestData['email']), 'bsky:'),
+        ]);
+    }
+
+    /**
+     * Respond to an event invitation via RSVP token.
+     *
+     * @param array<string,mixed> $input
+     * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
+     */
+    public function respondToEventInvitation(string $token, string $response, array $input): array
+    {
+        $token = trim($token);
+        if ($token === '' || strlen($token) !== self::EVENT_TOKEN_LENGTH) {
+            return $this->failure('Invalid RSVP token.', 400);
+        }
+
+        $response = strtolower(trim($response));
+        $allowedResponses = ['yes', 'no', 'maybe'];
+        if (!in_array($response, $allowedResponses, true)) {
+            return $this->failure('Please choose a valid RSVP option.', 422);
+        }
+
+        $guestRecord = $this->eventGuests->findGuestByToken($token);
+        if ($guestRecord === null) {
+            return $this->failure('RSVP invitation not found.', 404);
+        }
+
+        $eventId = (int)$guestRecord['event_id'];
+        $currentStatus = strtolower((string)($guestRecord['status'] ?? 'pending'));
+
+        $statusMap = [
+            'yes' => 'confirmed',
+            'maybe' => 'maybe',
+            'no' => 'declined',
+        ];
+        $targetStatus = $statusMap[$response];
+
+        $maxGuests = (int)($guestRecord['max_guests'] ?? 0);
+        if ($maxGuests <= 0) {
+            $maxGuests = (int)($guestRecord['guest_limit'] ?? 0);
+        }
+
+        if ($targetStatus === 'confirmed' && $maxGuests > 0 && $currentStatus !== 'confirmed') {
+            $confirmedCount = $this->eventGuests->countGuestsByStatus($eventId, 'confirmed');
+            if ($confirmedCount >= $maxGuests) {
+                return $this->failure('This event has reached its guest limit.', 409);
+            }
+        }
+
+        $allowPlusOnes = (bool)((int)($guestRecord['allow_plus_ones'] ?? 1) === 1);
+        $sanitizedName = $this->sanitizer->textField((string)($input['guest_name'] ?? $guestRecord['name'] ?? ''));
+        $sanitizedPhone = $this->sanitizer->phoneNumber((string)($input['guest_phone'] ?? $guestRecord['phone'] ?? ''));
+        $dietary = $this->sanitizer->textField((string)($input['dietary_restrictions'] ?? $guestRecord['dietary_restrictions'] ?? ''));
+        $notes = $this->sanitizer->textarea((string)($input['guest_notes'] ?? $guestRecord['notes'] ?? ''));
+        $plusOne = (int)($input['plus_one'] ?? $guestRecord['plus_one'] ?? 0);
+        $plusOne = $allowPlusOnes ? max(0, min(1, $plusOne)) : 0;
+        $plusOneName = $plusOne === 1
+            ? $this->sanitizer->textField((string)($input['plus_one_name'] ?? $guestRecord['plus_one_name'] ?? ''))
+            : '';
+
+        if ($targetStatus !== 'declined' && $sanitizedName === '') {
+            return $this->failure('Please provide your name so the host knows who is attending.', 422);
+        }
+
+        if ($plusOne === 1 && $plusOneName === '' && $targetStatus === 'confirmed') {
+            return $this->failure('Please share your guest\'s name or remove the plus one.', 422);
+        }
+
+        $update = [
+            'status' => $targetStatus,
+            'name' => $sanitizedName,
+            'phone' => $sanitizedPhone,
+            'dietary_restrictions' => $dietary,
+            'plus_one' => $plusOne,
+            'plus_one_name' => $plusOneName,
+            'notes' => $notes,
+            'rsvp_date' => date('Y-m-d H:i:s'),
+        ];
+
+        $updated = $this->eventGuests->updateGuestByToken($token, $update);
+        if (!$updated && $targetStatus !== $currentStatus) {
+            return $this->failure('Unable to save your RSVP at this time.', 500);
+        }
+
+        $refreshed = $this->eventGuests->findGuestByToken($token);
+        if ($refreshed === null) {
+            return $this->failure('Unable to retrieve updated RSVP details.', 500);
+        }
+
+        $guestData = [
+            'id' => (int)$refreshed['id'],
+            'email' => (string)$refreshed['email'],
+            'name' => (string)$refreshed['name'],
+            'phone' => (string)$refreshed['phone'],
+            'status' => strtolower((string)$refreshed['status'] ?? 'pending'),
+            'dietary_restrictions' => (string)($refreshed['dietary_restrictions'] ?? ''),
+            'plus_one' => (int)($refreshed['plus_one'] ?? 0),
+            'plus_one_name' => (string)($refreshed['plus_one_name'] ?? ''),
+            'notes' => (string)($refreshed['notes'] ?? ''),
+            'rsvp_date' => (string)($refreshed['rsvp_date'] ?? ''),
+            'invitation_source' => (string)($refreshed['invitation_source'] ?? ''),
+        ];
+
+        $event = [
+            'id' => (int)$refreshed['event_id'],
+            'title' => (string)($refreshed['event_title'] ?? ''),
+            'slug' => (string)($refreshed['event_slug'] ?? ''),
+            'event_date' => (string)($refreshed['event_date'] ?? ''),
+            'event_time' => (string)($refreshed['event_time'] ?? ''),
+            'venue_info' => (string)($refreshed['venue_info'] ?? ''),
+            'description' => (string)($refreshed['event_description'] ?? ''),
+            'featured_image' => (string)($refreshed['featured_image'] ?? ''),
+            'allow_plus_ones' => (bool)((int)($refreshed['allow_plus_ones'] ?? 1) === 1),
+        ];
+
+        $statusMessage = match ($targetStatus) {
+            'confirmed' => 'RSVP confirmed! We\'re excited to see you there.',
+            'declined' => 'Thanks for letting the host know you can\'t make it.',
+            'maybe' => 'We\'ve saved your “maybe” response. Feel free to update it anytime.',
+            default => 'RSVP updated.',
+        };
+
+        return $this->success([
+            'guest' => $guestData,
+            'event' => $event,
+            'token' => $token,
+            'status' => $targetStatus,
+            'message' => $statusMessage,
+        ]);
     }
 }

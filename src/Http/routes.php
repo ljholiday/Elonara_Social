@@ -1158,6 +1158,151 @@ return static function (Router $router): void {
         return null;
     });
 
+    $router->get('/rsvp/{token}', static function (Request $request, string $token) {
+        $invitationService = vt_service('invitation.manager');
+        $security = vt_service('security.service');
+
+        $result = $invitationService->getEventInvitationByToken($token);
+
+        if (!$result['success']) {
+            vt_render('guest-rsvp.php', [
+                'page_title' => 'RSVP Invitation',
+                'page_description' => 'Respond to your event invitation',
+                'error_message' => $result['message'],
+                'token' => $token,
+                'nonce' => $security->createNonce('guest_rsvp'),
+            ], 'form');
+            return null;
+        }
+
+        $data = $result['data'];
+        $guest = $data['guest'];
+        $event = $data['event'];
+        $isBluesky = (bool)($data['is_bluesky'] ?? false);
+
+        $quickResponse = strtolower((string)$request->query('response', ''));
+        $preselect = '';
+        if (in_array($quickResponse, ['yes', 'no', 'maybe'], true) && ($guest['status'] ?? 'pending') === 'pending') {
+            $preselect = $quickResponse;
+        }
+
+        $formValues = [
+            'guest_name' => $guest['name'] ?? '',
+            'guest_phone' => $guest['phone'] ?? '',
+            'dietary_restrictions' => $guest['dietary_restrictions'] ?? '',
+            'guest_notes' => $guest['notes'] ?? '',
+            'plus_one' => (int)($guest['plus_one'] ?? 0),
+            'plus_one_name' => $guest['plus_one_name'] ?? '',
+        ];
+
+        vt_render('guest-rsvp.php', [
+            'page_title' => $event['title'] !== '' ? 'RSVP: ' . $event['title'] : 'RSVP Invitation',
+            'page_description' => 'Let the host know if you can make it.',
+            'event' => $event,
+            'guest' => $guest,
+            'token' => $token,
+            'preselect' => $preselect,
+            'is_bluesky' => $isBluesky,
+            'form_values' => $formValues,
+            'errors' => [],
+            'success_message' => '',
+            'nonce' => $security->createNonce('guest_rsvp'),
+        ], 'form');
+        return null;
+    });
+
+    $router->post('/rsvp/{token}', static function (Request $request, string $token) {
+        $invitationService = vt_service('invitation.manager');
+        $security = vt_service('security.service');
+
+        $initial = $invitationService->getEventInvitationByToken($token);
+        if (!$initial['success']) {
+            vt_render('guest-rsvp.php', [
+                'page_title' => 'RSVP Invitation',
+                'page_description' => 'Respond to your event invitation',
+                'error_message' => $initial['message'],
+                'token' => $token,
+                'nonce' => $security->createNonce('guest_rsvp'),
+            ], 'form');
+            return null;
+        }
+
+        $data = $initial['data'];
+        $event = $data['event'];
+        $guest = $data['guest'];
+        $isBluesky = (bool)($data['is_bluesky'] ?? false);
+
+        $errors = [];
+        $successMessage = '';
+
+        $statusInput = strtolower(trim((string)$request->input('rsvp_status', '')));
+        $input = [
+            'guest_name' => (string)$request->input('guest_name', ''),
+            'guest_phone' => (string)$request->input('guest_phone', ''),
+            'dietary_restrictions' => (string)$request->input('dietary_restrictions', ''),
+            'guest_notes' => (string)$request->input('guest_notes', ''),
+            'plus_one' => (int)$request->input('plus_one', 0),
+            'plus_one_name' => (string)$request->input('plus_one_name', ''),
+        ];
+
+        $nonce = (string)$request->input('nonce', '');
+        if (!$security->verifyNonce($nonce, 'guest_rsvp', 0)) {
+            $errors[] = 'Security verification failed. Please refresh and try again.';
+        }
+
+        if ($statusInput === '') {
+            $errors[] = 'Please choose an RSVP option.';
+        }
+
+        if ($errors === []) {
+            $response = $invitationService->respondToEventInvitation($token, $statusInput, $input);
+            if ($response['success']) {
+                $responseData = $response['data'];
+                $guest = $responseData['guest'];
+                $event = $responseData['event'];
+                $isBluesky = \str_starts_with(strtolower((string)($guest['email'] ?? '')), 'bsky:');
+                $successMessage = (string)($responseData['message'] ?? 'RSVP updated.');
+
+                $input = [
+                    'guest_name' => $guest['name'] ?? '',
+                    'guest_phone' => $guest['phone'] ?? '',
+                    'dietary_restrictions' => $guest['dietary_restrictions'] ?? '',
+                    'guest_notes' => $guest['notes'] ?? '',
+                    'plus_one' => (int)($guest['plus_one'] ?? 0),
+                    'plus_one_name' => $guest['plus_one_name'] ?? '',
+                ];
+
+                $currentStatus = strtolower((string)($guest['status'] ?? 'pending'));
+                $statusInput = match ($currentStatus) {
+                    'confirmed' => 'yes',
+                    'declined' => 'no',
+                    'maybe' => 'maybe',
+                    default => $statusInput,
+                };
+            } else {
+                $errors[] = $response['message'];
+            }
+        }
+
+        $formValues = $input;
+        $preselect = $statusInput;
+
+        vt_render('guest-rsvp.php', [
+            'page_title' => $event['title'] !== '' ? 'RSVP: ' . $event['title'] : 'RSVP Invitation',
+            'page_description' => 'Let the host know if you can make it.',
+            'event' => $event,
+            'guest' => $guest,
+            'token' => $token,
+            'preselect' => $preselect,
+            'is_bluesky' => $isBluesky,
+            'form_values' => $formValues,
+            'errors' => $errors,
+            'success_message' => $successMessage,
+            'nonce' => $security->createNonce('guest_rsvp'),
+        ], 'form');
+        return null;
+    });
+
 $router->get('/invitation/accept', static function (Request $request) {
     $token = $request->query('token');
 

@@ -96,6 +96,7 @@ final class BlueskyService
             $stmt = $pdo->prepare('
                 UPDATE vt_member_identities
                 SET did = ?, handle = ?, access_jwt = ?, refresh_jwt = ?,
+                    at_protocol_did = ?, at_protocol_handle = ?, at_protocol_pds = ?,
                     pds_url = ?, is_verified = 1, updated_at = NOW()
                 WHERE user_id = ?
             ');
@@ -104,6 +105,9 @@ final class BlueskyService
                 $handle,
                 $accessJwt,
                 $refreshJwt,
+                $did,
+                $handle,
+                self::BSKY_SOCIAL_BASE,
                 self::BSKY_SOCIAL_BASE,
                 $userId,
             ]);
@@ -120,8 +124,8 @@ final class BlueskyService
             // Insert new
             $stmt = $pdo->prepare('
                 INSERT INTO vt_member_identities
-                (user_id, email, display_name, did, handle, access_jwt, refresh_jwt, pds_url, is_verified, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
+                (user_id, email, display_name, did, handle, at_protocol_did, at_protocol_handle, at_protocol_pds, access_jwt, refresh_jwt, pds_url, is_verified, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
             ');
             return $stmt->execute([
                 $userId,
@@ -129,6 +133,9 @@ final class BlueskyService
                 $user['display_name'],
                 $did,
                 $handle,
+                $did,
+                $handle,
+                self::BSKY_SOCIAL_BASE,
                 $accessJwt,
                 $refreshJwt,
                 self::BSKY_SOCIAL_BASE,

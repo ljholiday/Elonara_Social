@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 function handleInvitationAcceptance() {
     const urlParams = new URLSearchParams(window.location.search);
-    const invitationToken = urlParams.get('invitation');
+    const invitationToken = urlParams.get('invitation') || urlParams.get('token');
 
     if (!invitationToken) {
         return;
@@ -46,6 +46,7 @@ function handleInvitationAcceptance() {
             // Remove invitation parameter from URL
             const url = new URL(window.location);
             url.searchParams.delete('invitation');
+            url.searchParams.delete('token');
             window.history.replaceState({}, '', url);
 
             // Reload page after 2 seconds to show updated member status

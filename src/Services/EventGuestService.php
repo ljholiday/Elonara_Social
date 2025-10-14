@@ -43,12 +43,12 @@ final class EventGuestService
      *
      * @return int Inserted guest id
      */
-    public function createGuest(int $eventId, string $email, string $token, string $notes = ''): int
+    public function createGuest(int $eventId, string $email, string $token, string $notes = '', string $invitationSource = 'direct'): int
     {
         $stmt = $this->database->pdo()->prepare(
             "INSERT INTO vt_guests
-                (event_id, email, name, status, rsvp_token, notes, created_at)
-             VALUES (:event_id, :email, '', 'pending', :token, :notes, NOW())"
+                (event_id, email, name, status, rsvp_token, notes, invitation_source, rsvp_date)
+             VALUES (:event_id, :email, '', 'pending', :token, :notes, :invitation_source, NOW())"
         );
 
         $stmt->execute([
@@ -56,6 +56,7 @@ final class EventGuestService
             ':email' => $email,
             ':token' => $token,
             ':notes' => $notes,
+            ':invitation_source' => $invitationSource,
         ]);
 
         return (int)$this->database->pdo()->lastInsertId();
@@ -132,7 +133,7 @@ final class EventGuestService
     {
         $stmt = $this->database->pdo()->prepare(
             "UPDATE vt_guests
-             SET rsvp_token = :token, updated_at = NOW()
+             SET rsvp_token = :token, rsvp_date = NOW()
              WHERE id = :id AND event_id = :event_id"
         );
 
@@ -145,5 +146,82 @@ final class EventGuestService
         if ($stmt->rowCount() === 0) {
             throw new RuntimeException('Guest not found for this event.');
         }
+    }
+
+    /**
+     * Fetch a guest invitation by RSVP token with event context.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function findGuestByToken(string $token): ?array
+    {
+        $stmt = $this->database->pdo()->prepare(
+            "SELECT
+                g.*,
+                e.title AS event_title,
+                e.slug AS event_slug,
+                e.event_date,
+                e.event_time,
+                e.venue_info,
+                e.description AS event_description,
+                e.featured_image,
+                e.allow_plus_ones,
+                e.max_guests,
+                e.guest_limit
+             FROM vt_guests g
+             JOIN vt_events e ON g.event_id = e.id
+             WHERE g.rsvp_token = :token
+             LIMIT 1"
+        );
+
+        $stmt->execute([':token' => $token]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * Update guest invitation by RSVP token.
+     *
+     * @param array<string,mixed> $data
+     */
+    public function updateGuestByToken(string $token, array $data): bool
+    {
+        if ($token === '') {
+            return false;
+        }
+
+        $columns = [];
+        $params = [':token' => $token];
+
+        foreach ($data as $key => $value) {
+            $columns[] = "{$key} = :{$key}";
+            $params[":{$key}"] = $value;
+        }
+
+        if ($columns === []) {
+            return false;
+        }
+
+        $sql = "UPDATE vt_guests SET " . implode(', ', $columns) . " WHERE rsvp_token = :token";
+        $stmt = $this->database->pdo()->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function countGuestsByStatus(int $eventId, string $status): int
+    {
+        $stmt = $this->database->pdo()->prepare(
+            "SELECT COUNT(*) FROM vt_guests
+             WHERE event_id = :event_id AND status = :status"
+        );
+
+        $stmt->execute([
+            ':event_id' => $eventId,
+            ':status' => $status,
+        ]);
+
+        return (int)$stmt->fetchColumn();
     }
 }
