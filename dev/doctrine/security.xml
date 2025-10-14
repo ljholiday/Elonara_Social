@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  APPLICATION SECURITY STANDARDS
+  Core security practices that apply regardless of deployment environment.
+  Focuses on validation, authentication, authorization, and safe coding patterns.
+-->
+
+<security>
+  <behavioral_rules>
+    <rule>Confirm before creating, deleting, or modifying files.</rule>
+    <rule>Report your plan before executing commands.</rule>
+    <rule>Never add features not explicitly requested.</rule>
+    <rule>Use clear, professional, technical language.</rule>
+    <rule>Never use emojis or decorative symbols.</rule>
+  </behavioral_rules>
+
+  <validation>
+    <principle>Validate all user input server-side, even if validated client-side.</principle>
+    <principle>Use a whitelist approach wherever possible — reject anything not explicitly allowed.</principle>
+    <principle>Sanitize data before database storage and before rendering output.</principle>
+    <principle>Trim and normalize input to prevent hidden control characters or injection attempts.</principle>
+    <principle>Reject or escape dangerous characters where context-appropriate (e.g., HTML, SQL, shell).</principle>
+  </validation>
+
+  <authentication>
+    <principle>Use `password_hash()` for storage and `password_verify()` for authentication.</principle>
+    <principle>Do not implement custom cryptography — rely on PHP's built-in password functions and secure libraries.</principle>
+    <principle>Implement account lockout mechanisms after repeated failed login attempts.</principle>
+    <principle>Use secure password reset flows with expiring, single-use tokens.</principle>
+    <principle>Store session data securely and regenerate session IDs after login.</principle>
+  </authentication>
+
+  <authorization>
+    <principle>Implement proper role-based access control (RBAC) with least-privilege defaults.</principle>
+    <principle>Check authorization on every sensitive action — never rely solely on frontend visibility.</principle>
+    <principle>Never trust user-provided IDs or roles — always verify against the server-side record.</principle>
+    <principle>Ensure access control logic is centralized and consistent across the application.</principle>
+  </authorization>
+
+  <csrf>
+    <principle>Use CSRF tokens for all state-changing requests, including AJAX.</principle>
+    <principle>Validate tokens on the server before processing the request.</principle>
+    <principle>Ensure CSRF tokens are unique per session and regenerated regularly.</principle>
+  </csrf>
+
+  <session_management>
+    <principle>Use secure, HTTP-only cookies for session IDs.</principle>
+    <principle>Set the `SameSite` attribute appropriately to reduce CSRF risk.</principle>
+    <principle>Regenerate session IDs upon login and privilege escalation.</principle>
+    <principle>Invalidate sessions on logout or password change.</principle>
+  </session_management>
+
+  <api_security>
+    <principle>Authenticate API clients with strong tokens or OAuth2.</principle>
+    <principle>Rate-limit sensitive endpoints to prevent brute force attacks.</principle>
+    <principle>Use HTTPS for all API calls — never transmit credentials or tokens over HTTP.</principle>
+    <principle>Do not expose internal error details in API responses.</principle>
+  </api_security>
+
+  <output_escaping>
+    <principle>Escape all dynamic content before rendering in HTML, JavaScript, or JSON.</principle>
+    <principle>Use context-appropriate escaping (`htmlspecialchars()` for HTML, JSON encoding for JSON, etc.).</principle>
+    <principle>Sanitize user-generated content on input and escape again on output.</principle>
+  </output_escaping>
+</security>
+

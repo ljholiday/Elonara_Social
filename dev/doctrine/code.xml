@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CODE ORGANIZATION AND IMPLEMENTATION STANDARDS
+  This charter defines how code should be structured, separated, and written across the stack.
+  Its purpose is to enforce clarity, maintainability, and best practices in a multi-language codebase.
+-->
+
+<code>
+  <behavioral_rules>
+    <rule>Confirm before creating, deleting, or modifying any code files.</rule>
+    <rule>Report the planned changes and affected files before writing code.</rule>
+    <rule>Never add features or code not explicitly requested.</rule>
+    <rule>Never include emojis or decorative symbols in code or comments.</rule>
+  </behavioral_rules>
+
+  <structure>
+    <principle>Strictly separate languages: PHP handles server logic, HTML handles structure, CSS handles presentation, and JavaScript handles behavior.</principle>
+    <principle>Do not embed large JavaScript blocks directly into PHP or HTML templates. All non-trivial JavaScript must live in standalone `.js` files under `./assets/js/`.</principle>
+    <principle>Do not write inline `<script>` tags in PHP templates unless the script is less than 3–5 lines and directly tied to that template’s markup.</principle>
+    <principle>Do not embed CSS rules inside PHP or HTML files. All styles must live in external `.css` files under `./assets/css/`.</principle>
+    <principle>Use `include` or `require` for modular PHP code — never mix unrelated logic in a single file.</principle>
+    <principle>Each file should serve one purpose: a template renders, a controller handles requests, a script adds interactivity.</principle>
+  </structure>
+
+  <php>
+    <principle>All server-side logic belongs in `.php` files under `src/` or `templates/`, not embedded in `.html` or `.js` files.</principle>
+    <principle>Do not include HTML structure or presentation logic inside PHP classes or functions beyond minimal rendering responsibilities.</principle>
+    <principle>Escape all output and sanitize all input — PHP must always be the trust boundary.</principle>
+  </php>
+
+  <validation_and_sanitization>
+    <principle>Validation and sanitization happen at the boundary layer (templates, controllers, AJAX handlers), not in manager classes.</principle>
+    <principle>Sanitizers return cleaned values directly. Use: `vt_service('validation.sanitizer')->textField($input)`</principle>
+    <principle>Validators return arrays with validation results `['value' => ..., 'is_valid' => ..., 'errors' => []]`. Use validators ONLY in boundary layers where you need error messages.</principle>
+    <principle>Manager classes receive pre-sanitized data and trust it. Never call validators inside managers.</principle>
+    <principle>Flow: User Input → Template/Controller validates and sanitizes → Manager receives clean data → Database</principle>
+    <example>
+      CORRECT (in template):
+      $name = vt_service('validation.sanitizer')->textField($_POST['name']);
+      $manager->createThing(['name' => $name]);
+
+      INCORRECT (in manager):
+      $name = vt_service('validation.validator')->textField($data['name']); // Returns array, breaks database insert
+    </example>
+  </validation_and_sanitization>
+
+  <javascript>
+    <principle>All non-trivial JavaScript should reside in dedicated `.js` files within `./assets/js/`.</principle>
+    <principle>Organize scripts by functionality (e.g., `rsvp.js`, `events.js`, `forms.js`) instead of dumping everything into a single file.</principle>
+    <principle>Use event listeners and DOM queries rather than inline `onclick`/`onload` attributes in markup.</principle>
+    <principle>Keep script files modular: functions should be single-purpose and reusable.</principle>
+    <principle>When JS needs server data, expose it via JSON endpoints or data attributes — never echo raw PHP variables into script logic.</principle>
+  </javascript>
+
+  <html>
+    <principle>HTML files or templates should focus solely on structure and semantics.</principle>
+    <principle>Use minimal inline JavaScript only for template-specific one-liners — anything larger must be externalized.</principle>
+    <principle>Do not embed PHP logic directly inside HTML unless rendering dynamic content (e.g., looping over data for display).</principle>
+    <principle>Favor semantic HTML5 elements and ARIA attributes for accessibility.</principle>
+  </html>
+
+  <css>
+    <principle>Do not include inline `<style>` tags in templates or PHP files unless the rule is trivial and template-specific.</principle>
+    <principle>All CSS must reside in external `.css` files and follow the `.vt-` prefix naming convention.</principle>
+  </css>
+
+  <modularity>
+    <principle>Each component should have a single source of truth: HTML for structure, CSS for style, JS for behavior, and PHP for logic.</principle>
+    <principle>Favor smaller, composable files over monolithic code dumps.</principle>
+    <principle>Refactor duplicated logic into reusable functions, modules, or includes.</principle>
+    <principle>Do not mix unrelated functionality in a single file or function.</principle>
+  </modularity>
+
+  <documentation>
+    <principle>Document the purpose of each file and major function with concise, technical comments.</principle>
+    <principle>Do not write obvious comments that restate code (“// increment counter” is unnecessary).</principle>
+    <principle>For complex logic, explain *why* it exists, not just *what* it does.</principle>
+  </documentation>
+
+  <quality>
+    <principle>Run linters or static analysis tools before committing.</principle>
+    <principle>Ensure all JavaScript passes ESLint (or equivalent) and PHP passes PHPStan/Psalm.</principle>
+    <principle>All code must be readable and maintainable by another developer without explanation.</principle>
+  </quality>
+</code>
+

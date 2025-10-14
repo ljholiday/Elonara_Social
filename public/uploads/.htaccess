@@ -1,0 +1,19 @@
+# Protect uploads directory
+# Allow image files but deny direct execution of PHP files
+
+<Files "*.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Allow common image formats
+<FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Deny access to potentially dangerous files
+<FilesMatch "\.(php|php3|php4|php5|phtml|pl|py|jsp|asp|sh|cgi)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>

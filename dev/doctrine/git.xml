@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  GIT VERSION CONTROL STANDARDS
+  This charter defines the required branching, committing, and deployment workflow.
+  Its purpose is to ensure that every Git operation is deterministic, documented, and safe.
+-->
+
+<git>
+  <behavioral_rules>
+    <rule>No fucking emojis in git comments ever!!!</rule>
+    <rule>Confirm before committing, merging, rebasing, or resetting.</rule>
+    <rule>Confirm functionality before committing, merging, rebasing, or resetting.</rule>
+    <rule>Always check `git status` before performing any Git operation.</rule>
+    <rule>Never leave unstaged or untracked files before a commit.</rule>
+    <rule>Never commit on a detached HEAD.</rule>
+    <rule>Use clear, descriptive commit messages written in present tense.</rule>
+    <rule>Never commit directly to `main` or `production` without explicit instruction.</rule>
+    <rule>Always verify the current branch and remote before pushing.</rule>
+    <rule>Complete and confirm a section of work before committing it. Don't commit every little step.</rule>
+  </behavioral_rules>
+
+  <branching>
+    <principle>All development occurs on a feature branch, commonly `<developer_name>/<feature>`.</principle>
+    <principle>Never develop directly on `main`.</principle>
+    <principle>Always confirm you are on the correct branch before committing or merging.</principle>
+    <principle>Use descriptive branch names for specific features or fixes when applicable (e.g., `mike/feature/rsvp-handler`).</principle>
+  </branching>
+
+  <workflow>
+    <principle>1. Commit changes frequently and locally with clear messages describing the intent of each change.</principle>
+    <principle>2. Most work is done on `lonn` (or another feature branch).</principle>
+    <principle>3. When ready to integrate, checkout `main` and merge `lonn` into `main`.</principle>
+    <principle>4. Push `main` to `origin main` on GitHub.</principle>
+    <principle>5. Checkout `lonn` again to continue development.</principle>
+    <principle>6. Pull `origin main` into the production environment to deploy.</principle>
+    <principle>7. Do not commit or push any work until it has been tested.</principle>
+  </workflow>
+
+  <staging>
+    <principle>Always stage all modified and untracked files with `git add -A` before committing.</principle>
+    <principle>Never leave untracked files in the working tree. Each file must be committed, deleted, or explicitly ignored.</principle>
+    <principle>If a file is not in `.gitignore`, it must be either part of the codebase or removed.</principle>
+    <principle>Perform a `git diff --staged` review before committing to verify changes.</principle>
+  </staging>
+
+  <commits>
+    <principle>Commit messages must be in present tense (e.g., "Add RSVP preference save logic").</principle>
+    <principle>Each commit should represent a single, logical unit of work.</principle>
+    <principle>Do not commit commented-out code, debug code, or temporary files.</principle>
+    <principle>Do not commit credentials, environment files, or secrets.</principle>
+    <principle>Do not commit generated build artifacts unless they are explicitly part of the deployment.</principle>
+  </commits>
+
+  <merging>
+    <principle>Always ensure the working tree is clean before merging.</principle>
+    <principle>Use fast-forward merges when possible; if rebasing, confirm history integrity before pushing.</principle>
+    <principle>Resolve merge conflicts immediately and document any manual interventions.</principle>
+  </merging>
+
+  <deployment>
+    <principle>Deployment pulls `origin main` into the production environment.</principle>
+    <principle>Only files tracked in Git (and not ignored) should be present in production.</principle>
+    <principle>If a file is in the codebase and not ignored, it will be deployed — move it, commit it, or delete it based on necessity.</principle>
+  </deployment>
+
+  <safety>
+    <principle>Abort a commit or merge if the repository state is unclear or inconsistent.</principle>
+    <principle>Abort a push if there are local commits that do not reflect the intended state.</principle>
+    <principle>Request confirmation before deleting branches or resetting history.</principle>
+  </safety>
+</git>
+

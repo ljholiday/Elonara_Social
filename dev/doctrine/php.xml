@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PHP DEVELOPMENT STANDARDS
+  Covers coding conventions, security practices, and core development principles.
+-->
+
+<php>
+  <behavioral_rules>
+    <rule>Confirm before creating, deleting, or modifying files.</rule>
+    <rule>Report your plan before executing commands.</rule>
+    <rule>Never add features not explicitly requested.</rule>
+    <rule>Use clear, professional, technical language.</rule>
+    <rule>Never use emojis or decorative symbols.</rule>
+  </behavioral_rules>
+
+  <principles>
+    <principle>All methods and functions must use camelCase naming.</principle>
+    <principle>Follow PSR-12 coding standards exactly, including spacing, braces, and naming.</principle>
+    <principle>Use modern PHP features (PHP 8.1+), strict typing, and type hints.</principle>
+    <principle>Keep functions focused on a single responsibility.</principle>
+    <principle>Use dependency injection where appropriate.</principle>
+    <principle>Use `match` expressions instead of `switch` when possible.</principle>
+    <principle>Use arrow functions for simple callbacks and named arguments for clarity.</principle>
+  </principles>
+
+  <security>
+    <principle>Escape all output with `htmlspecialchars()` or equivalent to prevent XSS.</principle>
+    <principle>Always validate and sanitize user input before use.</principle>
+    <principle>Use CSRF tokens in all forms.</principle>
+    <principle>Use `password_hash()` and `password_verify()` for password handling.</principle>
+    <principle>Use prepared statements for all database queries.</principle>
+    <principle>Restrict file uploads and validate file types before saving.</principle>
+    <principle>Implement rate limiting on sensitive endpoints.</principle>
+  </security>
+
+  <error_handling>
+    <principle>Handle errors with proper exceptions and fallbacks.</principle>
+    <principle>Log errors securely without exposing sensitive information.</principle>
+    <principle>Use consistent error responses for API endpoints.</principle>
+    <principle>NEVER use error_log() function calls. EVER. For any reason.</principle>
+    <principle>For debugging, write to debug.log in the codebase root (already in .gitignore).</principle>
+  </error_handling>
+</php>
+

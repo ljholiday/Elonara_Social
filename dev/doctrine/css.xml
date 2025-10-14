@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CSS STANDARDS
+  Covers naming conventions, structure, theming, and quality guidelines.
+-->
+
+<css>
+  <behavioral_rules>
+    <rule>Confirm before creating, deleting, or modifying files.</rule>
+    <rule>Report your plan before executing commands.</rule>
+    <rule>Never add features not explicitly requested.</rule>
+    <rule>Use clear, professional, technical language.</rule>
+    <rule>Never use emojis or decorative symbols.</rule>
+  </behavioral_rules>
+
+  <naming>
+    <principle>All CSS classes must begin with a `.vt-` prefix.</principle>
+    <principle>Use semantic, descriptive names (e.g., `.vt-card`, `.vt-form-row`).</principle>
+    <principle>Use BEM methodology for components where appropriate.</principle>
+    <principle>Never use generic class names like `.button` or `.card`.</principle>
+  </naming>
+
+  <structure>
+    <principle>Maintain a single main stylesheet (e.g., `assets/css/style.css`).</principle>
+    <principle>Group related styles logically and avoid duplication.</principle>
+    <principle>Use CSS custom properties for consistent theming.</principle>
+    <principle>Use `rem` units for sizing, spacing, and typography.</principle>
+    <principle>Avoid inline styles and ensure all classes used in code are defined in CSS.</principle>
+  </structure>
+
+  <quality>
+    <principle>Run a prefix compliance check before commits.</principle>
+    <principle>Constrain button containers with consistent height and alignment using `rem` units.</principle>
+    <principle>Test responsive behavior across desktop and mobile.</principle>
+  </quality>
+</css>
+

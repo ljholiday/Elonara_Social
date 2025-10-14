@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  DATABASE PRACTICES
+  Standards for schema design, query safety, transactions, and performance optimization.
+-->
+
+<database>
+  <behavioral_rules>
+    <rule>Confirm before creating, deleting, or modifying files.</rule>
+    <rule>Report your plan before executing commands.</rule>
+    <rule>Never add features not explicitly requested.</rule>
+    <rule>Use clear, professional, technical language.</rule>
+    <rule>Never use emojis or decorative symbols.</rule>
+  </behavioral_rules>
+
+  <principles>
+    <principle>Use PDO with prepared statements for all queries.</principle>
+    <principle>Use transactions for multi-step operations.</principle>
+    <principle>Validate schema and cross-reference migrations before writing queries.</principle>
+    <principle>Handle database errors gracefully and log them appropriately.</principle>
+    <principle>Use environment variables for credentials and enable SSL in production.</principle>
+  </principles>
+
+  <schema_design>
+    <principle>Follow consistent naming conventions for tables and columns.</principle>
+    <principle>Use appropriate data types and indexes based on query patterns.</principle>
+    <principle>Document schema changes in `docs/database-schema.md`.</principle>
+    <principle>Review and optimize database structure regularly.</principle>
+    <source_of_truth>
+      <rule>`config/schema.sql` is the single source of truth for database structure.</rule>
+      <rule>Export current development database schema to `config/schema.sql` before committing schema changes.</rule>
+      <rule>`migrate.php` is ONLY for development convenience during active schema changes.</rule>
+      <rule>`install.sh` imports `config/schema.sql` directly - no migration system needed for clean installs.</rule>
+      <rule>Production deployments: import schema.sql on initial setup, then apply manual ALTER statements for changes.</rule>
+    </source_of_truth>
+  </schema_design>
+
+  <performance>
+    <principle>Use `EXPLAIN` to analyze query performance.</principle>
+    <principle>Enable query caching where appropriate.</principle>
+    <principle>Monitor and tune slow queries.</principle>
+  </performance>
+</database>
+

@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<circles_of_trust>
+    <description>
+        Elonara Social's core anti-algorithm social filtering system.
+        Replaces traditional algorithmic feeds with relationship-based content visibility.
+    </description>
+
+    <core_concept>
+        <principle>Human-curated trust networks over algorithmic manipulation</principle>
+        <goal>Users see content based on real social relationships, not engagement metrics</goal>
+        <differentiator>Primary competitive advantage over traditional social platforms</differentiator>
+    </core_concept>
+
+    <circle_definitions>
+        <inner_circle>
+            <description>Content from communities you're a member of</description>
+            <relationship>Direct relationships</relationship>
+            <trust_level>Highest</trust_level>
+            <content_scope>Communities where user has membership</content_scope>
+        </inner_circle>
+
+        <trusted_circle>
+            <description>Inner Circle + content from communities created by members of your communities</description>
+            <relationship>Friend-of-friend</relationship>
+            <trust_level>Medium</trust_level>
+            <content_scope>Inner Circle + communities created by people you trust</content_scope>
+        </trusted_circle>
+
+        <extended_circle>
+            <description>Trusted Circle + content from the broader network</description>
+            <relationship>Friend-of-friend-of-friend</relationship>
+            <trust_level>Lower</trust_level>
+            <content_scope>Trusted Circle + public content from extended network</content_scope>
+        </extended_circle>
+    </circle_definitions>
+
+    <implementation_requirements>
+        <mandatory_components>
+            <component name="VT_Conversation_Feed::list()">
+                <purpose>Core filtering engine for all conversation content</purpose>
+                <parameters>user_id, circle, options</parameters>
+                <requirement>MUST be used for all conversation filtering</requirement>
+            </component>
+
+            <component name="Circle Filter UI">
+                <elements>
+                    <button data-circle="inner">Inner</button>
+                    <button data-circle="trusted">Trusted</button>
+                    <button data-circle="extended">Extended</button>
+                </elements>
+                <requirement>MUST be present on all content listing pages</requirement>
+            </component>
+
+            <component name="Educational UI">
+                <purpose>Explain anti-algorithm concept to users</purpose>
+                <requirement>Help users understand the value of relationship-based filtering</requirement>
+            </component>
+        </mandatory_components>
+
+        <backend_requirements>
+            <database_queries>
+                <rule>All content queries MUST respect circle membership</rule>
+                <rule>Query optimization MUST consider circle filtering first</rule>
+                <rule>Privacy controls MUST be enforced at database level</rule>
+            </database_queries>
+
+            <api_endpoints>
+                <parameter name="circle" required="true">
+                    <values>inner, trusted, extended</values>
+                    <validation>Must be validated against allowed_circles array</validation>
+                </parameter>
+                <parameter name="filter" optional="true">
+                    <values>events, communities, "" (all)</values>
+                    <purpose>Secondary filtering within circle results</purpose>
+                </parameter>
+            </api_endpoints>
+        </backend_requirements>
+
+        <frontend_requirements>
+            <javascript_patterns>
+                <ajax_calls>
+                    <requirement>MUST include circle parameter in all content requests</requirement>
+                    <requirement>MUST update UI based on selected circle</requirement>
+                    <requirement>MUST provide visual feedback for circle changes</requirement>
+                </ajax_calls>
+
+                <ui_states>
+                    <active_circle>Visual indication of currently selected circle</active_circle>
+                    <loading_states>Show loading during circle transitions</loading_states>
+                    <empty_states>Explain why no content exists for selected circle</empty_states>
+                </ui_states>
+            </javascript_patterns>
+        </frontend_requirements>
+    </implementation_requirements>
+
+    <anti_patterns>
+        <never_do>
+            <item>Implement content filtering without circle integration</item>
+            <item>Create conversation listings that bypass VT_Conversation_Feed</item>
+            <item>Use direct database queries for conversation content</item>
+            <item>Ignore circle parameter in AJAX endpoints</item>
+            <item>Create algorithmic content ranking or sorting</item>
+        </never_do>
+
+        <warning_signs>
+            <item>Content queries that don't check community membership</item>
+            <item>UI without circle filter buttons</item>
+            <item>AJAX calls missing circle parameter</item>
+            <item>Direct VT_Conversation_Manager usage without circle filtering</item>
+        </warning_signs>
+    </anti_patterns>
+
+    <user_experience_goals>
+        <transparency>
+            <goal>Users understand why they see specific content</goal>
+            <implementation>Clear labeling of content sources and relationships</implementation>
+        </transparency>
+
+        <control>
+            <goal>Users control their content experience through trust relationships</goal>
+            <implementation>Easy circle switching and relationship management</implementation>
+        </control>
+
+        <education>
+            <goal>Users understand the anti-algorithm philosophy</goal>
+            <implementation>Contextual explanations and helpful UI guidance</implementation>
+        </education>
+
+        <privacy>
+            <goal>Content visibility respects community privacy settings</goal>
+            <implementation>Server-side enforcement of privacy rules</implementation>
+        </privacy>
+    </user_experience_goals>
+
+    <technical_architecture>
+        <data_flow>
+            <step>1. User selects circle (Inner/Trusted/Extended)</step>
+            <step>2. Frontend sends AJAX request with circle parameter</step>
+            <step>3. Backend calls VT_Conversation_Feed::list() with circle</step>
+            <step>4. VT_Conversation_Feed queries community memberships</step>
+            <step>5. Content filtered based on relationship network</step>
+            <step>6. Results returned with circle context metadata</step>
+            <step>7. Frontend renders content with relationship explanations</step>
+        </data_flow>
+
+        <performance_considerations>
+            <caching>Circle-based content can be cached per user per circle</caching>
+            <optimization>Community membership queries should be optimized</optimization>
+            <pagination>Large circle results need pagination support</pagination>
+        </performance_considerations>
+    </technical_architecture>
+
+    <validation_checklist>
+        <backend>
+            <item>VT_Conversation_Feed::list() used for all conversation filtering</item>
+            <item>Circle parameter validated in all AJAX endpoints</item>
+            <item>Community membership queries respect privacy settings</item>
+            <item>Error handling for invalid circles</item>
+        </backend>
+
+        <frontend>
+            <item>Circle filter buttons present and functional</item>
+            <item>Active circle visually indicated</item>
+            <item>AJAX calls include circle parameter</item>
+            <item>Loading states during circle transitions</item>
+            <item>Educational content explains anti-algorithm concept</item>
+        </frontend>
+
+        <user_experience>
+            <item>Content sources clearly labeled</item>
+            <item>Empty states explain missing content</item>
+            <item>Circle switching is smooth and responsive</item>
+            <item>Users understand why they see specific content</item>
+        </user_experience>
+    </validation_checklist>
+</circles_of_trust>
