@@ -22,7 +22,7 @@ function url_for(string $base, array $params = []): string
     return $params ? $base . '?' . http_build_query($params) : $base;
 }
 
-function vt_time_ago(?string $iso): string
+function app_time_ago(?string $iso): string
 {
     if ($iso === null || $iso === '') {
         return '';
@@ -58,7 +58,7 @@ function vt_time_ago(?string $iso): string
     return 'just now';
 }
 
-function vt_truncate_words(?string $text, int $limit = 25, string $ellipsis = '…'): string
+function app_truncate_words(?string $text, int $limit = 25, string $ellipsis = '…'): string
 {
     $text = trim((string)$text);
     if ($text === '') {
@@ -81,7 +81,7 @@ function vt_truncate_words(?string $text, int $limit = 25, string $ellipsis = '�
  * @param string $layout Layout to use ('page', 'form', 'two-column', or 'guest')
  * @return void
  */
-function vt_render(string $template_path, array $data = [], string $layout = 'page'): void
+function app_render(string $template_path, array $data = [], string $layout = 'page'): void
 {
     // Extract data for template
     extract($data, EXTR_SKIP);
@@ -92,7 +92,7 @@ function vt_render(string $template_path, array $data = [], string $layout = 'pa
     $content = ob_get_clean();
 
     // Set layout variables
-    $page_title = $data['page_title'] ?? 'Elonara Social';
+    $page_title = $data['page_title'] ?? (string)app_config('app_name', 'Elonara Social');
     $page_description = $data['page_description'] ?? '';
     $current_path = $_SERVER['REQUEST_URI'] ?? '/';
     $breadcrumbs = $data['breadcrumbs'] ?? [];
@@ -106,4 +106,25 @@ function vt_render(string $template_path, array $data = [], string $layout = 'pa
 
     // Render layout with content
     require __DIR__ . '/layouts/' . $layout . '.php';
+}
+
+if (!function_exists('app_time_ago')) {
+    function app_time_ago(?string $iso): string
+    {
+        return app_time_ago($iso);
+    }
+}
+
+if (!function_exists('app_truncate_words')) {
+    function app_truncate_words(?string $text, int $limit = 25, string $ellipsis = '…'): string
+    {
+        return app_truncate_words($text, $limit, $ellipsis);
+    }
+}
+
+if (!function_exists('app_render')) {
+    function app_render(string $template_path, array $data = [], string $layout = 'page'): void
+    {
+        app_render($template_path, $data, $layout);
+    }
 }

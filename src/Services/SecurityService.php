@@ -93,11 +93,11 @@ final class SecurityService
      * Generate HTML hidden input field for CSRF nonce
      *
      * @param string $action Action identifier
-     * @param string $fieldName Field name (default: '_vt_nonce')
+     * @param string $fieldName Field name (default: '_app_nonce')
      * @param bool $includeReferer Include HTTP referer field
      * @return string HTML input field
      */
-    public function nonceField(string $action = '', string $fieldName = '_vt_nonce', bool $includeReferer = true): string
+    public function nonceField(string $action = '', string $fieldName = '_app_nonce', bool $includeReferer = true): string
     {
         $userId = $_SESSION['user_id'] ?? 0;
         $nonce = $this->createNonce($action, $userId);
@@ -106,7 +106,7 @@ final class SecurityService
 
         if ($includeReferer) {
             $referer = $_SERVER['REQUEST_URI'] ?? '';
-            $field .= '<input type="hidden" name="_vt_http_referer" value="' . htmlspecialchars($referer, ENT_QUOTES, 'UTF-8') . '" />';
+            $field .= '<input type="hidden" name="_app_http_referer" value="' . htmlspecialchars($referer, ENT_QUOTES, 'UTF-8') . '" />';
         }
 
         return $field;

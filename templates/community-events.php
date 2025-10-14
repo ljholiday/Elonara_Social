@@ -14,30 +14,30 @@ $community = $community ?? null;
 $events = $events ?? [];
 ?>
 
-<section class="vt-section">
+<section class="app-section">
   <?php if (!$community): ?>
-    <p class="vt-text-muted">Community not found.</p>
+    <p class="app-text-muted">Community not found.</p>
   <?php else: ?>
-    <h1 class="vt-heading">Events</h1>
-    <p class="vt-text-muted">Events in <?= e($community['title']) ?></p>
+    <h1 class="app-heading">Events</h1>
+    <p class="app-text-muted">Events in <?= e($community['title']) ?></p>
 
     <?php if (empty($events)): ?>
-      <div class="vt-card vt-mt-4">
-        <p class="vt-text-muted">No events in this community yet.</p>
+      <div class="app-card app-mt-4">
+        <p class="app-text-muted">No events in this community yet.</p>
       </div>
     <?php else: ?>
-      <div class="vt-stack vt-mt-4">
+      <div class="app-stack app-mt-4">
         <?php foreach ($events as $event): $ev = (object)$event; ?>
-          <article class="vt-card">
-            <h3 class="vt-heading-sm">
-              <a href="/events/<?= e($ev->slug) ?>" class="vt-link">
+          <article class="app-card">
+            <h3 class="app-heading-sm">
+              <a href="/events/<?= e($ev->slug) ?>" class="app-link">
                 <?= e($ev->title) ?>
               </a>
             </h3>
             <?php if (!empty($ev->description)): ?>
-              <p class="vt-card-desc"><?= e(mb_substr($ev->description, 0, 200)) ?><?= mb_strlen($ev->description) > 200 ? '...' : '' ?></p>
+              <p class="app-card-desc"><?= e(mb_substr($ev->description, 0, 200)) ?><?= mb_strlen($ev->description) > 200 ? '...' : '' ?></p>
             <?php endif; ?>
-            <div class="vt-card-meta">
+            <div class="app-card-meta">
               <?php if (!empty($ev->event_date)): ?>
                 <span><?= e(date_fmt($ev->event_date)) ?></span>
               <?php endif; ?>

@@ -23,7 +23,7 @@ if ($sql === false) {
 }
 
 try {
-    $pdo = vt_service('database.connection')->pdo();
+    $pdo = app_service('database.connection')->pdo();
     $pdo->exec($sql);
     echo "✅ Migration completed successfully\n";
 } catch (\PDOException $e) {

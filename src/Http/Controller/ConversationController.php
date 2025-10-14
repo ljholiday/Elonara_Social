@@ -322,7 +322,7 @@ final class ConversationController
 
         $request = $this->request();
         $nonce = (string)$request->input('reply_nonce', '');
-        if (!$this->verifyNonce($nonce, 'vt_conversation_reply')) {
+        if (!$this->verifyNonce($nonce, 'app_conversation_reply')) {
             return [
                 'conversation' => $conversation,
                 'replies' => $this->conversations->listReplies((int)$conversation['id']),
@@ -423,7 +423,7 @@ final class ConversationController
     private function request(): \App\Http\Request
     {
         /** @var \App\Http\Request $request */
-        $request = vt_service('http.request');
+        $request = app_service('http.request');
         return $request;
     }
 

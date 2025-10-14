@@ -146,9 +146,9 @@ final class ProfileController
             // Verify CSRF token
             $nonce = (string)$request->input('profile_nonce', '');
             $logFile = dirname(__DIR__, 3) . '/debug.log';
-            file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "ProfileController nonce verification: nonce={$nonce}, action=vt_profile_update, userId={$currentUserId}\n", FILE_APPEND);
+            file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "ProfileController nonce verification: nonce={$nonce}, action=app_profile_update, userId={$currentUserId}\n", FILE_APPEND);
 
-            if (!$this->security->verifyNonce($nonce, 'vt_profile_update', $currentUserId)) {
+            if (!$this->security->verifyNonce($nonce, 'app_profile_update', $currentUserId)) {
                 file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "Nonce verification FAILED\n", FILE_APPEND);
                 return [
                     'user' => $user,

@@ -5,9 +5,9 @@
 (function() {
 	'use strict';
 
-	const nav = document.querySelector('.vt-conversation-filters');
-	const list = document.getElementById('vt-convo-list');
-	const circleStatus = document.getElementById('vt-circle-status');
+	const nav = document.querySelector('.app-conversation-filters');
+	const list = document.getElementById('app-convo-list');
+	const circleStatus = document.getElementById('app-circle-status');
 
 	if (!nav || !list) {
 		return;
@@ -30,12 +30,12 @@
 		currentFilter = filter;
 
 		// Add loading state with visual feedback
-		list.classList.add('vt-is-loading');
+		list.classList.add('app-is-loading');
 		list.style.opacity = '0.5';
 
 		if (circleStatus) {
 			const loadingText = filter ? circle + ' circle - ' + filter : circle + ' circle';
-			circleStatus.innerHTML = '<span class="vt-text-muted">Loading ' + loadingText + '...</span>';
+			circleStatus.innerHTML = '<span class="app-text-muted">Loading ' + loadingText + '...</span>';
 		}
 
 		// Prepare form data
@@ -76,19 +76,19 @@
 					}
 
 					circleStatus.innerHTML =
-						'<strong class="vt-text-primary">' + displayText + '</strong> ' +
-						'<span class="vt-text-muted">(' + meta.count + ' conversation' + (meta.count !== 1 ? 's' : '') + ')</span>';
+						'<strong class="app-text-primary">' + displayText + '</strong> ' +
+						'<span class="app-text-muted">(' + meta.count + ' conversation' + (meta.count !== 1 ? 's' : '') + ')</span>';
 				}
 			} else {
-				list.innerHTML = '<div class="vt-text-center vt-p-4"><p class="vt-text-muted">Error: ' + (data.message || 'Unknown error') + '</p></div>';
+				list.innerHTML = '<div class="app-text-center app-p-4"><p class="app-text-muted">Error: ' + (data.message || 'Unknown error') + '</p></div>';
 			}
 		})
 		.catch(error => {
 			console.error('Error loading conversations:', error);
-			list.innerHTML = '<div class="vt-text-center vt-p-4"><p class="vt-text-muted">Network error. Please try again.</p></div>';
+			list.innerHTML = '<div class="app-text-center app-p-4"><p class="app-text-muted">Network error. Please try again.</p></div>';
 		})
 		.finally(() => {
-			list.classList.remove('vt-is-loading');
+			list.classList.remove('app-is-loading');
 			list.style.opacity = '1';
 		});
 	}
@@ -158,7 +158,7 @@ window.editReply = function(replyId) {
 	const replyCard = document.querySelector(`article:has(button[onclick*="editReply(${replyId})"])`);
 	if (!replyCard) return;
 
-	const contentDiv = replyCard.querySelector('.vt-card-desc');
+	const contentDiv = replyCard.querySelector('.app-card-desc');
 	if (!contentDiv) return;
 
 	// Get current content (strip HTML breaks)
@@ -167,10 +167,10 @@ window.editReply = function(replyId) {
 
 	// Replace content with textarea
 	contentDiv.innerHTML = `
-		<textarea class="vt-form-textarea" id="edit-reply-${replyId}" rows="4" style="width: 100%; margin-bottom: 0.5rem;">${plainText}</textarea>
+		<textarea class="app-form-textarea" id="edit-reply-${replyId}" rows="4" style="width: 100%; margin-bottom: 0.5rem;">${plainText}</textarea>
 		<div style="display: flex; gap: 0.5rem;">
-			<button class="vt-btn vt-btn-sm vt-btn-primary" onclick="saveReply(${replyId})">Save</button>
-			<button class="vt-btn vt-btn-sm" onclick="cancelEditReply(${replyId}, ${JSON.stringify(currentContent).replace(/"/g, '&quot;')})">Cancel</button>
+			<button class="app-btn app-btn-sm app-btn-primary" onclick="saveReply(${replyId})">Save</button>
+			<button class="app-btn app-btn-sm" onclick="cancelEditReply(${replyId}, ${JSON.stringify(currentContent).replace(/"/g, '&quot;')})">Cancel</button>
 		</div>
 	`;
 
@@ -185,7 +185,7 @@ window.cancelEditReply = function(replyId, originalContent) {
 	const replyCard = document.querySelector(`article:has(button[onclick*="editReply(${replyId})"])`);
 	if (!replyCard) return;
 
-	const contentDiv = replyCard.querySelector('.vt-card-desc');
+	const contentDiv = replyCard.querySelector('.app-card-desc');
 	if (!contentDiv) return;
 
 	contentDiv.innerHTML = originalContent;
@@ -224,7 +224,7 @@ window.saveReply = function(replyId) {
 		if (data.success) {
 			// Update content in DOM
 			const replyCard = document.querySelector(`article:has(button[onclick*="editReply(${replyId})"])`);
-			const contentDiv = replyCard?.querySelector('.vt-card-desc');
+			const contentDiv = replyCard?.querySelector('.app-card-desc');
 			if (contentDiv) {
 				contentDiv.textContent = content;
 			}

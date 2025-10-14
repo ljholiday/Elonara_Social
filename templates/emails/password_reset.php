@@ -8,6 +8,8 @@ if (!isset($subject)) {
 	$subject = 'Reset Your Password';
 }
 
+$supportEmail = (string)app_config('support_email', 'support@example.com');
+
 $styles = array(
 	'container' => 'max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; line-height: 1.6; color: #333;',
 	'header' => 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center;',
@@ -75,7 +77,7 @@ $styles = array(
 			<!-- Help Section -->
 			<div style="text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
 				<p style="color: #718096; font-size: 14px; margin: 0;">
-					Need help? Contact us at support@social.elonara.com
+					Need help? Contact us at <?php echo htmlspecialchars($supportEmail); ?>
 				</p>
 			</div>
 		</div>

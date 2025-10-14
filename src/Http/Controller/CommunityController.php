@@ -429,7 +429,7 @@ final class CommunityController
     private function request(): Request
     {
         /** @var Request $request */
-        $request = vt_service('http.request');
+        $request = app_service('http.request');
         return $request;
     }
 

@@ -55,10 +55,11 @@ Elonara Social is a PHP-based web application designed to help communities organ
    mysql -u root -p -e "CREATE DATABASE social_elonara;"
    ```
 
-3. **Configure database**
+3. **Configure database & app metadata**
    ```bash
    cp config/database.php.sample config/database.php
    # Edit config/database.php with your database credentials
+   # Update config/app.php (name, domain, support email, asset url)
    ```
 
 4. **Run installation**
@@ -85,14 +86,14 @@ Elonara Social is a PHP-based web application designed to help communities organ
 
 ```
 social_elonara/
-├── assets/           # CSS, JavaScript, and static files
-├── config/           # Database and application configuration
-├── includes/         # Core PHP classes and application logic
-├── templates/        # HTML templates and views
-├── uploads/          # User-uploaded files
-├── dev/             # Development files and standards (gitignored)
-├── install.sh       # Automated installation script
-└── migrate.php      # Database migration runner
+├── config/           # App + database configuration (see app.php)
+├── public/           # Front controller, router, compiled assets, uploads/
+├── src/              # PSR-4 application code (services, controllers, etc.)
+├── templates/        # PHP view templates and layouts
+├── dev/              # Development standards (gitignored in production)
+├── migrations/       # SQL migration files
+├── install.sh        # Automated installation script
+└── run-migration.php # Simple migration runner
 ```
 
 ## Development
@@ -104,7 +105,7 @@ This project follows strict coding standards defined in the `dev/` directory:
 - **Language Separation**: PHP for logic, HTML for structure, CSS for presentation, JS for behavior
 - **Security First**: All input validated, output escaped, CSRF protection
 - **Modern PHP**: PHP 8.1+ features, strict typing, PSR-12 compliance
-- **Semantic CSS**: `.vt-` prefixed classes, BEM methodology where appropriate
+- **Semantic CSS**: `.app-` prefixed classes, BEM methodology where appropriate
 
 ### Contributing
 
@@ -124,6 +125,7 @@ The project includes development standards and guidelines in the `dev/` director
 - `css.xml` - CSS naming conventions and structure
 - `database.xml` - Database design and query standards
 - `security.xml` - Application security guidelines
+- `config/app.php` - Centralized metadata/config consumed via `app_config()`
 
 ## Security
 
@@ -135,6 +137,10 @@ Elonara Social takes security seriously:
 - **Secure Sessions**: HTTP-only, secure session cookies
 - **SQL Injection Prevention**: PDO prepared statements
 - **Password Security**: bcrypt hashing with secure defaults
+
+## Upcoming Work
+
+- Default communities automatically created for new members (public + private circles)
 
 ## License
 

@@ -13,8 +13,8 @@ $entity_type = $entity_type ?? 'event';
 $entity_id = $entity_id ?? 0;
 
 // Check if Bluesky is connected
-$blueskyService = function_exists('vt_service') ? vt_service('bluesky.service') : null;
-$authService = function_exists('vt_service') ? vt_service('auth.service') : null;
+$blueskyService = function_exists('app_service') ? app_service('bluesky.service') : null;
+$authService = function_exists('app_service') ? app_service('auth.service') : null;
 $currentUser = $authService ? $authService->getCurrentUser() : null;
 $isConnected = $blueskyService && $currentUser && $blueskyService->isConnected($currentUser->id);
 
@@ -24,26 +24,26 @@ if (!$isConnected) {
 ?>
 
 <!-- Bluesky Follower Selector Modal -->
-<div id="bluesky-follower-modal" class="vt-modal vt-bluesky-follower-modal" style="display: none;">
-    <div class="vt-modal-overlay" data-close-bluesky-modal></div>
-    <div class="vt-modal-content vt-modal-lg">
-        <div class="vt-modal-header">
-            <h3 class="vt-modal-title">Invite Bluesky Followers</h3>
-            <button type="button" class="vt-btn vt-btn-sm" data-close-bluesky-modal>&times;</button>
+<div id="bluesky-follower-modal" class="app-modal app-bluesky-follower-modal" style="display: none;">
+    <div class="app-modal-overlay" data-close-bluesky-modal></div>
+    <div class="app-modal-content app-modal-lg">
+        <div class="app-modal-header">
+            <h3 class="app-modal-title">Invite Bluesky Followers</h3>
+            <button type="button" class="app-btn app-btn-sm" data-close-bluesky-modal>&times;</button>
         </div>
 
-        <div class="vt-modal-body">
-            <div class="vt-mb-4">
-                <div class="vt-flex vt-items-center vt-gap-2 vt-mb-3">
+        <div class="app-modal-body">
+            <div class="app-mb-4">
+                <div class="app-flex app-items-center app-gap-2 app-mb-3">
                     <input
                         type="text"
                         id="follower-search"
-                        class="vt-form-input vt-flex-1"
+                        class="app-form-input app-flex-1"
                         placeholder="Search followers by name or handle..."
                     >
                     <button
                         type="button"
-                        class="vt-btn vt-btn-sm vt-btn-secondary"
+                        class="app-btn app-btn-sm app-btn-secondary"
                         id="sync-followers-btn"
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -53,7 +53,7 @@ if (!$isConnected) {
                     </button>
                 </div>
 
-                <div class="vt-flex vt-items-center vt-justify-between vt-text-sm vt-text-muted">
+                <div class="app-flex app-items-center app-justify-between app-text-sm app-text-muted">
                     <div>
                         <span id="selected-count">0</span> selected
                     </div>
@@ -61,25 +61,25 @@ if (!$isConnected) {
                 </div>
             </div>
 
-            <div id="follower-loading" class="vt-text-center vt-py-6" style="display: none;">
-                <div class="vt-spinner vt-mb-2"></div>
-                <div class="vt-text-muted">Loading followers...</div>
+            <div id="follower-loading" class="app-text-center app-py-6" style="display: none;">
+                <div class="app-spinner app-mb-2"></div>
+                <div class="app-text-muted">Loading followers...</div>
             </div>
 
-            <div id="follower-error" class="vt-alert vt-alert-error" style="display: none;"></div>
+            <div id="follower-error" class="app-alert app-alert-error" style="display: none;"></div>
 
-            <div id="follower-empty" class="vt-text-center vt-py-6 vt-text-muted" style="display: none;">
+            <div id="follower-empty" class="app-text-center app-py-6 app-text-muted" style="display: none;">
                 No followers found. Click "Sync" to fetch your Bluesky followers.
             </div>
 
-            <div id="follower-list" class="vt-follower-list"></div>
+            <div id="follower-list" class="app-follower-list"></div>
         </div>
 
-        <div class="vt-modal-footer">
-            <button type="button" class="vt-btn vt-btn-primary" id="invite-selected-btn" disabled>
+        <div class="app-modal-footer">
+            <button type="button" class="app-btn app-btn-primary" id="invite-selected-btn" disabled>
                 Invite Selected
             </button>
-            <button type="button" class="vt-btn" data-close-bluesky-modal>Cancel</button>
+            <button type="button" class="app-btn" data-close-bluesky-modal>Cancel</button>
         </div>
     </div>
 </div>
@@ -93,7 +93,7 @@ if (!$isConnected) {
 
     const openBtn = document.querySelector('[data-open-bluesky-modal]');
     const closeBtns = modal.querySelectorAll('[data-close-bluesky-modal]');
-    const overlay = modal.querySelector('.vt-modal-overlay');
+    const overlay = modal.querySelector('.app-modal-overlay');
     const searchInput = document.getElementById('follower-search');
     const syncBtn = document.getElementById('sync-followers-btn');
     const inviteBtn = document.getElementById('invite-selected-btn');
@@ -111,7 +111,7 @@ if (!$isConnected) {
     if (openBtn) {
         openBtn.addEventListener('click', function() {
             modal.style.display = 'block';
-            document.body.classList.add('vt-modal-open');
+            document.body.classList.add('app-modal-open');
             loadFollowers();
         });
     }
@@ -119,7 +119,7 @@ if (!$isConnected) {
     // Close modal
     function closeModal() {
         modal.style.display = 'none';
-        document.body.classList.remove('vt-modal-open');
+        document.body.classList.remove('app-modal-open');
         selectedFollowers.clear();
         updateSelectedCount();
     }
@@ -181,16 +181,16 @@ if (!$isConnected) {
             const description = follower.description || '';
 
             const item = document.createElement('div');
-            item.className = 'vt-follower-item';
+            item.className = 'app-follower-item';
             item.innerHTML = `
-                <label class="vt-follower-checkbox">
+                <label class="app-follower-checkbox">
                     <input type="checkbox" value="${escapeHtml(did)}" data-handle="${escapeHtml(handle)}">
-                    <div class="vt-follower-info">
-                        ${avatar ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(displayName)}" class="vt-follower-avatar">` : '<div class="vt-follower-avatar vt-follower-avatar-placeholder"></div>'}
-                        <div class="vt-follower-details">
-                            <div class="vt-follower-name">${escapeHtml(displayName)}</div>
-                            <div class="vt-follower-handle">@${escapeHtml(handle)}</div>
-                            ${description ? `<div class="vt-follower-description">${escapeHtml(description)}</div>` : ''}
+                    <div class="app-follower-info">
+                        ${avatar ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(displayName)}" class="app-follower-avatar">` : '<div class="app-follower-avatar app-follower-avatar-placeholder"></div>'}
+                        <div class="app-follower-details">
+                            <div class="app-follower-name">${escapeHtml(displayName)}</div>
+                            <div class="app-follower-handle">@${escapeHtml(handle)}</div>
+                            ${description ? `<div class="app-follower-description">${escapeHtml(description)}</div>` : ''}
                         </div>
                     </div>
                 </label>

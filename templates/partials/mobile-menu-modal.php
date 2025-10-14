@@ -12,14 +12,14 @@ $sidebar_content = $sidebar_content ?? '';
 ?>
 
 <!-- Mobile Menu Modal -->
-<div id="mobile-menu-modal" class="vt-mobile-menu-modal" style="display: none;">
-  <div class="vt-modal-overlay" data-close-mobile-menu></div>
-  <div class="vt-modal-content">
-    <div class="vt-modal-header">
-      <h3 class="vt-modal-title">Menu</h3>
-      <button type="button" class="vt-btn vt-btn-sm" data-close-mobile-menu>&times;</button>
+<div id="mobile-menu-modal" class="app-mobile-menu-modal" style="display: none;">
+  <div class="app-modal-overlay" data-close-mobile-menu></div>
+  <div class="app-modal-content">
+    <div class="app-modal-header">
+      <h3 class="app-modal-title">Menu</h3>
+      <button type="button" class="app-btn app-btn-sm" data-close-mobile-menu>&times;</button>
     </div>
-    <div class="vt-modal-body">
+    <div class="app-modal-body">
       <?= $sidebar_content ?>
     </div>
   </div>

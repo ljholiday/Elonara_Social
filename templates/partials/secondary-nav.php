@@ -18,7 +18,7 @@ if (empty($tabs) || !is_array($tabs)) {
 }
 ?>
 
-<div class="vt-tab-nav vt-flex vt-gap-4 vt-flex-wrap">
+<div class="app-tab-nav app-flex app-gap-4 app-flex-wrap">
     <?php foreach ($tabs as $tab) : ?>
         <?php
         $is_active = isset($tab['active']) ? $tab['active'] : false;
@@ -27,12 +27,12 @@ if (empty($tabs) || !is_array($tabs)) {
         $badge_count = $tab['badge_count'] ?? null;
         ?>
         <a href="<?php echo htmlspecialchars($url); ?>"
-           class="vt-btn <?php echo $is_active ? 'is-active' : ''; ?>"
+           class="app-btn <?php echo $is_active ? 'is-active' : ''; ?>"
            role="tab"
            aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>">
             <?php echo htmlspecialchars($label); ?>
             <?php if ($badge_count !== null) : ?>
-                <span class="vt-badge vt-badge-sm"><?php echo intval($badge_count); ?></span>
+                <span class="app-badge app-badge-sm"><?php echo intval($badge_count); ?></span>
             <?php endif; ?>
         </a>
     <?php endforeach; ?>

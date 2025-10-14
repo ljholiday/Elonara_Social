@@ -81,12 +81,12 @@ Use short-lived branches and keep PRs focused — the repo favors reviewable, in
 ### JavaScript (`public/assets/js`)
 
 - Vanilla JS only; no bundlers.
-- Namespace custom data attributes (`data-vt-*`) when adding hooks.
+- Namespace custom data attributes (`data-app-*`) when adding hooks.
 - Keep fetch requests centralized where possible (e.g., invitation flows in `communities.js`).
 
 ### CSS
 
-- Use existing `vt-` prefixed utility classes where possible. New styling belongs in `public/assets/css/style.css` with the same prefix.
+- Use existing `app-` prefixed utility classes where possible. New styling belongs in `public/assets/css/app.css` with the same prefix.
 
 ---
 
@@ -102,7 +102,7 @@ $container->register('my.service', static fn (VTContainer $c): MyService => new 
 ));
 ```
 
-Controllers and routes resolve services with `vt_service('my.service')`.
+Controllers and routes resolve services with `app_service('my.service')`.
 
 ### Boundary Validation
 

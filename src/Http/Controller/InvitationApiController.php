@@ -33,7 +33,7 @@ final class InvitationApiController
         if ($nonce === '') {
             $nonce = (string)$request->query('nonce', '');
         }
-        if (!$this->verifyNonce($nonce, 'vt_nonce')) {
+        if (!$this->verifyNonce($nonce, 'app_nonce')) {
             return $this->error('Security verification failed.', 403);
         }
 
@@ -63,7 +63,7 @@ final class InvitationApiController
             $nonce = (string)$request->query('nonce', '');
         }
 
-        if (!$this->verifyNonce($nonce, 'vt_nonce')) {
+        if (!$this->verifyNonce($nonce, 'app_nonce')) {
             return $this->error('Security verification failed.', 403);
         }
 
@@ -89,7 +89,7 @@ final class InvitationApiController
             $nonce = (string)$request->query('nonce', '');
         }
 
-        if (!$this->verifyNonce($nonce, 'vt_community_action')) {
+        if (!$this->verifyNonce($nonce, 'app_community_action')) {
             return $this->error('Security verification failed.', 403);
         }
 
@@ -117,7 +117,7 @@ final class InvitationApiController
         if ($nonce === '') {
             $nonce = (string)$request->query('nonce', '');
         }
-        if (!$this->verifyNonce($nonce, 'vt_community_action')) {
+        if (!$this->verifyNonce($nonce, 'app_community_action')) {
             return $this->error('Security verification failed.', 403);
         }
 
@@ -144,7 +144,7 @@ final class InvitationApiController
         if ($nonce === '') {
             $nonce = (string)$request->query('nonce', '');
         }
-        if (!$this->verifyNonce($nonce, 'vt_nonce')) {
+        if (!$this->verifyNonce($nonce, 'app_nonce')) {
             return $this->error('Security verification failed.', 403);
         }
 
@@ -178,7 +178,7 @@ final class InvitationApiController
         if ($nonce === '') {
             $nonce = (string)$request->query('nonce', '');
         }
-        if (!$this->verifyNonce($nonce, 'vt_nonce')) {
+        if (!$this->verifyNonce($nonce, 'app_nonce')) {
             return $this->error('Security verification failed.', 403);
         }
 
@@ -210,7 +210,7 @@ final class InvitationApiController
         if ($nonce === '') {
             $nonce = (string)$request->query('nonce', '');
         }
-        if (!$this->verifyNonce($nonce, 'vt_nonce')) {
+        if (!$this->verifyNonce($nonce, 'app_nonce')) {
             return $this->error('Security verification failed.', 403);
         }
 
@@ -243,7 +243,7 @@ final class InvitationApiController
             $nonce = (string)$request->query('nonce', '');
         }
 
-        if (!$this->verifyNonce($nonce, 'vt_nonce')) {
+        if (!$this->verifyNonce($nonce, 'app_nonce')) {
             return $this->error('Security verification failed.', 403);
         }
 
@@ -268,7 +268,7 @@ final class InvitationApiController
     private function request(): Request
     {
         /** @var Request $request */
-        $request = vt_service('http.request');
+        $request = app_service('http.request');
         return $request;
     }
 
@@ -308,7 +308,7 @@ final class InvitationApiController
     {
         $payload = $this->jsonBody();
         $nonce = (string)($payload['nonce'] ?? '');
-        if (!$this->verifyNonce($nonce, 'vt_community_action')) {
+        if (!$this->verifyNonce($nonce, 'app_community_action')) {
             return $this->error('Security verification failed.', 403);
         }
 
@@ -346,7 +346,7 @@ final class InvitationApiController
             $nonce = (string)$request->query('nonce', '');
         }
 
-        if (!$this->verifyNonce($nonce, 'vt_community_action')) {
+        if (!$this->verifyNonce($nonce, 'app_community_action')) {
             return $this->error('Security verification failed.', 403);
         }
 
@@ -413,7 +413,7 @@ final class InvitationApiController
         $viewerRole = $viewerId > 0 ? $this->communityMembers->getMemberRole($communityId, $viewerId) : null;
 
         if (!$members) {
-            return '<tr><td colspan="4" class="vt-text-center vt-text-muted">No members yet.</td></tr>';
+            return '<tr><td colspan="4" class="app-text-center app-text-muted">No members yet.</td></tr>';
         }
 
         ob_start();
@@ -428,27 +428,27 @@ final class InvitationApiController
 
             echo '<tr id="member-row-' . htmlspecialchars((string)$memberId) . '">';
             echo '<td>';
-            echo '<div class="vt-flex vt-gap-2"><div class="vt-avatar"></div>';
+            echo '<div class="app-flex app-gap-2"><div class="app-avatar"></div>';
             echo '<div><strong>' . htmlspecialchars($displayName) . '</strong></div></div>';
             echo '</td>';
 
             echo '<td>' . htmlspecialchars($email) . '</td>';
             echo '<td>' . ($joinedAt !== '' ? htmlspecialchars(date('M j, Y', strtotime($joinedAt))) : '-') . '</td>';
 
-            echo '<td><div class="vt-flex vt-gap-2">';
+            echo '<td><div class="app-flex app-gap-2">';
             if ($isSelf) {
-                echo '<span class="vt-text-muted vt-text-sm">You</span>';
+                echo '<span class="app-text-muted app-text-sm">You</span>';
             } else {
                 if ($viewerRole === 'admin' || $this->auth->currentUserCan('manage_options')) {
-                    echo '<select class="vt-form-input vt-form-input-sm" onchange="changeMemberRole(' . htmlspecialchars((string)$memberId) . ', this.value, ' . htmlspecialchars((string)$communityId) . ')">';
+                    echo '<select class="app-form-input app-form-input-sm" onchange="changeMemberRole(' . htmlspecialchars((string)$memberId) . ', this.value, ' . htmlspecialchars((string)$communityId) . ')">';
                     echo '<option value="member"' . ($role === 'member' ? ' selected' : '') . '>Member</option>';
                     echo '<option value="moderator"' . ($role === 'moderator' ? ' selected' : '') . '>Moderator</option>';
                     echo '<option value="admin"' . ($role === 'admin' ? ' selected' : '') . '>Admin</option>';
                     echo '</select>';
                     $jsName = json_encode($displayName);
-                    echo '<button class="vt-btn vt-btn-sm vt-btn-danger" onclick="removeMember(' . htmlspecialchars((string)$memberId) . ', ' . $jsName . ', ' . htmlspecialchars((string)$communityId) . ')">Remove</button>';
+                    echo '<button class="app-btn app-btn-sm app-btn-danger" onclick="removeMember(' . htmlspecialchars((string)$memberId) . ', ' . $jsName . ', ' . htmlspecialchars((string)$communityId) . ')">Remove</button>';
                 } else {
-                    echo '<span class="vt-badge vt-badge-' . ($role === 'admin' ? 'primary' : 'secondary') . '">' . htmlspecialchars(ucfirst($role)) . '</span>';
+                    echo '<span class="app-badge app-badge-' . ($role === 'admin' ? 'primary' : 'secondary') . '">' . htmlspecialchars(ucfirst($role)) . '</span>';
                 }
             }
             echo '</div></td>';
@@ -491,7 +491,7 @@ final class InvitationApiController
         $guests = $preloadedGuests ?? $this->invitations->getEventGuests($eventId);
 
         if ($guests === []) {
-            return '<div class="vt-text-center vt-text-muted">No RSVP invitations sent yet.</div>';
+            return '<div class="app-text-center app-text-muted">No RSVP invitations sent yet.</div>';
         }
 
         ob_start();
@@ -511,37 +511,37 @@ final class InvitationApiController
             };
             $invitationUrl = $this->buildEventInvitationUrl((string)($guest['rsvp_token'] ?? ''));
 
-            echo '<div class="vt-invitation-item" id="guest-' . htmlspecialchars((string)($guest['id'] ?? '')) . '">';
-            echo '<div class="vt-invitation-badges">';
-            echo '<span class="vt-badge vt-badge-' . $statusClass . '">' . htmlspecialchars($statusLabel) . '</span>';
+            echo '<div class="app-invitation-item" id="guest-' . htmlspecialchars((string)($guest['id'] ?? '')) . '">';
+            echo '<div class="app-invitation-badges">';
+            echo '<span class="app-badge app-badge-' . $statusClass . '">' . htmlspecialchars($statusLabel) . '</span>';
             $source = (string)($guest['invitation_source'] ?? 'direct');
             $sourceLabel = ucfirst($source);
-            echo '<span class="vt-badge vt-badge-secondary">' . htmlspecialchars($sourceLabel) . '</span>';
+            echo '<span class="app-badge app-badge-secondary">' . htmlspecialchars($sourceLabel) . '</span>';
             echo '</div>';
 
-            echo '<div class="vt-invitation-details">';
+            echo '<div class="app-invitation-details">';
             echo '<h4>' . htmlspecialchars((string)($guest['email'] ?? '')) . '</h4>';
             if (!empty($guest['name'])) {
-                echo '<div class="vt-text-muted">' . htmlspecialchars((string)$guest['name']) . '</div>';
+                echo '<div class="app-text-muted">' . htmlspecialchars((string)$guest['name']) . '</div>';
             }
             if (!empty($guest['rsvp_date'])) {
-                echo '<div class="vt-text-muted">Invited on ' . htmlspecialchars(date('M j, Y', strtotime((string)$guest['rsvp_date']))) . '</div>';
+                echo '<div class="app-text-muted">Invited on ' . htmlspecialchars(date('M j, Y', strtotime((string)$guest['rsvp_date']))) . '</div>';
             }
             if (!empty($guest['dietary_restrictions'])) {
-                echo '<div class="vt-text-muted"><strong>Dietary:</strong> ' . htmlspecialchars((string)$guest['dietary_restrictions']) . '</div>';
+                echo '<div class="app-text-muted"><strong>Dietary:</strong> ' . htmlspecialchars((string)$guest['dietary_restrictions']) . '</div>';
             }
             if (!empty($guest['notes'])) {
-                echo '<div class="vt-text-muted"><em>' . htmlspecialchars((string)$guest['notes']) . '</em></div>';
+                echo '<div class="app-text-muted"><em>' . htmlspecialchars((string)$guest['notes']) . '</em></div>';
             }
             echo '</div>';
 
-            echo '<div class="vt-invitation-actions">';
-            echo '<button type="button" class="vt-btn vt-btn-sm vt-btn-secondary" onclick="copyInvitationUrl(' . json_encode($invitationUrl) . ')">Copy Link</button>';
+            echo '<div class="app-invitation-actions">';
+            echo '<button type="button" class="app-btn app-btn-sm app-btn-secondary" onclick="copyInvitationUrl(' . json_encode($invitationUrl) . ')">Copy Link</button>';
             if (in_array($status, ['pending', 'maybe'], true)) {
-                echo '<button type="button" class="vt-btn vt-btn-sm vt-btn-secondary resend-event-invitation" data-invitation-id="' . htmlspecialchars((string)($guest['id'] ?? '')) . '" data-invitation-action="resend">Resend Email</button>';
+                echo '<button type="button" class="app-btn app-btn-sm app-btn-secondary resend-event-invitation" data-invitation-id="' . htmlspecialchars((string)($guest['id'] ?? '')) . '" data-invitation-action="resend">Resend Email</button>';
             }
             if ($status === 'pending') {
-                echo '<button type="button" class="vt-btn vt-btn-sm vt-btn-danger cancel-event-invitation" data-invitation-id="' . htmlspecialchars((string)($guest['id'] ?? '')) . '" data-invitation-action="cancel">Remove</button>';
+                echo '<button type="button" class="app-btn app-btn-sm app-btn-danger cancel-event-invitation" data-invitation-id="' . htmlspecialchars((string)($guest['id'] ?? '')) . '" data-invitation-action="cancel">Remove</button>';
             }
             echo '</div>';
             echo '</div>';

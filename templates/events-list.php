@@ -4,19 +4,19 @@
 
 $filter = $filter ?? 'all';
 ?>
-<section class="vt-section vt-events">
-  <h1 class="vt-heading">Upcoming Events</h1>
+<section class="app-section app-events">
+  <h1 class="app-heading">Upcoming Events</h1>
 
   <?php
   $card_path = __DIR__ . '/partials/card.php';
   if (!is_file($card_path)) {
-      echo '<p class="vt-text-muted">Card partial not found at templates/partials/card.php</p>';
+      echo '<p class="app-text-muted">Card partial not found at templates/partials/card.php</p>';
       return;
   }
   ?>
 
   <?php if (!empty($events)) : ?>
-    <div class="vt-grid vt-events-grid">
+    <div class="app-grid app-events-grid">
       <?php foreach ($events as $row):
         $entity = (object)[
           'id'          => $row['id'] ?? null,
@@ -30,7 +30,7 @@ $filter = $filter ?? 'all';
       endforeach; ?>
     </div>
   <?php else: ?>
-    <p class="vt-text-muted">
+    <p class="app-text-muted">
       <?php if ($filter === 'my'): ?>
         You do not have any upcoming events yet.
       <?php else: ?>

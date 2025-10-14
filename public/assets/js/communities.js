@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 function initCommunityTabs() {
     const communityTabs = document.querySelectorAll('[data-filter]');
-    const communityTabContents = document.querySelectorAll('.vt-communities-tab-content');
+    const communityTabContents = document.querySelectorAll('.app-communities-tab-content');
 
     if (!communityTabs.length) {
         return;
@@ -115,7 +115,7 @@ function escapeHtml(text) {
  * Initialize invitation link copy functionality
  */
 function initInvitationCopy() {
-    const copyLinkBtn = document.querySelector('.vt-copy-invitation-link');
+    const copyLinkBtn = document.querySelector('.app-copy-invitation-link');
     if (copyLinkBtn) {
         copyLinkBtn.addEventListener('click', function() {
             const linkInput = document.getElementById('invitation-link');
@@ -128,7 +128,7 @@ function initInvitationCopy() {
         });
     }
 
-    const copyWithMessageBtn = document.querySelector('.vt-copy-invitation-with-message');
+    const copyWithMessageBtn = document.querySelector('.app-copy-invitation-with-message');
     if (copyWithMessageBtn) {
         copyWithMessageBtn.addEventListener('click', function() {
             const link = document.getElementById('invitation-link').value;
@@ -335,19 +335,19 @@ function loadPendingInvitations(entityType, entityId) {
             } else if (payload.invitations && payload.invitations.length > 0) {
                 invitationsList.innerHTML = renderInvitationsList(payload.invitations, entityType);
             } else {
-                invitationsList.innerHTML = '<div class="vt-text-center vt-text-muted">No pending invitations.</div>';
+                invitationsList.innerHTML = '<div class="app-text-center app-text-muted">No pending invitations.</div>';
             }
 
             if (entityType === 'event') {
                 updateEventGuestUI(payload.invitations || []);
             }
         } else {
-            invitationsList.innerHTML = '<div class="vt-text-center vt-text-muted">Could not load invitations.</div>';
+            invitationsList.innerHTML = '<div class="app-text-center app-text-muted">Could not load invitations.</div>';
         }
     })
     .catch(error => {
         console.error('Error loading invitations:', error);
-        invitationsList.innerHTML = '<div class="vt-text-center vt-text-muted">Error loading invitations.</div>';
+        invitationsList.innerHTML = '<div class="app-text-center app-text-muted">Error loading invitations.</div>';
     });
 }
 
@@ -355,7 +355,7 @@ function loadPendingInvitations(entityType, entityId) {
  * Render invitations list HTML (for communities without server-side HTML)
  */
 function renderInvitationsList(invitations, entityType) {
-    let html = '<div class="vt-invitations-list">';
+    let html = '<div class="app-invitations-list">';
 
     invitations.forEach(inv => {
         const statusClass = inv.status === 'accepted' ? 'success' : (inv.status === 'declined' ? 'danger' : 'secondary');
@@ -374,19 +374,19 @@ function renderInvitationsList(invitations, entityType) {
             displayEmail = did.substring(0, 30) + '...'; // Truncate DID for display
         }
 
-        html += '<div class="vt-invitation-item">';
-        html += '<div class="vt-flex vt-flex-between">';
+        html += '<div class="app-invitation-item">';
+        html += '<div class="app-flex app-flex-between">';
         html += '<div>';
         html += '<strong>' + escapeHtml(displayEmail) + '</strong>';
         if (isBluesky) {
-            html += ' <span class="vt-badge vt-badge-secondary">Bluesky</span>';
+            html += ' <span class="app-badge app-badge-secondary">Bluesky</span>';
         }
-        html += '<div class="vt-text-muted vt-text-sm">Sent ' + new Date(dateField).toLocaleDateString() + '</div>';
+        html += '<div class="app-text-muted app-text-sm">Sent ' + new Date(dateField).toLocaleDateString() + '</div>';
         html += '</div>';
-        html += '<div class="vt-flex vt-gap-2">';
-        html += '<span class="vt-badge vt-badge-' + statusClass + '">' + statusText + '</span>';
+        html += '<div class="app-flex app-gap-2">';
+        html += '<span class="app-badge app-badge-' + statusClass + '">' + statusText + '</span>';
         if (inv.status === 'pending' && !isBluesky) {
-            html += '<button class="vt-btn vt-btn-sm vt-btn-danger cancel-invitation" data-invitation-id="' + inv.id + '" data-invitation-action="cancel">Cancel</button>';
+            html += '<button class="app-btn app-btn-sm app-btn-danger cancel-invitation" data-invitation-id="' + inv.id + '" data-invitation-action="cancel">Cancel</button>';
         }
         html += '</div>';
         html += '</div>';
@@ -581,9 +581,9 @@ function renderEventGuestsTable(guests) {
         const displayName = hasName ? escapeHtml(guest.name) : escapeHtml(guest.email || 'Guest');
         const nameHtml = hasName
             ? `<strong>${displayName}</strong>`
-            : `<strong class="vt-text-muted">${displayName}</strong>`;
+            : `<strong class="app-text-muted">${displayName}</strong>`;
         const plusOne = guest.plus_one && Number(guest.plus_one) > 0
-            ? `<br><small class="vt-text-muted">+1: ${escapeHtml(guest.plus_one_name || 'Guest')}</small>`
+            ? `<br><small class="app-text-muted">+1: ${escapeHtml(guest.plus_one_name || 'Guest')}</small>`
             : '';
         const email = escapeHtml(guest.email || '');
         const statusInfo = mapGuestStatus(guest.status);
@@ -599,10 +599,10 @@ function renderEventGuestsTable(guests) {
                 </td>
                 <td>${email}</td>
                 <td>
-                    <span class="vt-badge vt-badge-${statusInfo.badge}">${statusInfo.label}</span>
+                    <span class="app-badge app-badge-${statusInfo.badge}">${statusInfo.label}</span>
                 </td>
                 <td>${rsvpDate}</td>
-                <td><span class="vt-text-muted">—</span></td>
+                <td><span class="app-text-muted">—</span></td>
             </tr>
         `;
     }).join('');
@@ -659,7 +659,7 @@ function showEventGuestError() {
     if (tbody) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="vt-text-center vt-text-danger">
+                <td colspan="5" class="app-text-center app-text-danger">
                     Could not load guests. Please refresh to try again.
                 </td>
             </tr>

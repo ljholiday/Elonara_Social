@@ -162,7 +162,7 @@ final class EmbedService
         $provider = htmlspecialchars($embed['provider_name'] ?? 'Video', ENT_QUOTES, 'UTF-8');
 
         return sprintf(
-            '<div class="vt-embed vt-embed-rich"><div class="vt-embed-iframe">%s</div><div class="vt-embed-meta">%s</div></div>',
+            '<div class="app-embed app-embed-rich"><div class="app-embed-iframe">%s</div><div class="app-embed-meta">%s</div></div>',
             $html,
             $provider
         );
@@ -185,16 +185,16 @@ final class EmbedService
         if ($image) {
             $imageSafe = htmlspecialchars($image, ENT_QUOTES, 'UTF-8');
             $imageHtml = sprintf(
-                '<div class="vt-embed-image-wrapper"><img src="%s" alt="" class="vt-embed-image" loading="lazy"></div>',
+                '<div class="app-embed-image-wrapper"><img src="%s" alt="" class="app-embed-image" loading="lazy"></div>',
                 $imageSafe
             );
         }
 
-        $descriptionHtml = $description ? sprintf('<p class="vt-embed-description">%s</p>', $description) : '';
-        $providerHtml = $provider ? sprintf('<div class="vt-embed-provider">%s</div>', $provider) : '';
+        $descriptionHtml = $description ? sprintf('<p class="app-embed-description">%s</p>', $description) : '';
+        $providerHtml = $provider ? sprintf('<div class="app-embed-provider">%s</div>', $provider) : '';
 
         return sprintf(
-            '<div class="vt-embed vt-embed-card"><a href="%s" class="vt-embed-link" target="_blank" rel="noopener noreferrer">%s<div class="vt-embed-content"><h4 class="vt-embed-title">%s</h4>%s%s</div></a></div>',
+            '<div class="app-embed app-embed-card"><a href="%s" class="app-embed-link" target="_blank" rel="noopener noreferrer">%s<div class="app-embed-content"><h4 class="app-embed-title">%s</h4>%s%s</div></a></div>',
             $url,
             $imageHtml,
             $title,

@@ -3,16 +3,16 @@ $errors = $errors ?? [];
 $input = $input ?? ['title' => '', 'content' => ''];
 $conversation = $conversation ?? null;
 ?>
-<section class="vt-section vt-conversation-edit">
+<section class="app-section app-conversation-edit">
   <?php if (!$conversation): ?>
-    <h1 class="vt-heading">Conversation not found</h1>
-    <p class="vt-text-muted">We couldn’t find that conversation.</p>
+    <h1 class="app-heading">Conversation not found</h1>
+    <p class="app-text-muted">We couldn’t find that conversation.</p>
   <?php else: ?>
-    <h1 class="vt-heading">Edit Conversation</h1>
-    <p class="vt-text-muted">Editing <strong><?= e($conversation['title'] ?? '') ?></strong></p>
+    <h1 class="app-heading">Edit Conversation</h1>
+    <p class="app-text-muted">Editing <strong><?= e($conversation['title'] ?? '') ?></strong></p>
 
     <?php if ($errors): ?>
-      <div class="vt-alert vt-alert-error vt-mb-4">
+      <div class="app-alert app-alert-error app-mb-4">
         <p>Please fix the issues below:</p>
         <ul>
           <?php foreach ($errors as $message): ?>
@@ -22,11 +22,11 @@ $conversation = $conversation ?? null;
       </div>
     <?php endif; ?>
 
-    <form method="post" action="/conversations/<?= e($conversation['slug'] ?? '') ?>/edit" class="vt-form vt-stack">
-      <div class="vt-field">
-        <label class="vt-label" for="title">Title</label>
+    <form method="post" action="/conversations/<?= e($conversation['slug'] ?? '') ?>/edit" class="app-form app-stack">
+      <div class="app-field">
+        <label class="app-label" for="title">Title</label>
         <input
-          class="vt-input<?= isset($errors['title']) ? ' is-invalid' : '' ?>"
+          class="app-input<?= isset($errors['title']) ? ' is-invalid' : '' ?>"
           type="text"
           id="title"
           name="title"
@@ -35,10 +35,10 @@ $conversation = $conversation ?? null;
         >
       </div>
 
-      <div class="vt-field">
-        <label class="vt-label" for="content">Content</label>
+      <div class="app-field">
+        <label class="app-label" for="content">Content</label>
         <textarea
-          class="vt-textarea<?= isset($errors['content']) ? ' is-invalid' : '' ?>"
+          class="app-textarea<?= isset($errors['content']) ? ' is-invalid' : '' ?>"
           id="content"
           name="content"
           rows="6"
@@ -46,17 +46,17 @@ $conversation = $conversation ?? null;
         ><?= e($input['content'] ?? '') ?></textarea>
       </div>
 
-      <div class="vt-actions">
-        <button type="submit" class="vt-btn vt-btn-primary">Save Changes</button>
-        <a class="vt-btn" href="/conversations/<?= e($conversation['slug'] ?? '') ?>">Cancel</a>
+      <div class="app-actions">
+        <button type="submit" class="app-btn app-btn-primary">Save Changes</button>
+        <a class="app-btn" href="/conversations/<?= e($conversation['slug'] ?? '') ?>">Cancel</a>
       </div>
     </form>
 
-    <div class="vt-danger-zone vt-mt-6">
-      <h2 class="vt-heading-sm">Danger Zone</h2>
-      <p class="vt-text-muted">Deleting a conversation cannot be undone.</p>
-      <form method="post" action="/conversations/<?= e($conversation['slug'] ?? '') ?>/delete" class="vt-inline-form" onsubmit="return confirm('Delete this conversation?');">
-        <button type="submit" class="vt-btn vt-btn-danger">Delete Conversation</button>
+    <div class="app-danger-zone app-mt-6">
+      <h2 class="app-heading-sm">Danger Zone</h2>
+      <p class="app-text-muted">Deleting a conversation cannot be undone.</p>
+      <form method="post" action="/conversations/<?= e($conversation['slug'] ?? '') ?>/delete" class="app-inline-form" onsubmit="return confirm('Delete this conversation?');">
+        <button type="submit" class="app-btn app-btn-danger">Delete Conversation</button>
       </form>
     </div>
   <?php endif; ?>

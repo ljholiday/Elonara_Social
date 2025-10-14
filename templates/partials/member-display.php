@@ -15,7 +15,7 @@
  *   - 'show_avatar' => true (bool): Whether to show avatar
  *   - 'show_name' => true (bool): Whether to show name
  *   - 'link_profile' => true (bool): Whether to make it clickable
- *   - 'class' => 'vt-member-display' (string): CSS classes
+ *   - 'class' => 'app-member-display' (string): CSS classes
  */
 
 declare(strict_types=1);
@@ -26,7 +26,7 @@ $defaults = [
     'show_avatar'    => true,
     'show_name'      => true,
     'link_profile'   => true,
-    'class'          => 'vt-member-display',
+    'class'          => 'app-member-display',
 ];
 
 $args = isset($args) ? array_merge($defaults, $args) : $defaults;
@@ -54,23 +54,24 @@ if (!empty($user->avatar_url)) {
 
 // Fallback to default gravatar if no URL
 if (!$avatar_url) {
-    $fallback_hash = md5('default@social.elonara.com');
+    $fallbackEmail = 'default@' . (string)app_config('app_domain', 'example.com');
+    $fallback_hash = md5($fallbackEmail);
     $avatar_url = "https://www.gravatar.com/avatar/{$fallback_hash}?s=" . intval($args['avatar_size']) . "&d=identicon";
 }
 
 // Determine avatar class based on size
-$avatar_class = 'vt-avatar';
+$avatar_class = 'app-avatar';
 if ($args['avatar_size'] >= 56) {
-    $avatar_class .= ' vt-avatar-lg';
+    $avatar_class .= ' app-avatar-lg';
 } elseif ($args['avatar_size'] <= 32) {
-    $avatar_class .= ' vt-avatar-sm';
+    $avatar_class .= ' app-avatar-sm';
 }
 ?>
 
-<div class="<?= htmlspecialchars($args['class'], ENT_QUOTES, 'UTF-8') ?> vt-flex vt-gap">
+<div class="<?= htmlspecialchars($args['class'], ENT_QUOTES, 'UTF-8') ?> app-flex app-gap">
     <?php if ($args['show_avatar']): ?>
         <?php if ($args['link_profile'] && $profile_url): ?>
-            <a href="<?= htmlspecialchars($profile_url, ENT_QUOTES, 'UTF-8') ?>" class="vt-avatar-link">
+            <a href="<?= htmlspecialchars($profile_url, ENT_QUOTES, 'UTF-8') ?>" class="app-avatar-link">
                 <div class="<?= $avatar_class ?>">
                     <img src="<?= htmlspecialchars($avatar_url, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
@@ -84,11 +85,11 @@ if ($args['avatar_size'] >= 56) {
 
     <?php if ($args['show_name']): ?>
         <?php if ($args['link_profile'] && $profile_url): ?>
-            <a href="<?= htmlspecialchars($profile_url, ENT_QUOTES, 'UTF-8') ?>" class="vt-member-name vt-link">
+            <a href="<?= htmlspecialchars($profile_url, ENT_QUOTES, 'UTF-8') ?>" class="app-member-name app-link">
                 <?= htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8') ?>
             </a>
         <?php else: ?>
-            <span class="vt-member-name"><?= htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8') ?></span>
+            <span class="app-member-name"><?= htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8') ?></span>
         <?php endif; ?>
     <?php endif; ?>
 </div>

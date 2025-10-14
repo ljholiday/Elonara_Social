@@ -601,7 +601,7 @@ final class AuthService
 
         $this->mail->sendTemplate($email, 'password_reset', [
             'reset_url' => $resetUrl,
-            'site_name' => 'Elonara Social',
+            'site_name' => (string)app_config('app_name', 'Our Community'),
             'subject' => 'Reset Your Password',
         ]);
     }
@@ -612,7 +612,7 @@ final class AuthService
 
         $this->mail->sendTemplate($email, 'email_verification', [
             'verify_url' => $verifyUrl,
-            'site_name' => 'Elonara Social',
+            'site_name' => (string)app_config('app_name', 'Our Community'),
             'subject' => 'Verify Your Email Address',
         ]);
     }

@@ -32,7 +32,7 @@ final class CommunityApiController
             return $this->error('You must be logged in to join a community', 401);
         }
 
-        if (!$this->verifyNonce($nonce, 'vt_nonce', $viewerId)) {
+        if (!$this->verifyNonce($nonce, 'app_nonce', $viewerId)) {
             return $this->error('Security verification failed', 403);
         }
 
@@ -81,7 +81,7 @@ final class CommunityApiController
     private function request(): Request
     {
         /** @var Request $request */
-        $request = vt_service('http.request');
+        $request = app_service('http.request');
         return $request;
     }
 

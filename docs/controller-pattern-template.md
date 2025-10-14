@@ -122,7 +122,7 @@ final class FeatureController
     private function request(): Request
     {
         /** @var Request $request */
-        $request = vt_service('http.request');
+        $request = app_service('http.request');
         return $request;
     }
 
@@ -174,7 +174,7 @@ Registration Steps
 3. Wire the route in `public/index.php` (temporary router):
    ```php
    if ($path === '/features') {
-       $view = vt_service('controller.features')->index();
+       $view = app_service('controller.features')->index();
        $items = $view['items'];
        require __DIR__ . '/../templates/features-list.php';
        return;

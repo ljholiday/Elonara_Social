@@ -11,19 +11,19 @@ $community = $community ?? null;
 $members = $members ?? [];
 ?>
 
-<section class="vt-section">
+<section class="app-section">
   <?php if (!$community): ?>
-    <p class="vt-text-muted">Community not found.</p>
+    <p class="app-text-muted">Community not found.</p>
   <?php else: ?>
-    <h1 class="vt-heading">Members</h1>
-    <p class="vt-text-muted">Members of <?= e($community['title']) ?></p>
+    <h1 class="app-heading">Members</h1>
+    <p class="app-text-muted">Members of <?= e($community['title']) ?></p>
 
     <?php if (empty($members)): ?>
-      <div class="vt-card vt-mt-4">
-        <p class="vt-text-muted">No members in this community yet.</p>
+      <div class="app-card app-mt-4">
+        <p class="app-text-muted">No members in this community yet.</p>
       </div>
     <?php else: ?>
-      <div class="vt-stack vt-mt-4">
+      <div class="app-stack app-mt-4">
         <?php foreach ($members as $member):
           $user = (object)[
               'id' => $member['user_id'] ?? null,
@@ -34,10 +34,10 @@ $members = $members ?? [];
           ];
           $args = ['avatar_size' => 48];
           ?>
-          <div class="vt-card">
+          <div class="app-card">
             <?php include __DIR__ . '/partials/member-display.php'; ?>
             <?php if (!empty($member['role'])): ?>
-              <span class="vt-badge"><?= e(ucfirst($member['role'])) ?></span>
+              <span class="app-badge"><?= e(ucfirst($member['role'])) ?></span>
             <?php endif; ?>
           </div>
         <?php endforeach; ?>

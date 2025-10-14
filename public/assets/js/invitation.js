@@ -68,14 +68,14 @@ function handleInvitationAcceptance() {
  */
 function showInvitationStatus(message, type) {
     // Remove any existing status messages
-    const existing = document.querySelector('.vt-invitation-status');
+    const existing = document.querySelector('.app-invitation-status');
     if (existing) {
         existing.remove();
     }
 
     // Create status message
     const statusDiv = document.createElement('div');
-    statusDiv.className = 'vt-invitation-status vt-alert vt-alert-' + type;
+    statusDiv.className = 'app-invitation-status app-alert app-alert-' + type;
     statusDiv.textContent = message;
     statusDiv.style.position = 'fixed';
     statusDiv.style.top = '20px';

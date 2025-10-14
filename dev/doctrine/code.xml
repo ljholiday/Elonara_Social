@@ -30,17 +30,17 @@
 
   <validation_and_sanitization>
     <principle>Validation and sanitization happen at the boundary layer (templates, controllers, AJAX handlers), not in manager classes.</principle>
-    <principle>Sanitizers return cleaned values directly. Use: `vt_service('validation.sanitizer')->textField($input)`</principle>
+    <principle>Sanitizers return cleaned values directly. Use: `app_service('validation.sanitizer')->textField($input)`</principle>
     <principle>Validators return arrays with validation results `['value' => ..., 'is_valid' => ..., 'errors' => []]`. Use validators ONLY in boundary layers where you need error messages.</principle>
     <principle>Manager classes receive pre-sanitized data and trust it. Never call validators inside managers.</principle>
     <principle>Flow: User Input → Template/Controller validates and sanitizes → Manager receives clean data → Database</principle>
     <example>
       CORRECT (in template):
-      $name = vt_service('validation.sanitizer')->textField($_POST['name']);
+      $name = app_service('validation.sanitizer')->textField($_POST['name']);
       $manager->createThing(['name' => $name]);
 
       INCORRECT (in manager):
-      $name = vt_service('validation.validator')->textField($data['name']); // Returns array, breaks database insert
+      $name = app_service('validation.validator')->textField($data['name']); // Returns array, breaks database insert
     </example>
   </validation_and_sanitization>
 
@@ -61,7 +61,7 @@
 
   <css>
     <principle>Do not include inline `<style>` tags in templates or PHP files unless the rule is trivial and template-specific.</principle>
-    <principle>All CSS must reside in external `.css` files and follow the `.vt-` prefix naming convention.</principle>
+    <principle>All CSS must reside in external `.css` files and follow the `.app-` prefix naming convention.</principle>
   </css>
 
   <modularity>

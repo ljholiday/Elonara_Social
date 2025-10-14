@@ -12,7 +12,7 @@ $errors = $errors ?? [];
 $successMessage = $success_message ?? '';
 $preselect = strtolower((string)($preselect ?? ''));
 $token = (string)($token ?? '');
-$nonce = (string)($nonce ?? vt_service('security.service')->createNonce('guest_rsvp'));
+$nonce = (string)($nonce ?? app_service('security.service')->createNonce('guest_rsvp'));
 $isBluesky = (bool)($is_bluesky ?? false);
 
 $selectedStatus = $preselect;
@@ -54,7 +54,7 @@ if ($selectedStatus === '' && $currentStatus !== 'pending') {
     };
 }
 
-function vt_field_value(array $source, string $key): string
+function app_field_value(array $source, string $key): string
 {
     return isset($source[$key]) ? htmlspecialchars((string)$source[$key], ENT_QUOTES, 'UTF-8') : '';
 }
@@ -62,23 +62,23 @@ function vt_field_value(array $source, string $key): string
 ?>
 
 <?php if ($token === '' || empty($event) || empty($guest)): ?>
-    <div class="vt-section vt-text-center">
-        <h3 class="vt-heading vt-heading-md vt-text-primary vt-mb-4">RSVP invitation unavailable</h3>
-        <p class="vt-text-muted vt-mb-4"><?= htmlspecialchars($error_message ?? 'This RSVP link may be invalid or expired.'); ?></p>
-        <a href="/events" class="vt-btn">Browse events</a>
+    <div class="app-section app-text-center">
+        <h3 class="app-heading app-heading-md app-text-primary app-mb-4">RSVP invitation unavailable</h3>
+        <p class="app-text-muted app-mb-4"><?= htmlspecialchars($error_message ?? 'This RSVP link may be invalid or expired.'); ?></p>
+        <a href="/events" class="app-btn">Browse events</a>
     </div>
     <?php return; ?>
 <?php endif; ?>
 
 <?php if (!empty($successMessage)): ?>
-    <div class="vt-alert vt-alert-success vt-mb-4">
+    <div class="app-alert app-alert-success app-mb-4">
         <?= htmlspecialchars($successMessage); ?>
     </div>
 <?php endif; ?>
 
 <?php if ($errors): ?>
-    <div class="vt-alert vt-alert-error vt-mb-4">
-        <ul class="vt-list vt-list-unstyled vt-text-left">
+    <div class="app-alert app-alert-error app-mb-4">
+        <ul class="app-list app-list-unstyled app-text-left">
             <?php foreach ($errors as $error): ?>
                 <li><?= htmlspecialchars((string)$error); ?></li>
             <?php endforeach; ?>
@@ -87,27 +87,27 @@ function vt_field_value(array $source, string $key): string
 <?php endif; ?>
 
 <?php if (!empty($statusNote) && empty($successMessage)): ?>
-    <div class="vt-alert vt-alert-info vt-mb-4">
+    <div class="app-alert app-alert-info app-mb-4">
         <?= htmlspecialchars($statusNote); ?>
     </div>
 <?php endif; ?>
 
-<div class="vt-section vt-mb-6">
-    <div class="vt-card">
+<div class="app-section app-mb-6">
+    <div class="app-card">
         <?php if ($featuredImage !== ''): ?>
-            <div class="vt-card-image">
-                <img src="<?= htmlspecialchars($featuredImage); ?>" alt="<?= htmlspecialchars((string)($event['title'] ?? 'Event')); ?>" class="vt-card-image-img">
+            <div class="app-card-image">
+                <img src="<?= htmlspecialchars($featuredImage); ?>" alt="<?= htmlspecialchars((string)($event['title'] ?? 'Event')); ?>" class="app-card-image-img">
             </div>
         <?php endif; ?>
 
-        <div class="vt-card-header">
-            <h1 class="vt-heading vt-heading-lg vt-text-primary"><?= htmlspecialchars((string)($event['title'] ?? 'Event Invitation')); ?></h1>
+        <div class="app-card-header">
+            <h1 class="app-heading app-heading-lg app-text-primary"><?= htmlspecialchars((string)($event['title'] ?? 'Event Invitation')); ?></h1>
         </div>
 
-        <div class="vt-card-body">
-            <div class="vt-event-meta vt-mb-4">
+        <div class="app-card-body">
+            <div class="app-event-meta app-mb-4">
                 <?php if ($eventDate): ?>
-                    <div class="vt-flex vt-items-center vt-gap-2 vt-mb-2">
+                    <div class="app-flex app-items-center app-gap-2 app-mb-2">
                         <strong><?= htmlspecialchars(date_fmt($eventDate, 'l, F j, Y')); ?></strong>
                         <?php if ($eventTime): ?>
                             <span><?= htmlspecialchars($eventTime); ?></span>
@@ -115,14 +115,14 @@ function vt_field_value(array $source, string $key): string
                     </div>
                 <?php endif; ?>
                 <?php if ($venueInfo): ?>
-                    <div class="vt-flex vt-items-center vt-gap-2 vt-mb-2">
+                    <div class="app-flex app-items-center app-gap-2 app-mb-2">
                         <span><?= htmlspecialchars($venueInfo); ?></span>
                     </div>
                 <?php endif; ?>
             </div>
 
             <?php if ($description): ?>
-                <div class="vt-event-description vt-text-muted">
+                <div class="app-event-description app-text-muted">
                     <?= nl2br(htmlspecialchars($description)); ?>
                 </div>
             <?php endif; ?>
@@ -130,120 +130,120 @@ function vt_field_value(array $source, string $key): string
     </div>
 </div>
 
-<div class="vt-section">
-    <div class="vt-section-header">
-        <h2 class="vt-heading vt-heading-md vt-text-primary">How should we count you?</h2>
-        <p class="vt-text-muted">Use the form below to update your RSVP. You can revisit this link any time to make changes.</p>
+<div class="app-section">
+    <div class="app-section-header">
+        <h2 class="app-heading app-heading-md app-text-primary">How should we count you?</h2>
+        <p class="app-text-muted">Use the form below to update your RSVP. You can revisit this link any time to make changes.</p>
     </div>
 
-    <form method="post" class="vt-form vt-stack-md">
+    <form method="post" class="app-form app-stack-md">
         <input type="hidden" name="token" value="<?= htmlspecialchars($token); ?>">
         <input type="hidden" name="nonce" value="<?= htmlspecialchars($nonce); ?>">
 
-        <div class="vt-form-group">
-            <label class="vt-form-label">RSVP</label>
-            <div class="vt-flex vt-flex-wrap vt-gap-3">
+        <div class="app-form-group">
+            <label class="app-form-label">RSVP</label>
+            <div class="app-flex app-flex-wrap app-gap-3">
                 <label>
                     <input type="radio" name="rsvp_status" value="yes" <?= $selectedStatus === 'yes' ? 'checked' : ''; ?> required>
-                    <span class="vt-btn vt-btn-lg vt-btn-primary">Yes, I'll be there</span>
+                    <span class="app-btn app-btn-lg app-btn-primary">Yes, I'll be there</span>
                 </label>
                 <label>
                     <input type="radio" name="rsvp_status" value="maybe" <?= $selectedStatus === 'maybe' ? 'checked' : ''; ?> required>
-                    <span class="vt-btn vt-btn-lg vt-btn-secondary">Maybe</span>
+                    <span class="app-btn app-btn-lg app-btn-secondary">Maybe</span>
                 </label>
                 <label>
                     <input type="radio" name="rsvp_status" value="no" <?= $selectedStatus === 'no' ? 'checked' : ''; ?> required>
-                    <span class="vt-btn vt-btn-lg vt-btn-danger">Can't make it</span>
+                    <span class="app-btn app-btn-lg app-btn-danger">Can't make it</span>
                 </label>
             </div>
         </div>
 
-        <div class="vt-rsvp-details" data-rsvp-details>
-            <div class="vt-form-group">
-                <label class="vt-form-label" for="guest_name">
-                    Your name <?= $selectedStatus === 'no' ? '' : '<span class="vt-required">*</span>'; ?>
+        <div class="app-rsvp-details" data-rsvp-details>
+            <div class="app-form-group">
+                <label class="app-form-label" for="guest_name">
+                    Your name <?= $selectedStatus === 'no' ? '' : '<span class="app-required">*</span>'; ?>
                 </label>
                 <input
                     type="text"
                     id="guest_name"
                     name="guest_name"
-                    class="vt-form-input"
-                    value="<?= vt_field_value($formValues, 'guest_name'); ?>"
+                    class="app-form-input"
+                    value="<?= app_field_value($formValues, 'guest_name'); ?>"
                     <?= $selectedStatus === 'no' ? '' : 'required'; ?>
                 >
             </div>
 
-            <div class="vt-form-group">
-                <label class="vt-form-label" for="guest_phone">Phone (optional)</label>
+            <div class="app-form-group">
+                <label class="app-form-label" for="guest_phone">Phone (optional)</label>
                 <input
                     type="tel"
                     id="guest_phone"
                     name="guest_phone"
-                    class="vt-form-input"
-                    value="<?= vt_field_value($formValues, 'guest_phone'); ?>"
+                    class="app-form-input"
+                    value="<?= app_field_value($formValues, 'guest_phone'); ?>"
                     placeholder="(555) 123-4567"
                 >
             </div>
 
             <?php if ($isBluesky): ?>
-                <p class="vt-text-xs vt-text-muted vt-mb-4">Invited via Bluesky (<?= htmlspecialchars((string)$guest['email']); ?>)</p>
+                <p class="app-text-xs app-text-muted app-mb-4">Invited via Bluesky (<?= htmlspecialchars((string)$guest['email']); ?>)</p>
             <?php endif; ?>
 
             <?php if ($allowPlusOnes): ?>
-                <div class="vt-form-group">
-                    <label class="vt-form-label">Plus One</label>
-                    <div class="vt-flex vt-gap-4 vt-flex-wrap">
-                        <label class="vt-flex vt-gap-2 vt-items-center">
+                <div class="app-form-group">
+                    <label class="app-form-label">Plus One</label>
+                    <div class="app-flex app-gap-4 app-flex-wrap">
+                        <label class="app-flex app-gap-2 app-items-center">
                             <input type="radio" name="plus_one" value="0" <?= ((int)($formValues['plus_one'] ?? 0) === 0) ? 'checked' : ''; ?>>
                             <span>Just me</span>
                         </label>
-                        <label class="vt-flex vt-gap-2 vt-items-center">
+                        <label class="app-flex app-gap-2 app-items-center">
                             <input type="radio" name="plus_one" value="1" <?= ((int)($formValues['plus_one'] ?? 0) === 1) ? 'checked' : ''; ?>>
                             <span>I'm bringing someone</span>
                         </label>
                     </div>
                 </div>
 
-                <div class="vt-form-group vt-hidden" data-plus-one-name>
-                    <label class="vt-form-label" for="plus_one_name">Guest name</label>
+                <div class="app-form-group app-hidden" data-plus-one-name>
+                    <label class="app-form-label" for="plus_one_name">Guest name</label>
                     <input
                         type="text"
                         id="plus_one_name"
                         name="plus_one_name"
-                        class="vt-form-input"
-                        value="<?= vt_field_value($formValues, 'plus_one_name'); ?>"
+                        class="app-form-input"
+                        value="<?= app_field_value($formValues, 'plus_one_name'); ?>"
                         placeholder="Guest name"
                     >
                 </div>
             <?php endif; ?>
 
-            <div class="vt-form-group">
-                <label class="vt-form-label" for="dietary_restrictions">Dietary preferences</label>
+            <div class="app-form-group">
+                <label class="app-form-label" for="dietary_restrictions">Dietary preferences</label>
                 <input
                     type="text"
                     id="dietary_restrictions"
                     name="dietary_restrictions"
-                    class="vt-form-input"
-                    value="<?= vt_field_value($formValues, 'dietary_restrictions'); ?>"
+                    class="app-form-input"
+                    value="<?= app_field_value($formValues, 'dietary_restrictions'); ?>"
                     placeholder="Let the host know about allergies or preferences"
                 >
             </div>
 
-            <div class="vt-form-group">
-                <label class="vt-form-label" for="guest_notes">Notes for the host</label>
+            <div class="app-form-group">
+                <label class="app-form-label" for="guest_notes">Notes for the host</label>
                 <textarea
                     id="guest_notes"
                     name="guest_notes"
-                    class="vt-form-textarea"
+                    class="app-form-textarea"
                     rows="4"
                     placeholder="Message the host (optional)"
-                ><?= vt_field_value($formValues, 'guest_notes'); ?></textarea>
+                ><?= app_field_value($formValues, 'guest_notes'); ?></textarea>
             </div>
         </div>
 
-        <div class="vt-form-actions">
-            <button type="submit" class="vt-btn vt-btn-primary vt-btn-lg">Save RSVP</button>
-            <a href="/events" class="vt-btn vt-btn-link">Browse other events</a>
+        <div class="app-form-actions">
+            <button type="submit" class="app-btn app-btn-primary app-btn-lg">Save RSVP</button>
+            <a href="/events" class="app-btn app-btn-link">Browse other events</a>
         </div>
     </form>
 </div>
@@ -259,10 +259,10 @@ function vt_field_value(array $source, string $key): string
     function toggleDetails() {
         const selected = document.querySelector('input[name="rsvp_status"]:checked');
         if (!selected || selected.value === 'no') {
-            detailsSection?.classList.add('vt-hidden');
+            detailsSection?.classList.add('app-hidden');
             nameInput?.removeAttribute('required');
         } else {
-            detailsSection?.classList.remove('vt-hidden');
+            detailsSection?.classList.remove('app-hidden');
             if (nameInput) {
                 nameInput.setAttribute('required', 'required');
             }
@@ -273,9 +273,9 @@ function vt_field_value(array $source, string $key): string
         const selected = document.querySelector('input[name="plus_one"]:checked');
         plusOneContainers.forEach(function (container) {
             if (selected && selected.value === '1') {
-                container.classList.remove('vt-hidden');
+                container.classList.remove('app-hidden');
             } else {
-                container.classList.add('vt-hidden');
+                container.classList.add('app-hidden');
             }
         });
     }

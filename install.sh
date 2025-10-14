@@ -2,11 +2,12 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_NAME="$(php -r "require '${PROJECT_DIR}/src/bootstrap.php'; echo app_config('app_name');" 2>/dev/null || echo 'Application')"
 echo "====================================="
-echo " Elonara Social Installation"
+echo " ${APP_NAME} Installation"
 echo "====================================="
 
-PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 echo "[INFO] Current directory: $PROJECT_DIR"
 
 SCHEMA_FILE="$PROJECT_DIR/config/schema.sql"
@@ -83,5 +84,4 @@ else
 fi
 
 echo
-echo "[DONE] Elonara Social installation completed."
-
+echo "[DONE] ${APP_NAME} installation completed."

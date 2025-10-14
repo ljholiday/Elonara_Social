@@ -92,7 +92,7 @@ switch (strtolower($status)) {
 				<?php if (!empty($event_description)) : ?>
 				<div style="margin-top: 16px;">
 					<strong>About:</strong><br>
-					<?php echo htmlspecialchars(vt_truncate_words($event_description, 25)); ?>
+					<?php echo htmlspecialchars(app_truncate_words($event_description, 25)); ?>
 				</div>
 				<?php endif; ?>
 			</div>

@@ -14,8 +14,8 @@
   </behavioral_rules>
 
   <naming>
-    <principle>All CSS classes must begin with a `.vt-` prefix.</principle>
-    <principle>Use semantic, descriptive names (e.g., `.vt-card`, `.vt-form-row`).</principle>
+    <principle>All CSS classes must begin with a `.app-` prefix.</principle>
+    <principle>Use semantic, descriptive names (e.g., `.app-card`, `.app-form-row`).</principle>
     <principle>Use BEM methodology for components where appropriate.</principle>
     <principle>Never use generic class names like `.button` or `.card`.</principle>
   </naming>

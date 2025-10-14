@@ -27,20 +27,20 @@ return static function (Router $router): void {
 
     // Home
     $router->get('/', static function (Request $request) {
-        $authService = vt_service('auth.service');
+        $authService = app_service('auth.service');
         if (!$authService->isLoggedIn()) {
             header('Location: /auth');
             exit;
         }
 
-        $view = vt_service('controller.home')->dashboard();
+        $view = app_service('controller.home')->dashboard();
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        vt_render('home.php', [
+        app_render('home.php', [
             'page_title' => 'Home',
             'viewer' => $view['viewer'],
             'upcoming_events' => $view['upcoming_events'],
@@ -54,39 +54,39 @@ return static function (Router $router): void {
 
     // Auth routes
     $router->get('/auth', static function (Request $request) {
-        $view = vt_service('controller.auth')->landing();
-        vt_render('auth-landing.php', array_merge($view, ['page_title' => 'Sign In or Register']), 'guest');
+        $view = app_service('controller.auth')->landing();
+        app_render('auth-landing.php', array_merge($view, ['page_title' => 'Sign In or Register']), 'guest');
         return null;
     });
 
     $router->post('/auth/login', static function (Request $request) {
-        $view = vt_service('controller.auth')->login();
+        $view = app_service('controller.auth')->login();
         if (isset($view['redirect'])) {
             header('Location: ' . $view['redirect']);
             exit;
         }
-        vt_render('auth-landing.php', array_merge($view, ['page_title' => 'Sign In']), 'guest');
+        app_render('auth-landing.php', array_merge($view, ['page_title' => 'Sign In']), 'guest');
         return null;
     });
 
     $router->post('/auth/register', static function (Request $request) {
-        $view = vt_service('controller.auth')->register();
+        $view = app_service('controller.auth')->register();
         if (isset($view['redirect'])) {
             header('Location: ' . $view['redirect']);
             exit;
         }
-        vt_render('auth-landing.php', array_merge($view, ['page_title' => 'Register']), 'guest');
+        app_render('auth-landing.php', array_merge($view, ['page_title' => 'Register']), 'guest');
         return null;
     });
 
     $router->post('/auth/logout', static function (Request $request) {
-        $result = vt_service('controller.auth')->logout();
+        $result = app_service('controller.auth')->logout();
         header('Location: ' . ($result['redirect'] ?? '/auth'));
         exit;
     });
 
     $router->get('/logout', function () {
-        vt_service('controller.auth')->logout();
+        app_service('controller.auth')->logout();
         header('Location: /auth');
         exit;
     });
@@ -94,13 +94,13 @@ return static function (Router $router): void {
 
     // Password Reset
     $router->get('/reset-password', static function (Request $request) {
-        $view = vt_service('controller.auth')->requestReset();
-        vt_render('password-reset-request.php', array_merge($view, ['page_title' => 'Reset Password']), 'guest');
+        $view = app_service('controller.auth')->requestReset();
+        app_render('password-reset-request.php', array_merge($view, ['page_title' => 'Reset Password']), 'guest');
         return null;
     });
 
     $router->post('/reset-password', static function (Request $request) {
-        $result = vt_service('controller.auth')->sendResetEmail();
+        $result = app_service('controller.auth')->sendResetEmail();
         if (isset($result['message'])) {
             $data = [
                 'page_title' => 'Reset Password',
@@ -116,21 +116,21 @@ return static function (Router $router): void {
                 'input' => $result['input'] ?? ['email' => '']
             ];
         }
-        vt_render('password-reset-request.php', $data, 'guest');
+        app_render('password-reset-request.php', $data, 'guest');
         return null;
     });
 
     $router->get('/reset-password/{token}', static function (Request $request, string $token) {
-        $view = vt_service('controller.auth')->showResetForm($token);
+        $view = app_service('controller.auth')->showResetForm($token);
         if (!$view['valid']) {
             http_response_code(400);
-            vt_render('password-reset-error.php', [
+            app_render('password-reset-error.php', [
                 'page_title' => 'Reset Password Error',
                 'error' => $view['error'] ?? 'Invalid or expired token.'
             ], 'guest');
             return null;
         }
-        vt_render('password-reset-form.php', [
+        app_render('password-reset-form.php', [
             'page_title' => 'Reset Password',
             'token' => $view['token'],
             'errors' => []
@@ -139,13 +139,13 @@ return static function (Router $router): void {
     });
 
     $router->post('/reset-password/{token}', static function (Request $request, string $token) {
-        $result = vt_service('controller.auth')->processReset($token);
+        $result = app_service('controller.auth')->processReset($token);
         if (isset($result['redirect'])) {
             $_SESSION['flash_message'] = $result['message'] ?? 'Password reset successfully.';
             header('Location: ' . $result['redirect']);
             exit;
         }
-        vt_render('password-reset-form.php', [
+        app_render('password-reset-form.php', [
             'page_title' => 'Reset Password',
             'errors' => $result['errors'] ?? [],
             'token' => $result['token'] ?? $token
@@ -155,13 +155,13 @@ return static function (Router $router): void {
 
     // Email Verification
     $router->get('/verify-email/{token}', static function (Request $request, string $token) {
-        $result = vt_service('controller.auth')->verifyEmail($token);
+        $result = app_service('controller.auth')->verifyEmail($token);
         if ($result['success']) {
             $_SESSION['flash_message'] = $result['message'] ?? 'Email verified successfully.';
             header('Location: ' . ($result['redirect'] ?? '/'));
             exit;
         }
-        vt_render('email-verification-error.php', [
+        app_render('email-verification-error.php', [
             'page_title' => 'Email Verification Error',
             'errors' => $result['errors'] ?? ['token' => 'Verification failed.']
         ], 'guest');
@@ -170,7 +170,7 @@ return static function (Router $router): void {
 
     // Profile Routes
     $router->get('/profile', static function (Request $request) {
-        $result = vt_service('controller.profile')->showOwn();
+        $result = app_service('controller.profile')->showOwn();
         if (isset($result['redirect'])) {
             header('Location: ' . $result['redirect']);
             exit;
@@ -184,21 +184,21 @@ return static function (Router $router): void {
 
     // IMPORTANT: /profile/edit must come BEFORE /profile/{username} to avoid treating "edit" as a username
     $router->get('/profile/edit', static function (Request $request) {
-        $result = vt_service('controller.profile')->edit();
+        $result = app_service('controller.profile')->edit();
         if (isset($result['error'])) {
             header('Location: /auth');
             exit;
         }
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        $navService = vt_service('navigation.service');
+        $navService = app_service('navigation.service');
         $tabs = $navService->buildProfileTabs($result['user'], $viewer, '/profile/edit');
 
-        vt_render('profile-edit.php', [
+        app_render('profile-edit.php', [
             'page_title' => 'Edit Profile',
             'user' => $result['user'],
             'errors' => $result['errors'],
@@ -210,19 +210,19 @@ return static function (Router $router): void {
     });
 
     $router->get('/profile/{username}', static function (Request $request, string $username) {
-        $result = vt_service('controller.profile')->show($username);
+        $result = app_service('controller.profile')->show($username);
         $logFile = dirname(__DIR__, 2) . '/debug.log';
         file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "Profile view - avatar_url: " . ($result['user']['avatar_url'] ?? 'NULL') . "\n", FILE_APPEND);
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        $navService = vt_service('navigation.service');
+        $navService = app_service('navigation.service');
         $tabs = $navService->buildProfileTabs($result['user'], $viewer, '/profile/' . $username);
 
-        vt_render('profile-view.php', [
+        app_render('profile-view.php', [
             'page_title' => $result['user'] ? e($result['user']['display_name'] ?? $result['user']['username']) . ' - Profile' : 'User Not Found',
             'user' => $result['user'],
             'is_own_profile' => $result['is_own_profile'],
@@ -239,7 +239,7 @@ return static function (Router $router): void {
     $router->post('/profile/update', static function (Request $request) {
         error_log("Profile update route hit - FILES: " . json_encode($_FILES));
         try {
-            $result = vt_service('controller.profile')->update($request);
+            $result = app_service('controller.profile')->update($request);
             if (isset($result['redirect'])) {
                 header('Location: ' . $result['redirect']);
                 exit;
@@ -250,14 +250,14 @@ return static function (Router $router): void {
                 exit;
             }
             ob_start();
-            $viewer = vt_service('auth.service')->getCurrentUser();
+            $viewer = app_service('auth.service')->getCurrentUser();
             include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
             $sidebar = ob_get_clean();
 
-            $navService = vt_service('navigation.service');
+            $navService = app_service('navigation.service');
             $tabs = $navService->buildProfileTabs($result['user'], $viewer, '/profile/edit');
 
-            vt_render('profile-edit.php', [
+            app_render('profile-edit.php', [
                 'page_title' => 'Edit Profile',
                 'user' => $result['user'],
                 'errors' => $result['errors'] ?? [],
@@ -276,9 +276,9 @@ return static function (Router $router): void {
 
     // Bluesky Connection
     $router->post('/connect/bluesky', static function (Request $request) {
-        $authService = vt_service('auth.service');
-        $blueskyService = vt_service('bluesky.service');
-        $securityService = vt_service('security.service');
+        $authService = app_service('auth.service');
+        $blueskyService = app_service('bluesky.service');
+        $securityService = app_service('security.service');
 
         $currentUser = $authService->getCurrentUser();
         if ($currentUser === null) {
@@ -288,7 +288,7 @@ return static function (Router $router): void {
         }
 
         $nonce = (string)$request->input('nonce', '');
-        if (!$securityService->verifyNonce($nonce, 'vt_nonce',(int)$currentUser->id)) {
+        if (!$securityService->verifyNonce($nonce, 'app_nonce',(int)$currentUser->id)) {
             $_SESSION['flash_error'] = 'Security verification failed';
             header('Location: /profile/edit');
             exit;
@@ -336,9 +336,9 @@ return static function (Router $router): void {
     });
 
     $router->post('/disconnect/bluesky', static function (Request $request) {
-        $authService = vt_service('auth.service');
-        $blueskyService = vt_service('bluesky.service');
-        $securityService = vt_service('security.service');
+        $authService = app_service('auth.service');
+        $blueskyService = app_service('bluesky.service');
+        $securityService = app_service('security.service');
 
         $currentUser = $authService->getCurrentUser();
         if ($currentUser === null) {
@@ -348,7 +348,7 @@ return static function (Router $router): void {
         }
 
         $nonce = (string)$request->input('nonce', '');
-        if (!$securityService->verifyNonce($nonce, 'vt_nonce', (int)$currentUser->id)) {
+        if (!$securityService->verifyNonce($nonce, 'app_nonce', (int)$currentUser->id)) {
             $_SESSION['flash_error'] = 'Security verification failed';
             header('Location: /profile/edit');
             exit;
@@ -363,9 +363,9 @@ return static function (Router $router): void {
 
     // API: Bluesky
     $router->post('/api/bluesky/sync', static function (Request $request) {
-        $authService = vt_service('auth.service');
-        $blueskyService = vt_service('bluesky.service');
-        $securityService = vt_service('security.service');
+        $authService = app_service('auth.service');
+        $blueskyService = app_service('bluesky.service');
+        $securityService = app_service('security.service');
 
         header('Content-Type: application/json');
 
@@ -377,7 +377,7 @@ return static function (Router $router): void {
         }
 
         $nonce = (string)$request->input('nonce', '');
-        if (!$securityService->verifyNonce($nonce, 'vt_nonce', (int)$currentUser->id)) {
+        if (!$securityService->verifyNonce($nonce, 'app_nonce', (int)$currentUser->id)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Security verification failed']);
             return null;
@@ -390,8 +390,8 @@ return static function (Router $router): void {
     });
 
     $router->get('/api/bluesky/followers', static function (Request $request) {
-        $authService = vt_service('auth.service');
-        $blueskyService = vt_service('bluesky.service');
+        $authService = app_service('auth.service');
+        $blueskyService = app_service('bluesky.service');
 
         header('Content-Type: application/json');
 
@@ -410,7 +410,7 @@ return static function (Router $router): void {
 
     // API: Conversations
     $router->post('/api/conversations', static function (Request $request) {
-        $response = vt_service('controller.conversations.api')->list();
+        $response = app_service('controller.conversations.api')->list();
         http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
         echo json_encode($response['body']);
@@ -418,7 +418,7 @@ return static function (Router $router): void {
     });
 
     $router->post('/api/conversations/{slug}/replies', static function (Request $request, string $slug) {
-        $response = vt_service('controller.conversations.api')->reply($slug);
+        $response = app_service('controller.conversations.api')->reply($slug);
         http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
         echo json_encode($response['body']);
@@ -428,14 +428,14 @@ return static function (Router $router): void {
     $router->post('/api/replies/{id}/edit', static function (Request $request, string $id) {
         header('Content-Type: application/json');
         $replyId = (int)$id;
-        $conversationService = vt_service('conversation.service');
-        $authService = vt_service('auth.service');
-        $securityService = vt_service('security.service');
+        $conversationService = app_service('conversation.service');
+        $authService = app_service('auth.service');
+        $securityService = app_service('security.service');
 
         try {
             // Verify nonce
             $nonce = $request->input('nonce');
-            if (!$securityService->verifyNonce($nonce, 'vt_nonce')) {
+            if (!$securityService->verifyNonce($nonce, 'app_nonce')) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Invalid security token']);
                 return true;
@@ -475,13 +475,13 @@ return static function (Router $router): void {
             header('Content-Type: application/json');
             $replyId = (int)$id;
 
-            $conversationService = vt_service('conversation.service');
-            $authService = vt_service('auth.service');
-            $securityService = vt_service('security.service');
+            $conversationService = app_service('conversation.service');
+            $authService = app_service('auth.service');
+            $securityService = app_service('security.service');
 
             // Verify nonce
             $nonce = $request->input('nonce');
-            if (!$securityService->verifyNonce($nonce, 'vt_nonce')) {
+            if (!$securityService->verifyNonce($nonce, 'app_nonce')) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Invalid security token']);
                 return true;
@@ -517,7 +517,7 @@ return static function (Router $router): void {
 
     // API: Communities
     $router->post('/api/communities/{id}/join', static function (Request $request, string $id) {
-        $response = vt_service('controller.communities.api')->join((int)$id);
+        $response = app_service('controller.communities.api')->join((int)$id);
         http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
         echo json_encode($response['body']);
@@ -526,7 +526,7 @@ return static function (Router $router): void {
 
     // API: Invitations
     $router->post('/api/invitations/accept', static function (Request $request) {
-        $response = vt_service('controller.invitations')->accept();
+        $response = app_service('controller.invitations')->accept();
         http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
         echo json_encode($response['body']);
@@ -535,7 +535,7 @@ return static function (Router $router): void {
 
     $router->post('/api/{type}/{id}/invitations', static function (Request $request, string $type, string $id) {
         $entityId = (int)$id;
-        $controller = vt_service('controller.invitations');
+        $controller = app_service('controller.invitations');
         $response = $type === 'communities'
             ? $controller->sendCommunity($entityId)
             : $controller->sendEvent($entityId);
@@ -547,7 +547,7 @@ return static function (Router $router): void {
 
     $router->get('/api/{type}/{id}/invitations', static function (Request $request, string $type, string $id) {
         $entityId = (int)$id;
-        $controller = vt_service('controller.invitations');
+        $controller = app_service('controller.invitations');
         $response = $type === 'communities'
             ? $controller->listCommunity($entityId)
             : $controller->listEvent($entityId);
@@ -558,7 +558,7 @@ return static function (Router $router): void {
     });
 
     $router->post('/api/events/{eventId}/invitations/{invitationId}/resend', static function (Request $request, string $eventId, string $invitationId) {
-        $response = vt_service('controller.invitations')->resendEvent((int)$eventId, (int)$invitationId);
+        $response = app_service('controller.invitations')->resendEvent((int)$eventId, (int)$invitationId);
         http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
         echo json_encode($response['body']);
@@ -566,7 +566,7 @@ return static function (Router $router): void {
     });
 
     $router->delete('/api/{type}/{entityId}/invitations/{invitationId}', static function (Request $request, string $type, string $entityId, string $invitationId) {
-        $controller = vt_service('controller.invitations');
+        $controller = app_service('controller.invitations');
         $response = $type === 'communities'
             ? $controller->deleteCommunity((int)$entityId, (int)$invitationId)
             : $controller->deleteEvent((int)$entityId, (int)$invitationId);
@@ -579,9 +579,9 @@ return static function (Router $router): void {
 // API: Bluesky Invitations
     
     $router->post('/api/invitations/bluesky/event/{id}', static function (Request $request, string $id) {
-        $authService = vt_service('auth.service');
-        $invitationService = vt_service('invitation.manager');
-        $securityService = vt_service('security.service');
+        $authService = app_service('auth.service');
+        $invitationService = app_service('invitation.manager');
+        $securityService = app_service('security.service');
 
         header('Content-Type: application/json');
 
@@ -596,7 +596,7 @@ return static function (Router $router): void {
         $nonce = (string)($body['nonce'] ?? '');
         $followerDids = $body['follower_dids'] ?? [];
 
-        if (!$securityService->verifyNonce($nonce, 'vt_nonce', (int)$currentUser->id)) {
+        if (!$securityService->verifyNonce($nonce, 'app_nonce', (int)$currentUser->id)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Security verification failed']);
             return true;
@@ -628,9 +628,9 @@ return static function (Router $router): void {
     });
 
     $router->post('/api/invitations/bluesky/community/{id}', static function (Request $request, string $id) {
-        $authService = vt_service('auth.service');
-        $invitationService = vt_service('invitation.manager');
-        $securityService = vt_service('security.service');
+        $authService = app_service('auth.service');
+        $invitationService = app_service('invitation.manager');
+        $securityService = app_service('security.service');
 
         header('Content-Type: application/json');
 
@@ -645,7 +645,7 @@ return static function (Router $router): void {
         $nonce = (string)($body['nonce'] ?? '');
         $followerDids = $body['follower_dids'] ?? [];
 
-        if (!$securityService->verifyNonce($nonce, 'vt_nonce', (int)$currentUser->id)) {
+        if (!$securityService->verifyNonce($nonce, 'app_nonce', (int)$currentUser->id)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Security verification failed']);
             return true;
@@ -677,7 +677,7 @@ return static function (Router $router): void {
     });
 
     $router->get('/api/communities/{id}/members', static function (Request $request, string $id) {
-        $response = vt_service('controller.invitations')->listCommunityMembers((int)$id);
+        $response = app_service('controller.invitations')->listCommunityMembers((int)$id);
         http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
         echo json_encode($response['body']);
@@ -685,7 +685,7 @@ return static function (Router $router): void {
     });
 
     $router->post('/api/communities/{communityId}/members/{memberId}/role', static function (Request $request, string $communityId, string $memberId) {
-        $response = vt_service('controller.invitations')->updateCommunityMemberRole((int)$communityId, (int)$memberId);
+        $response = app_service('controller.invitations')->updateCommunityMemberRole((int)$communityId, (int)$memberId);
         http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
         echo json_encode($response['body']);
@@ -693,7 +693,7 @@ return static function (Router $router): void {
     });
 
     $router->delete('/api/communities/{communityId}/members/{memberId}', static function (Request $request, string $communityId, string $memberId) {
-        $response = vt_service('controller.invitations')->removeCommunityMember((int)$communityId, (int)$memberId);
+        $response = app_service('controller.invitations')->removeCommunityMember((int)$communityId, (int)$memberId);
         http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
         echo json_encode($response['body']);
@@ -702,15 +702,15 @@ return static function (Router $router): void {
 
 // Events
     $router->get('/events', static function (Request $request) {
-        $view = vt_service('controller.events')->index();
+        $view = app_service('controller.events')->index();
         $filter = $view['filter'] ?? 'all';
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        vt_render('events-list.php', array_merge($view, [
+        app_render('events-list.php', array_merge($view, [
             'page_title' => 'Events',
             'nav_items' => [
                 ['title' => 'All', 'url' => '/events?filter=all', 'active' => $filter === 'all'],
@@ -722,29 +722,29 @@ return static function (Router $router): void {
     });
 
     $router->get('/events/create', static function (Request $request) {
-        $view = vt_service('controller.events')->create();
-        vt_render('event-create.php', array_merge($view, ['page_title' => 'Create Event']), 'form');
+        $view = app_service('controller.events')->create();
+        app_render('event-create.php', array_merge($view, ['page_title' => 'Create Event']), 'form');
         return null;
     });
 
     $router->post('/events/create', static function (Request $request) {
-        $result = vt_service('controller.events')->store();
+        $result = app_service('controller.events')->store();
         if (isset($result['redirect'])) {
             header('Location: ' . $result['redirect']);
             exit;
         }
-        vt_render('event-create.php', array_merge($result, ['page_title' => 'Create Event']), 'form');
+        app_render('event-create.php', array_merge($result, ['page_title' => 'Create Event']), 'form');
         return null;
     });
 
     $router->get('/events/{slug}/edit', static function (Request $request, string $slug) {
-        $view = vt_service('controller.events')->edit($slug);
+        $view = app_service('controller.events')->edit($slug);
         if ($view['event'] === null) {
             http_response_code(404);
             echo 'Not Found';
             return null;
         }
-        vt_render('event-edit.php', array_merge($view, ['page_title' => 'Edit Event']), 'form');
+        app_render('event-edit.php', array_merge($view, ['page_title' => 'Edit Event']), 'form');
         return null;
     });
 
@@ -757,7 +757,7 @@ return static function (Router $router): void {
             exit;
         }
 
-        $view = vt_service('controller.events')->manage($slug);
+        $view = app_service('controller.events')->manage($slug);
         $status = $view['status'] ?? 200;
         if ($status !== 200) {
             http_response_code($status);
@@ -765,15 +765,15 @@ return static function (Router $router): void {
         $eventTitle = $view['event']['title'] ?? 'Event';
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        $navService = vt_service('navigation.service');
+        $navService = app_service('navigation.service');
         $currentUri = '/events/' . $slug . '/manage?tab=' . $tab;
         $tabs = $navService->buildEventManageTabs($view['event'], $currentUri);
 
-        vt_render('event-manage.php', array_merge($view, [
+        app_render('event-manage.php', array_merge($view, [
             'page_title' => 'Manage ' . $eventTitle,
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
@@ -782,7 +782,7 @@ return static function (Router $router): void {
     });
 
     $router->post('/events/{slug}/edit', static function (Request $request, string $slug) {
-        $result = vt_service('controller.events')->update($slug);
+        $result = app_service('controller.events')->update($slug);
         if (isset($result['redirect'])) {
             header('Location: ' . $result['redirect']);
             exit;
@@ -792,29 +792,29 @@ return static function (Router $router): void {
             echo 'Not Found';
             return null;
         }
-        vt_render('event-edit.php', array_merge($result, ['page_title' => 'Edit Event']), 'form');
+        app_render('event-edit.php', array_merge($result, ['page_title' => 'Edit Event']), 'form');
         return null;
     });
 
     $router->post('/events/{slug}/delete', static function (Request $request, string $slug) {
-        $result = vt_service('controller.events')->destroy($slug);
+        $result = app_service('controller.events')->destroy($slug);
         header('Location: ' . $result['redirect']);
         exit;
     });
 
     $router->get('/events/{slug}', static function (Request $request, string $slug) {
-        $view = vt_service('controller.events')->show($slug);
+        $view = app_service('controller.events')->show($slug);
         $eventTitle = $view['event']['title'] ?? 'Event';
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        $navService = vt_service('navigation.service');
+        $navService = app_service('navigation.service');
         $tabs = $navService->buildEventTabs($view['event'], $viewer, '/events/' . $slug);
 
-        vt_render('event-detail.php', array_merge($view, [
+        app_render('event-detail.php', array_merge($view, [
             'page_title' => $eventTitle,
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
@@ -823,18 +823,18 @@ return static function (Router $router): void {
     });
 
     $router->get('/events/{slug}/conversations', static function (Request $request, string $slug) {
-        $view = vt_service('controller.events')->conversations($slug);
+        $view = app_service('controller.events')->conversations($slug);
         $eventTitle = $view['event']['title'] ?? 'Event';
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        $navService = vt_service('navigation.service');
+        $navService = app_service('navigation.service');
         $tabs = $navService->buildEventTabs($view['event'], $viewer, '/events/' . $slug . '/conversations');
 
-        vt_render('event-conversations.php', array_merge($view, [
+        app_render('event-conversations.php', array_merge($view, [
             'page_title' => 'Conversations - ' . $eventTitle,
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
@@ -844,15 +844,15 @@ return static function (Router $router): void {
 
     // Communities
     $router->get('/communities', static function (Request $request) {
-        $view = vt_service('controller.communities')->index();
+        $view = app_service('controller.communities')->index();
         $circle = $view['circle'] ?? 'all';
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        vt_render('communities-list.php', array_merge($view, [
+        app_render('communities-list.php', array_merge($view, [
             'page_title' => 'Communities',
             'nav_items' => [
                 ['title' => 'All', 'url' => '/communities?circle=all', 'active' => $circle === 'all'],
@@ -866,29 +866,29 @@ return static function (Router $router): void {
     });
 
     $router->get('/communities/create', static function (Request $request) {
-        $view = vt_service('controller.communities')->create();
-        vt_render('community-create.php', array_merge($view, ['page_title' => 'Create Community']), 'form');
+        $view = app_service('controller.communities')->create();
+        app_render('community-create.php', array_merge($view, ['page_title' => 'Create Community']), 'form');
         return null;
     });
 
     $router->post('/communities/create', static function (Request $request) {
-        $result = vt_service('controller.communities')->store();
+        $result = app_service('controller.communities')->store();
         if (isset($result['redirect'])) {
             header('Location: ' . $result['redirect']);
             exit;
         }
-        vt_render('community-create.php', array_merge($result, ['page_title' => 'Create Community']), 'form');
+        app_render('community-create.php', array_merge($result, ['page_title' => 'Create Community']), 'form');
         return null;
     });
 
     $router->get('/communities/{slug}/edit', static function (Request $request, string $slug) {
-        $view = vt_service('controller.communities')->edit($slug);
+        $view = app_service('controller.communities')->edit($slug);
         if ($view['community'] === null) {
             http_response_code(404);
             echo 'Not Found';
             return null;
         }
-        vt_render('community-edit.php', array_merge($view, ['page_title' => 'Edit Community']), 'form');
+        app_render('community-edit.php', array_merge($view, ['page_title' => 'Edit Community']), 'form');
         return null;
     });
 
@@ -901,7 +901,7 @@ return static function (Router $router): void {
             exit;
         }
 
-        $view = vt_service('controller.communities')->manage($slug);
+        $view = app_service('controller.communities')->manage($slug);
         $status = $view['status'] ?? 200;
         if ($status !== 200) {
             http_response_code($status);
@@ -909,15 +909,15 @@ return static function (Router $router): void {
         $communityTitle = $view['community']['title'] ?? $view['community']['name'] ?? 'Community';
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        $navService = vt_service('navigation.service');
+        $navService = app_service('navigation.service');
         $currentUri = '/communities/' . $slug . '/manage?tab=' . $tab;
         $tabs = $navService->buildCommunityManageTabs($view['community'], $currentUri);
 
-        vt_render('community-manage.php', array_merge($view, [
+        app_render('community-manage.php', array_merge($view, [
             'page_title' => 'Manage ' . $communityTitle,
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
@@ -926,7 +926,7 @@ return static function (Router $router): void {
     });
 
     $router->post('/communities/{slug}/edit', static function (Request $request, string $slug) {
-        $result = vt_service('controller.communities')->update($slug);
+        $result = app_service('controller.communities')->update($slug);
         if (isset($result['redirect'])) {
             header('Location: ' . $result['redirect']);
             exit;
@@ -936,18 +936,18 @@ return static function (Router $router): void {
             echo 'Not Found';
             return null;
         }
-        vt_render('community-edit.php', array_merge($result, ['page_title' => 'Edit Community']), 'form');
+        app_render('community-edit.php', array_merge($result, ['page_title' => 'Edit Community']), 'form');
         return null;
     });
 
     $router->post('/communities/{slug}/delete', static function (Request $request, string $slug) {
-        $result = vt_service('controller.communities')->destroy($slug);
+        $result = app_service('controller.communities')->destroy($slug);
         header('Location: ' . $result['redirect']);
         exit;
     });
 
     $router->get('/communities/{slug}', static function (Request $request, string $slug) {
-        $view = vt_service('controller.communities')->show($slug);
+        $view = app_service('controller.communities')->show($slug);
         $status = (int)($view['status'] ?? ($view['community'] === null ? 404 : 200));
         if ($status !== 200) {
             http_response_code($status);
@@ -955,14 +955,14 @@ return static function (Router $router): void {
         $communityTitle = $view['community']['title'] ?? $view['community']['name'] ?? 'Community';
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        $navService = vt_service('navigation.service');
+        $navService = app_service('navigation.service');
         $tabs = $navService->buildCommunityTabs($view['community'], $viewer, '/communities/' . $slug);
 
-        vt_render('community-detail.php', array_merge($view, [
+        app_render('community-detail.php', array_merge($view, [
             'page_title' => $communityTitle,
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
@@ -971,18 +971,18 @@ return static function (Router $router): void {
     });
 
     $router->get('/communities/{slug}/events', static function (Request $request, string $slug) {
-        $view = vt_service('controller.communities')->events($slug);
+        $view = app_service('controller.communities')->events($slug);
         $communityTitle = $view['community']['name'] ?? 'Community';
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        $navService = vt_service('navigation.service');
+        $navService = app_service('navigation.service');
         $tabs = $navService->buildCommunityTabs($view['community'], $viewer, '/communities/' . $slug . '/events');
 
-        vt_render('community-events.php', array_merge($view, [
+        app_render('community-events.php', array_merge($view, [
             'page_title' => 'Events - ' . $communityTitle,
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
@@ -991,18 +991,18 @@ return static function (Router $router): void {
     });
 
     $router->get('/communities/{slug}/conversations', static function (Request $request, string $slug) {
-        $view = vt_service('controller.communities')->conversations($slug);
+        $view = app_service('controller.communities')->conversations($slug);
         $communityTitle = $view['community']['name'] ?? 'Community';
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        $navService = vt_service('navigation.service');
+        $navService = app_service('navigation.service');
         $tabs = $navService->buildCommunityTabs($view['community'], $viewer, '/communities/' . $slug . '/conversations');
 
-        vt_render('community-conversations.php', array_merge($view, [
+        app_render('community-conversations.php', array_merge($view, [
             'page_title' => 'Conversations - ' . $communityTitle,
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
@@ -1011,18 +1011,18 @@ return static function (Router $router): void {
     });
 
     $router->get('/communities/{slug}/members', static function (Request $request, string $slug) {
-        $view = vt_service('controller.communities')->members($slug);
+        $view = app_service('controller.communities')->members($slug);
         $communityTitle = $view['community']['name'] ?? 'Community';
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        $navService = vt_service('navigation.service');
+        $navService = app_service('navigation.service');
         $tabs = $navService->buildCommunityTabs($view['community'], $viewer, '/communities/' . $slug . '/members');
 
-        vt_render('community-members.php', array_merge($view, [
+        app_render('community-members.php', array_merge($view, [
             'page_title' => 'Members - ' . $communityTitle,
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
@@ -1032,15 +1032,15 @@ return static function (Router $router): void {
 
     // Conversations
     $router->get('/conversations', static function (Request $request) {
-        $view = vt_service('controller.conversations')->index();
+        $view = app_service('controller.conversations')->index();
         $circle = $view['circle'] ?? 'all';
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        vt_render('conversations-list.php', array_merge($view, [
+        app_render('conversations-list.php', array_merge($view, [
             'page_title' => 'Conversations',
             'nav_items' => [
                 ['title' => 'All', 'url' => '/conversations?circle=all', 'active' => $circle === 'all'],
@@ -1054,23 +1054,23 @@ return static function (Router $router): void {
     });
 
     $router->get('/conversations/create', static function (Request $request) {
-        $view = vt_service('controller.conversations')->create();
-        vt_render('conversation-create.php', array_merge($view, ['page_title' => 'New Conversation']), 'form');
+        $view = app_service('controller.conversations')->create();
+        app_render('conversation-create.php', array_merge($view, ['page_title' => 'New Conversation']), 'form');
         return null;
     });
 
     $router->post('/conversations/create', static function (Request $request) {
-        $result = vt_service('controller.conversations')->store();
+        $result = app_service('controller.conversations')->store();
         if (isset($result['redirect'])) {
             header('Location: ' . $result['redirect']);
             exit;
         }
-        vt_render('conversation-create.php', array_merge($result, ['page_title' => 'New Conversation']), 'form');
+        app_render('conversation-create.php', array_merge($result, ['page_title' => 'New Conversation']), 'form');
         return null;
     });
 
     $router->get('/conversations/{slug}/edit', static function (Request $request, string $slug) {
-        $view = vt_service('controller.conversations')->edit($slug);
+        $view = app_service('controller.conversations')->edit($slug);
         if ($view['conversation'] === null) {
             http_response_code(404);
             echo 'Not Found';
@@ -1078,14 +1078,14 @@ return static function (Router $router): void {
         }
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        $navService = vt_service('navigation.service');
+        $navService = app_service('navigation.service');
         $tabs = $navService->buildConversationTabs($view['conversation'], $viewer, '/conversations/' . $slug . '/edit');
 
-        vt_render('conversation-edit.php', array_merge($view, [
+        app_render('conversation-edit.php', array_merge($view, [
             'page_title' => 'Edit Conversation',
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
@@ -1094,7 +1094,7 @@ return static function (Router $router): void {
     });
 
     $router->post('/conversations/{slug}/edit', static function (Request $request, string $slug) {
-        $result = vt_service('controller.conversations')->update($slug);
+        $result = app_service('controller.conversations')->update($slug);
         if (isset($result['redirect'])) {
             header('Location: ' . $result['redirect']);
             exit;
@@ -1104,18 +1104,18 @@ return static function (Router $router): void {
             echo 'Not Found';
             return null;
         }
-        vt_render('conversation-edit.php', array_merge($result, ['page_title' => 'Edit Conversation']), 'form');
+        app_render('conversation-edit.php', array_merge($result, ['page_title' => 'Edit Conversation']), 'form');
         return null;
     });
 
     $router->post('/conversations/{slug}/delete', static function (Request $request, string $slug) {
-        $result = vt_service('controller.conversations')->destroy($slug);
+        $result = app_service('controller.conversations')->destroy($slug);
         header('Location: ' . $result['redirect']);
         exit;
     });
 
     $router->post('/conversations/{slug}/reply', static function (Request $request, string $slug) {
-        $result = vt_service('controller.conversations')->reply($slug);
+        $result = app_service('controller.conversations')->reply($slug);
         if (isset($result['redirect'])) {
             header('Location: ' . $result['redirect']);
             exit;
@@ -1123,14 +1123,14 @@ return static function (Router $router): void {
         $conversationTitle = $result['conversation']['title'] ?? 'Conversation';
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        $navService = vt_service('navigation.service');
+        $navService = app_service('navigation.service');
         $tabs = $navService->buildConversationTabs($result['conversation'], $viewer, '/conversations/' . $slug);
 
-        vt_render('conversation-detail.php', array_merge($result, [
+        app_render('conversation-detail.php', array_merge($result, [
             'page_title' => $conversationTitle,
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
@@ -1139,18 +1139,18 @@ return static function (Router $router): void {
     });
 
     $router->get('/conversations/{slug}', static function (Request $request, string $slug) {
-        $view = vt_service('controller.conversations')->show($slug);
+        $view = app_service('controller.conversations')->show($slug);
         $conversationTitle = $view['conversation']['title'] ?? 'Conversation';
 
         ob_start();
-        $viewer = vt_service('auth.service')->getCurrentUser();
+        $viewer = app_service('auth.service')->getCurrentUser();
         include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
         $sidebar = ob_get_clean();
 
-        $navService = vt_service('navigation.service');
+        $navService = app_service('navigation.service');
         $tabs = $navService->buildConversationTabs($view['conversation'], $viewer, '/conversations/' . $slug);
 
-        vt_render('conversation-detail.php', array_merge($view, [
+        app_render('conversation-detail.php', array_merge($view, [
             'page_title' => $conversationTitle,
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
@@ -1159,13 +1159,13 @@ return static function (Router $router): void {
     });
 
     $router->get('/rsvp/{token}', static function (Request $request, string $token) {
-        $invitationService = vt_service('invitation.manager');
-        $security = vt_service('security.service');
+        $invitationService = app_service('invitation.manager');
+        $security = app_service('security.service');
 
         $result = $invitationService->getEventInvitationByToken($token);
 
         if (!$result['success']) {
-            vt_render('guest-rsvp.php', [
+            app_render('guest-rsvp.php', [
                 'page_title' => 'RSVP Invitation',
                 'page_description' => 'Respond to your event invitation',
                 'error_message' => $result['message'],
@@ -1195,7 +1195,7 @@ return static function (Router $router): void {
             'plus_one_name' => $guest['plus_one_name'] ?? '',
         ];
 
-        vt_render('guest-rsvp.php', [
+        app_render('guest-rsvp.php', [
             'page_title' => $event['title'] !== '' ? 'RSVP: ' . $event['title'] : 'RSVP Invitation',
             'page_description' => 'Let the host know if you can make it.',
             'event' => $event,
@@ -1212,12 +1212,12 @@ return static function (Router $router): void {
     });
 
     $router->post('/rsvp/{token}', static function (Request $request, string $token) {
-        $invitationService = vt_service('invitation.manager');
-        $security = vt_service('security.service');
+        $invitationService = app_service('invitation.manager');
+        $security = app_service('security.service');
 
         $initial = $invitationService->getEventInvitationByToken($token);
         if (!$initial['success']) {
-            vt_render('guest-rsvp.php', [
+            app_render('guest-rsvp.php', [
                 'page_title' => 'RSVP Invitation',
                 'page_description' => 'Respond to your event invitation',
                 'error_message' => $initial['message'],
@@ -1287,7 +1287,7 @@ return static function (Router $router): void {
         $formValues = $input;
         $preselect = $statusInput;
 
-        vt_render('guest-rsvp.php', [
+        app_render('guest-rsvp.php', [
             'page_title' => $event['title'] !== '' ? 'RSVP: ' . $event['title'] : 'RSVP Invitation',
             'page_description' => 'Let the host know if you can make it.',
             'event' => $event,
@@ -1313,7 +1313,7 @@ $router->get('/invitation/accept', static function (Request $request) {
     }
 
     // Use the existing controller to process the token
-    $controller = vt_service('controller.invitations');
+    $controller = app_service('controller.invitations');
     $result = $controller->accept($token);
 
     // If the controller returns data or redirect info, handle it here

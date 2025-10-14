@@ -46,7 +46,7 @@ The codebase is undergoing a **gradual migration** from legacy static classes to
 - **Legacy Layer**: Static `VT_*` classes (e.g., `VT_Database`, `VT_Auth`, `VT_Security`)
 - **Modern Layer**: Namespaced services with dependency injection (e.g., `VT_Database_Connection`, `VT_Http_Request`)
 - **Compatibility Layer**: `Container::createCompatibilityLayer()` bridges both systems
-- **Service Access**: Use `vt_service('service.name')` to get modern services from anywhere
+- **Service Access**: Use `app_service('service.name')` to get modern services from anywhere
 
 **CRITICAL**: Never mix architectural patterns within a single file. When modifying code:
 - If file uses static classes, continue with static classes
@@ -98,7 +98,7 @@ Modern services registered in `includes/Container.php`:
 - `embed.service` - URL embed handling
 - `image.service` - Image processing
 
-Access via: `vt_service('service.name')`
+Access via: `app_service('service.name')`
 
 ## Code Standards
 
@@ -107,13 +107,13 @@ Access via: `vt_service('service.name')`
 **Language Separation**:
 - PHP = logic only (in `includes/`)
 - HTML = structure only (in `templates/`)
-- CSS = presentation only (in `assets/css/`, use `.vt-` prefix)
+- CSS = presentation only (in `assets/css/`, use `.app-` prefix)
 - JavaScript = behavior only (in `assets/js/`)
 
 **NO inline `<script>` or `<style>` blocks** unless trivial (3-5 lines max)
 
 **Validation & Sanitization**:
-- Sanitizers return clean values: `vt_service('validation.sanitizer')->textField($input)`
+- Sanitizers return clean values: `app_service('validation.sanitizer')->textField($input)`
 - Validators return arrays with `['value', 'is_valid', 'errors']` - use ONLY in templates/controllers
 - Manager classes receive pre-sanitized data, never call validators
 - Flow: User Input → Template validates/sanitizes → Manager receives clean data → Database
@@ -136,7 +136,7 @@ Access via: `vt_service('service.name')`
 **Security**:
 - All input validated/sanitized
 - All output escaped
-- CSRF protection via `vt_service('security.service')->verifyNonce()`
+- CSRF protection via `app_service('security.service')->verifyNonce()`
 - Passwords use `password_hash()` and `password_verify()`
 
 ## File Structure
@@ -162,7 +162,7 @@ social_elonara/
 │   ├── partials/                # Reusable components
 │   └── *-content.php            # Page-specific content
 ├── assets/
-│   ├── css/                     # All stylesheets (.vt- prefixed)
+│   ├── css/                     # All stylesheets (.app- prefixed)
 │   └── js/                      # All JavaScript modules
 ├── config/
 │   ├── schema.sql               # Database schema (source of truth)
@@ -219,15 +219,15 @@ social_elonara/
 3. Return JSON via `VT_Router::jsonResponse($data, $status)`
 
 ### Creating a Form
-1. Use CSRF token: `vt_service('security.service')->nonce('action_name')`
-2. Verify on submit: `vt_service('security.service')->verifyNonce($_POST['nonce'], 'action_name')`
-3. Sanitize inputs: `vt_service('validation.sanitizer')->textField($input)`
+1. Use CSRF token: `app_service('security.service')->nonce('action_name')`
+2. Verify on submit: `app_service('security.service')->verifyNonce($_POST['nonce'], 'action_name')`
+3. Sanitize inputs: `app_service('validation.sanitizer')->textField($input)`
 4. Pass clean data to manager class
 
 ### Database Queries
 Modern approach:
 ```php
-$db = vt_service('database.connection');
+$db = app_service('database.connection');
 $stmt = $db->prepare("SELECT * FROM vt_events WHERE id = ?");
 $stmt->execute([$id]);
 $event = $stmt->fetch();

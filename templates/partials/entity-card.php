@@ -49,27 +49,27 @@ switch ($entity_type) {
     case 'community':
         $title = $entity->name ?? '';
         $url = '/communities/' . ($entity->slug ?? '');
-        $date_info = isset($entity->created_at) ? 'Created ' . vt_time_ago($entity->created_at) : '';
+        $date_info = isset($entity->created_at) ? 'Created ' . app_time_ago($entity->created_at) : '';
         $time_info = '';
         break;
 }
 ?>
 
 <!-- Entity Card -->
-<div class="vt-card vt-entity-card" data-entity-type="<?php echo htmlspecialchars($entity_type); ?>" data-entity-id="<?php echo intval($entity->id ?? 0); ?>">
-    <div class="vt-card-body">
+<div class="app-card app-entity-card" data-entity-type="<?php echo htmlspecialchars($entity_type); ?>" data-entity-id="<?php echo intval($entity->id ?? 0); ?>">
+    <div class="app-card-body">
         <!-- Header: Title and Badges -->
-        <div class="vt-flex vt-flex-between vt-mb-4">
-            <div class="vt-flex-1">
-                <h3 class="vt-heading vt-heading-sm vt-mb-2">
-                    <a href="<?php echo htmlspecialchars($url); ?>" class="vt-text-primary">
+        <div class="app-flex app-flex-between app-mb-4">
+            <div class="app-flex-1">
+                <h3 class="app-heading app-heading-sm app-mb-2">
+                    <a href="<?php echo htmlspecialchars($url); ?>" class="app-text-primary">
                         <?php echo htmlspecialchars($title); ?>
                     </a>
                 </h3>
 
                 <!-- Date/Time Information -->
                 <?php if (!empty($date_info)) : ?>
-                    <div class="vt-text-muted vt-mb-2">
+                    <div class="app-text-muted app-mb-2">
                         <?php echo htmlspecialchars($date_info); ?>
                         <?php if (!empty($time_info)) : ?>
                             <?php echo htmlspecialchars($time_info); ?>
@@ -79,7 +79,7 @@ switch ($entity_type) {
 
                 <!-- Entity-specific meta info -->
                 <?php if ($entity_type === 'event' && !empty($entity->venue_info)) : ?>
-                    <div class="vt-text-muted vt-mb-2">
+                    <div class="app-text-muted app-mb-2">
                         <?php echo htmlspecialchars($entity->venue_info); ?>
                     </div>
                 <?php endif; ?>
@@ -87,9 +87,9 @@ switch ($entity_type) {
 
         <!-- Badges -->
         <?php if (!empty($badges)) : ?>
-            <div class="vt-flex vt-gap vt-mb-4 vt-flex-wrap vt-flex-column">
+            <div class="app-flex app-gap app-mb-4 app-flex-wrap app-flex-column">
                 <?php foreach ($badges as $badge) : ?>
-                    <span class="vt-badge <?php echo htmlspecialchars($badge['class'] ?? 'vt-badge-secondary'); ?>">
+                    <span class="app-badge <?php echo htmlspecialchars($badge['class'] ?? 'app-badge-secondary'); ?>">
                         <?php echo htmlspecialchars($badge['label'] ?? ''); ?>
                     </span>
                 <?php endforeach; ?>
@@ -100,27 +100,27 @@ switch ($entity_type) {
 
         <!-- Description -->
         <?php if (!empty($description)) : ?>
-            <div class="vt-mb-4">
-                <p class="vt-text-muted">
-                    <?php echo htmlspecialchars(vt_truncate_words($description, $truncate_length)); ?>
+            <div class="app-mb-4">
+                <p class="app-text-muted">
+                    <?php echo htmlspecialchars(app_truncate_words($description, $truncate_length)); ?>
                 </p>
             </div>
         <?php endif; ?>
 
         <!-- Stats and Actions -->
-        <div class="vt-flex vt-flex-between vt-items-center">
+        <div class="app-flex app-flex-between app-items-center">
             <!-- Stats -->
             <?php if (!empty($stats)) : ?>
-                <div class="vt-flex vt-gap-4">
+                <div class="app-flex app-gap-4">
                     <?php foreach ($stats as $stat) : ?>
-                        <div class="vt-stat">
-                            <div class="vt-stat-number vt-text-primary">
+                        <div class="app-stat">
+                            <div class="app-stat-number app-text-primary">
                                 <?php if (!empty($stat['icon'])) : ?>
                                     <?php echo $stat['icon']; ?>
                                 <?php endif; ?>
                                 <?php echo htmlspecialchars($stat['value'] ?? '0'); ?>
                             </div>
-                            <div class="vt-stat-label vt-text-muted">
+                            <div class="app-stat-label app-text-muted">
                                 <?php echo htmlspecialchars($stat['label'] ?? ''); ?>
                             </div>
                         </div>
@@ -130,10 +130,10 @@ switch ($entity_type) {
 
             <!-- Actions -->
             <?php if (!empty($actions)) : ?>
-                <div class="vt-flex vt-gap-2">
+                <div class="app-flex app-gap-2">
                     <?php foreach ($actions as $action) : ?>
                         <a href="<?php echo htmlspecialchars($action['url'] ?? '#'); ?>"
-                           class="vt-btn vt-btn-sm <?php echo htmlspecialchars($action['class'] ?? ''); ?>">
+                           class="app-btn app-btn-sm <?php echo htmlspecialchars($action['class'] ?? ''); ?>">
                             <?php echo htmlspecialchars($action['label'] ?? ''); ?>
                         </a>
                     <?php endforeach; ?>

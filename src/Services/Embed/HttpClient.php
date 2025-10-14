@@ -75,6 +75,8 @@ final class HttpClient
             return ['success' => false, 'error' => 'Failed to initialize cURL'];
         }
 
+        $userAgent = $this->userAgent();
+
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
@@ -82,7 +84,7 @@ final class HttpClient
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
-            CURLOPT_USERAGENT => 'Elonara Social/1.0',
+            CURLOPT_USERAGENT => $userAgent,
             CURLOPT_MAXFILESIZE => self::MAX_SIZE,
         ]);
 
@@ -104,10 +106,12 @@ final class HttpClient
 
     private function fetchWithFileGetContents(string $url, int $timeout): array
     {
+        $userAgent = $this->userAgent();
+
         $context = stream_context_create([
             'http' => [
                 'timeout' => $timeout,
-                'user_agent' => 'Elonara Social/1.0',
+                'user_agent' => $userAgent,
                 'follow_location' => 1,
                 'max_redirects' => self::MAX_REDIRECTS,
             ],
@@ -120,6 +124,12 @@ final class HttpClient
         }
 
         return ['success' => true, 'body' => $body];
+    }
+
+    private function userAgent(): string
+    {
+        $appName = (string)app_config('app_name', 'App');
+        return sprintf('%s/1.0', $appName);
     }
 
     private function isValidUrl(string $url): bool

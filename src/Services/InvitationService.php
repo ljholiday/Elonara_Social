@@ -74,6 +74,7 @@ final class InvitationService
         // Send email
         $inviterName = $this->auth->getCurrentUser()->display_name ?? 'A member';
         $communityName = $community['name'] ?? 'a community';
+        $appName = (string)app_config('app_name', 'our community');
         $this->sendInvitationEmail($email, 'community', $communityName, $token, $inviterName, $sanitizedMessage);
 
         return $this->success([
@@ -413,10 +414,11 @@ final class InvitationService
         string $message = ''
     ): bool {
         $url = $this->buildInvitationUrl($type, $token);
+        $appName = (string)app_config('app_name', 'our community');
 
         $subject = $type === 'community'
-            ? "You've been invited to join {$entityName} on Elonara Social"
-            : "You're invited to {$entityName} on Elonara Social";
+            ? "You've been invited to join {$entityName} on {$appName}"
+            : "You're invited to {$entityName} on {$appName}";
 
         $variables = [
             'inviter_name' => $inviterName,
@@ -821,7 +823,7 @@ final class InvitationService
 
                     if ($handle !== '') {
                         $inviteUrl = $this->buildInvitationUrl('community', $token);
-                        $postText = "@{$handle} You've been invited to join {$communityName} on Elonara Social! {$inviteUrl}";
+                        $postText = "@{$handle} You've been invited to join {$communityName} on {$appName}! {$inviteUrl}";
 
                         $postResult = $this->bluesky->createPost($viewerId, $postText, [
                             ['handle' => $handle, 'did' => $did]

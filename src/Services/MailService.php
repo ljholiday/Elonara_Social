@@ -13,11 +13,11 @@ final class MailService
 
     public function __construct(
         private PHPMailer $mailer,
-        string $fromEmail = 'noreply@social.elonara.com',
-        string $fromName = 'Elonara Social'
+        ?string $fromEmail = null,
+        ?string $fromName = null
     ) {
-        $this->fromEmail = $fromEmail;
-        $this->fromName = $fromName;
+        $this->fromEmail = $fromEmail ?? (string)app_config('noreply_email', 'noreply@example.com');
+        $this->fromName = $fromName ?? (string)app_config('app_name', 'Our Team');
     }
 
     /**
@@ -68,7 +68,7 @@ final class MailService
         include $templatePath;
         $htmlBody = (string)ob_get_clean();
 
-        $subject = $variables['subject'] ?? 'Message from Elonara Social';
+        $subject = $variables['subject'] ?? sprintf('Message from %s', (string)app_config('app_name', 'Our Team'));
 
         return $this->send($to, $subject, $htmlBody);
     }

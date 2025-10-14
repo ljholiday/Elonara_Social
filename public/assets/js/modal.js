@@ -13,29 +13,29 @@
 		title = title || 'Error';
 
 		const modal = document.createElement('div');
-		modal.className = 'vt-modal';
+		modal.className = 'app-modal';
 		modal.innerHTML = `
-			<div class="vt-modal-overlay"></div>
-			<div class="vt-modal-content">
-				<div class="vt-modal-header">
-					<h3 class="vt-modal-title">${escapeHtml(title)}</h3>
-					<button type="button" class="vt-btn vt-btn-sm" data-dismiss="modal">&times;</button>
+			<div class="app-modal-overlay"></div>
+			<div class="app-modal-content">
+				<div class="app-modal-header">
+					<h3 class="app-modal-title">${escapeHtml(title)}</h3>
+					<button type="button" class="app-btn app-btn-sm" data-dismiss="modal">&times;</button>
 				</div>
-				<div class="vt-modal-body">
+				<div class="app-modal-body">
 					<p>${escapeHtml(message)}</p>
 				</div>
-				<div class="vt-modal-footer">
-					<button type="button" class="vt-btn" data-dismiss="modal">Close</button>
+				<div class="app-modal-footer">
+					<button type="button" class="app-btn" data-dismiss="modal">Close</button>
 				</div>
 			</div>
 		`;
 
 		document.body.appendChild(modal);
-		document.body.classList.add('vt-modal-open');
+		document.body.classList.add('app-modal-open');
 
 		// Close handlers
 		const closeButtons = modal.querySelectorAll('[data-dismiss="modal"]');
-		const overlay = modal.querySelector('.vt-modal-overlay');
+		const overlay = modal.querySelector('.app-modal-overlay');
 
 		closeButtons.forEach(btn => {
 			btn.addEventListener('click', function() {
@@ -69,7 +69,7 @@
 	 * Close modal
 	 */
 	function closeModal(modal) {
-		document.body.classList.remove('vt-modal-open');
+		document.body.classList.remove('app-modal-open');
 		modal.remove();
 	}
 

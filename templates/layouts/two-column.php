@@ -14,36 +14,39 @@
 
 declare(strict_types=1);
 
-$page_title = $page_title ?? 'Elonara Social';
+$appName = (string)app_config('app_name', 'Elonara Social');
+$assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
+$page_title = $page_title ?? $appName;
 $main_content = $main_content ?? '';
 $sidebar_content = $sidebar_content ?? '';
 $current_path = $current_path ?? $_SERVER['REQUEST_URI'] ?? '/';
 $breadcrumbs = $breadcrumbs ?? [];
 $nav_items = $nav_items ?? [];
+$fullTitle = $page_title === $appName ? $appName : $page_title . ' - ' . $appName;
 
-$security = vt_service('security.service');
-$authService = vt_service('auth.service');
+$security = app_service('security.service');
+$authService = app_service('auth.service');
 $currentUser = $authService->getCurrentUser();
 $userId = $currentUser->id ?? 0;
-$csrf_token = $security->createNonce('vt_nonce', (int) $userId);
+$csrf_token = $security->createNonce('app_nonce', (int) $userId);
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?= htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
-    <title><?= htmlspecialchars($page_title); ?> - Elonara Social</title>
-    <link rel="stylesheet" href="/assets/css/style.css">
+    <title><?= htmlspecialchars($fullTitle); ?></title>
+    <link rel="stylesheet" href="<?= htmlspecialchars($assetBase . '/css/app.css', ENT_QUOTES, 'UTF-8'); ?>">
 </head>
 <body>
 
 <?php if ($breadcrumbs): ?>
-<div class="vt-text-muted mb-4">
+<div class="app-text-muted mb-4">
     <?php
     $breadcrumb_parts = [];
     foreach ($breadcrumbs as $crumb) {
         if (isset($crumb['url'])) {
-            $breadcrumb_parts[] = '<a href="' . htmlspecialchars($crumb['url']) . '" class="vt-text-primary">' . htmlspecialchars($crumb['title']) . '</a>';
+            $breadcrumb_parts[] = '<a href="' . htmlspecialchars($crumb['url']) . '" class="app-text-primary">' . htmlspecialchars($crumb['title']) . '</a>';
         } else {
             $breadcrumb_parts[] = '<span>' . htmlspecialchars($crumb['title']) . '</span>';
         }
@@ -53,20 +56,20 @@ $csrf_token = $security->createNonce('vt_nonce', (int) $userId);
 </div>
 <?php endif; ?>
 
-<div class="vt-page-two-column">
-    <div class="vt-main">
-        <div class="vt-main-nav vt-has-mobile-menu">
-            <a href="/events" class="vt-main-nav-item<?= str_contains($current_path, '/events') ? ' active' : ''; ?>">
+<div class="app-page-two-column">
+    <div class="app-main">
+        <div class="app-main-nav app-has-mobile-menu">
+            <a href="/events" class="app-main-nav-item<?= str_contains($current_path, '/events') ? ' active' : ''; ?>">
                 Events
             </a>
-            <a href="/conversations" class="vt-main-nav-item<?= str_contains($current_path, '/conversations') ? ' active' : ''; ?>">
+            <a href="/conversations" class="app-main-nav-item<?= str_contains($current_path, '/conversations') ? ' active' : ''; ?>">
                 Conversations
             </a>
-            <a href="/communities" class="vt-main-nav-item<?= str_contains($current_path, '/communities') ? ' active' : ''; ?>">
+            <a href="/communities" class="app-main-nav-item<?= str_contains($current_path, '/communities') ? ' active' : ''; ?>">
                 Communities
             </a>
-            <button type="button" class="vt-mobile-menu-toggle vt-main-nav-item" id="mobile-menu-toggle" aria-label="Open menu">
-                <span class="vt-hamburger-icon">
+            <button type="button" class="app-mobile-menu-toggle app-main-nav-item" id="mobile-menu-toggle" aria-label="Open menu">
+                <span class="app-hamburger-icon">
                     <span></span>
                     <span></span>
                     <span></span>
@@ -75,11 +78,11 @@ $csrf_token = $security->createNonce('vt_nonce', (int) $userId);
         </div>
 
         <?php if ($nav_items): ?>
-        <div class="vt-nav">
+        <div class="app-nav">
             <?php foreach ($nav_items as $nav_item): ?>
                 <?php if (!empty($nav_item['type']) && $nav_item['type'] === 'button'): ?>
                     <button type="button"
-                        class="vt-nav-item vt-nav-item-button<?= !empty($nav_item['active']) ? ' active' : ''; ?>"
+                        class="app-nav-item app-nav-item-button<?= !empty($nav_item['active']) ? ' active' : ''; ?>"
                         <?php if (!empty($nav_item['data'])): ?>
                             <?php foreach ($nav_item['data'] as $key => $value): ?>
                                 data-<?= htmlspecialchars($key); ?>="<?= htmlspecialchars($value); ?>"
@@ -92,7 +95,7 @@ $csrf_token = $security->createNonce('vt_nonce', (int) $userId);
                     </button>
                 <?php else: ?>
                     <a href="<?= htmlspecialchars($nav_item['url']); ?>"
-                        class="vt-nav-item<?= !empty($nav_item['active']) ? ' active' : ''; ?>">
+                        class="app-nav-item<?= !empty($nav_item['active']) ? ' active' : ''; ?>">
                         <?php if (!empty($nav_item['icon'])): ?>
                             <span><?= $nav_item['icon']; ?></span>
                         <?php endif; ?>
@@ -103,12 +106,12 @@ $csrf_token = $security->createNonce('vt_nonce', (int) $userId);
         </div>
         <?php endif; ?>
 
-        <div class="vt-main-content">
+        <div class="app-main-content">
             <?= $main_content; ?>
         </div>
     </div>
 
-    <div class="vt-sidebar">
+    <div class="app-sidebar">
         <?php if ($sidebar_content): ?>
             <?= $sidebar_content; ?>
         <?php endif; ?>
@@ -117,17 +120,17 @@ $csrf_token = $security->createNonce('vt_nonce', (int) $userId);
 
 <?php include __DIR__ . '/../partials/mobile-menu-modal.php'; ?>
 
-<script src="/assets/js/modal.js"></script>
-<script src="/assets/js/social_elonara.js"></script>
+<script src="<?= htmlspecialchars($assetBase . '/js/modal.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?= htmlspecialchars($assetBase . '/js/app.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 <?php if (str_contains($current_path, '/conversations')): ?>
-<script src="/assets/js/conversations.js"></script>
+<script src="<?= htmlspecialchars($assetBase . '/js/conversations.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 <?php endif; ?>
 <?php if (str_contains($current_path, '/communities') || str_contains($current_path, '/events')): ?>
-<script src="/assets/js/communities.js"></script>
-<script src="/assets/js/invitation.js"></script>
+<script src="<?= htmlspecialchars($assetBase . '/js/communities.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?= htmlspecialchars($assetBase . '/js/invitation.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 <?php endif; ?>
 //<script>
-//  fetch('/assets/css/dev.css', { method: 'HEAD' })
+//  fetch(<?= json_encode($assetBase . '/css/dev.css'); ?>, { method: 'HEAD' })
 //    .then(response => {
 //      if (response.ok) {
 //        const link = document.createElement('link');

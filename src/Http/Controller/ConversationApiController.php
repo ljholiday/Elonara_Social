@@ -37,7 +37,7 @@ final class ConversationApiController
             return $this->error('User not authenticated', 401);
         }
 
-        if (!$this->verifyNonce($nonce, 'vt_nonce', $viewerId)) {
+        if (!$this->verifyNonce($nonce, 'app_nonce', $viewerId)) {
             return $this->error('Security verification failed', 403);
         }
 
@@ -90,7 +90,7 @@ final class ConversationApiController
             return $this->error('User not authenticated', 401);
         }
 
-        if (!$this->verifyNonce($nonce, 'vt_conversation_reply', $viewerId)) {
+        if (!$this->verifyNonce($nonce, 'app_conversation_reply', $viewerId)) {
             return $this->error('Security verification failed', 403);
         }
 
@@ -132,7 +132,7 @@ final class ConversationApiController
     private function request(): Request
     {
         /** @var Request $request */
-        $request = vt_service('http.request');
+        $request = app_service('http.request');
         return $request;
     }
 
@@ -160,7 +160,7 @@ final class ConversationApiController
     private function renderConversationCards(array $rows): string
     {
         if ($rows === []) {
-            return '<div class="vt-text-center vt-p-4"><h3 class="vt-heading vt-heading-sm vt-mb-4">No Conversations Found</h3><p class="vt-text-muted">There are no conversations in this circle.</p></div>';
+            return '<div class="app-text-center app-p-4"><h3 class="app-heading app-heading-sm app-mb-4">No Conversations Found</h3><p class="app-text-muted">There are no conversations in this circle.</p></div>';
         }
 
         $partial = dirname(__DIR__, 3) . '/templates/partials/entity-card.php';
@@ -178,8 +178,8 @@ final class ConversationApiController
             }
 
             $badges = [
-                ['label' => $conversationType, 'class' => 'vt-badge-secondary'],
-                ['label' => ucfirst((string)($entity->privacy ?? 'public')), 'class' => (($entity->privacy ?? 'public') === 'private') ? 'vt-badge-secondary' : 'vt-badge-success'],
+                ['label' => $conversationType, 'class' => 'app-badge-secondary'],
+                ['label' => ucfirst((string)($entity->privacy ?? 'public')), 'class' => (($entity->privacy ?? 'public') === 'private') ? 'app-badge-secondary' : 'app-badge-success'],
             ];
 
             $stats = [
@@ -195,9 +195,9 @@ final class ConversationApiController
             if (is_file($partial)) {
                 include $partial;
             } else {
-                echo '<article class="vt-card">';
-                echo '<h3 class="vt-card-title"><a class="vt-link" href="/conversations/' . htmlspecialchars($entity->slug ?? '') . '">' . htmlspecialchars($entity->title ?? '') . '</a></h3>';
-                echo '<p class="vt-text-muted">' . htmlspecialchars(substr(strip_tags($description), 0, 160)) . '</p>';
+                echo '<article class="app-card">';
+                echo '<h3 class="app-card-title"><a class="app-link" href="/conversations/' . htmlspecialchars($entity->slug ?? '') . '">' . htmlspecialchars($entity->title ?? '') . '</a></h3>';
+                echo '<p class="app-text-muted">' . htmlspecialchars(substr(strip_tags($description), 0, 160)) . '</p>';
                 echo '</article>';
             }
         }
@@ -208,20 +208,20 @@ final class ConversationApiController
     private function renderReplyCards(array $rows): string
     {
         if ($rows === []) {
-            return '<p class="vt-text-muted">No replies yet.</p>';
+            return '<p class="app-text-muted">No replies yet.</p>';
         }
 
         ob_start();
-        echo '<div class="vt-stack">';
+        echo '<div class="app-stack">';
         foreach ($rows as $reply) {
             $r = (object)$reply;
-            echo '<article class="vt-card" id="reply-' . htmlspecialchars((string)($r->id ?? '')) . '">';
-            echo '<div class="vt-card-sub">' . htmlspecialchars($r->author_name ?? 'Unknown');
+            echo '<article class="app-card" id="reply-' . htmlspecialchars((string)($r->id ?? '')) . '">';
+            echo '<div class="app-card-sub">' . htmlspecialchars($r->author_name ?? 'Unknown');
             if (!empty($r->created_at)) {
                 echo ' · ' . htmlspecialchars(date_fmt($r->created_at));
             }
             echo '</div>';
-            echo '<p class="vt-card-desc">' . nl2br(htmlspecialchars($r->content ?? '')) . '</p>';
+            echo '<p class="app-card-desc">' . nl2br(htmlspecialchars($r->content ?? '')) . '</p>';
             echo '</article>';
         }
         echo '</div>';

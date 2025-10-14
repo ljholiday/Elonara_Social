@@ -43,11 +43,45 @@ use PHPMailer\PHPMailer\PHPMailer;
 
 require __DIR__ . '/../vendor/autoload.php';
 
+if (!function_exists('app_config')) {
+    /**
+     * Retrieve application configuration values.
+     *
+     * @param string|null $key
+     * @param mixed $default
+     * @return mixed
+     */
+    function app_config(?string $key = null, $default = null)
+    {
+        static $config = null;
+
+        if ($config === null) {
+            $path = __DIR__ . '/../config/app.php';
+            if (!is_file($path)) {
+                throw new \RuntimeException('Missing config/app.php. Ensure configuration is published.');
+            }
+
+            $loaded = require $path;
+            if (!is_array($loaded)) {
+                throw new \RuntimeException('config/app.php must return an array.');
+            }
+
+            $config = $loaded;
+        }
+
+        if ($key === null) {
+            return $config;
+        }
+
+        return $config[$key] ?? $default;
+    }
+}
+
 /**
  * Very small service container for modern code paths.
  *
- * This intentionally mirrors the legacy helper functions (`vt_service`,
- * `vt_container`) so templates and controllers can stay agnostic while the
+ * This intentionally mirrors the legacy helper functions (`app_service`,
+ * `app_container`) so templates and controllers can stay agnostic while the
  * migration to namespaced classes progresses.
  */
 final class VTContainer
@@ -87,7 +121,7 @@ final class VTContainer
         }
 
         if (!isset($this->factories[$id])) {
-            throw new RuntimeException(sprintf('Service "%s" not registered.', $id));
+            throw new \RuntimeException(sprintf('Service "%s" not registered.', $id));
         }
 
         [$factory, $shared] = $this->factories[$id];
@@ -101,30 +135,29 @@ final class VTContainer
     }
 }
 
-if (!function_exists('vt_container')) {
+if (!function_exists('app_container')) {
     /**
      * Retrieve the global container instance, creating it on first use.
      */
-    function vt_container(): VTContainer
+    function app_container(): VTContainer
     {
         static $container = null;
 
         if ($container === null) {
             $container = new VTContainer();
-
             // Load application configuration so it's available inside service closures
-            $appConfig = require __DIR__ . '/../config/app.php';
+            $appConfig = app_config();
 
 
             $container->register('config.database', static function (): array {
                 $path = __DIR__ . '/../config/database.php';
                 if (!is_file($path)) {
-                    throw new RuntimeException('Missing config/database.php. Copy database.php.sample and update credentials.');
+                    throw new \RuntimeException('Missing config/database.php. Copy database.php.sample and update credentials.');
                 }
 
                 $config = require $path;
                 if (!is_array($config)) {
-                    throw new RuntimeException('config/database.php must return an array.');
+                    throw new \RuntimeException('config/database.php must return an array.');
                 }
 
                 return $config;
@@ -333,32 +366,46 @@ if (!function_exists('vt_container')) {
     }
 }
 
-if (!function_exists('vt_service')) {
+if (!function_exists('app_service')) {
     /**
      * Convenience accessor for services during the migration.
      *
      * @param string $id
      * @return mixed
      */
+    function app_service(string $id)
+    {
+        return app_container()->get($id);
+    }
+}
+
+if (!function_exists('vt_container')) {
+    function vt_container(): VTContainer
+    {
+        return app_container();
+    }
+}
+
+if (!function_exists('vt_service')) {
     function vt_service(string $id)
     {
-        return vt_container()->get($id);
+        return app_service($id);
     }
 }
 
 /**
- * Legacy compatibility shim: VT_Mail
+ * Legacy compatibility shim: App_Mail
  * Routes legacy mail helpers through the modern MailService.
  */
-if (!class_exists('VT_Mail')) {
-    final class VT_Mail {
+if (!class_exists('App_Mail')) {
+    final class App_Mail {
         /**
          * @param string|array<string> $to
          */
         public static function send($to, string $subject, string $htmlBody, string $textBody = ''): bool
         {
             /** @var \App\Services\MailService $mail */
-            $mail = vt_service('mail.service');
+            $mail = app_service('mail.service');
             return $mail->send($to, $subject, $htmlBody, $textBody);
         }
 
@@ -368,8 +415,12 @@ if (!class_exists('VT_Mail')) {
         public static function sendTemplate(string $to, string $template, array $variables = []): bool
         {
             /** @var \App\Services\MailService $mail */
-            $mail = vt_service('mail.service');
+            $mail = app_service('mail.service');
             return $mail->sendTemplate($to, $template, $variables);
         }
     }
+}
+
+if (!class_exists('VT_Mail')) {
+    class_alias(App_Mail::class, 'VT_Mail');
 }

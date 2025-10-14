@@ -11,29 +11,32 @@
 
 declare(strict_types=1);
 
-$page_title = $page_title ?? 'Elonara Social';
+$appName = (string)app_config('app_name', 'Elonara Social');
+$assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
+$page_title = $page_title ?? $appName;
 $content = $content ?? '';
+$fullTitle = $page_title === $appName ? $appName : $page_title . ' - ' . $appName;
 
 // Generate CSRF token for meta tag
-$security = vt_service('security.service');
-$csrf_token = $security->createNonce('vt_nonce');
+$security = app_service('security.service');
+$csrf_token = $security->createNonce('app_nonce');
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?= htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
-    <title><?= htmlspecialchars($page_title); ?> - Elonara Social</title>
-    <link rel="stylesheet" href="/assets/css/style.css">
+    <title><?= htmlspecialchars($fullTitle); ?></title>
+    <link rel="stylesheet" href="<?= htmlspecialchars($assetBase . '/css/app.css', ENT_QUOTES, 'UTF-8'); ?>">
 </head>
-<body class="vt-body vt-guest">
+<body class="app-body app-guest">
 
-<div class="vt-layout-guest">
-    <main class="vt-main" role="main">
+<div class="app-layout-guest">
+    <main class="app-main" role="main">
         <?= $content; ?>
     </main>
 </div>
 
-<script src="/assets/js/social_elonara.js"></script>
+<script src="<?= htmlspecialchars($assetBase . '/js/app.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 </html>

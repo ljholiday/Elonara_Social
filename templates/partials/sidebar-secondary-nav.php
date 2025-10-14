@@ -11,52 +11,52 @@ $viewer = $viewer ?? null;
 $is_logged_in = $viewer !== null;
 ?>
 
-<div class="vt-sidebar-section">
+<div class="app-sidebar-section">
 
     <?php if ($is_logged_in): ?>
     <!-- Search Section -->
-    <div class="vt-search-box vt-mb-4">
-        <input type="text" id="vt-search-input" class="vt-input" placeholder="Search..." autocomplete="off">
-        <div id="vt-search-results" class="vt-search-results" style="display: none;"></div>
+    <div class="app-search-box app-mb-4">
+        <input type="text" id="app-search-input" class="app-input" placeholder="Search..." autocomplete="off">
+        <div id="app-search-results" class="app-search-results" style="display: none;"></div>
     </div>
     <?php endif; ?>
 
-    <div class="vt-sidebar-nav">
+    <div class="app-sidebar-nav">
         <?php if ($is_logged_in): ?>
-            <a href="/events/create" class="vt-btn vt-btn-secondary vt-btn-block">
+            <a href="/events/create" class="app-btn app-btn-secondary app-btn-block">
                 Create Event
             </a>
 
-            <a href="/conversations/create" class="vt-btn vt-btn-secondary vt-btn-block">
+            <a href="/conversations/create" class="app-btn app-btn-secondary app-btn-block">
                 Create Conversation
             </a>
 
-            <a href="/communities/create" class="vt-btn vt-btn-secondary vt-btn-block">
+            <a href="/communities/create" class="app-btn app-btn-secondary app-btn-block">
                 Create Community
             </a>
 
-            <a href="/profile" class="vt-btn vt-btn-secondary vt-btn-block">
+            <a href="/profile" class="app-btn app-btn-secondary app-btn-block">
                 My Profile
             </a>
 
-            <a href="/" class="vt-btn vt-btn-secondary vt-btn-block">
+            <a href="/" class="app-btn app-btn-secondary app-btn-block">
                 Dashboard
             </a>
 
         <?php else: ?>
-            <a href="/events" class="vt-btn vt-btn-secondary vt-btn-block">
+            <a href="/events" class="app-btn app-btn-secondary app-btn-block">
                 Browse Events
             </a>
 
-            <a href="/conversations" class="vt-btn vt-btn-secondary vt-btn-block">
+            <a href="/conversations" class="app-btn app-btn-secondary app-btn-block">
                 Join Conversations
             </a>
 
-            <a href="/communities" class="vt-btn vt-btn-secondary vt-btn-block">
+            <a href="/communities" class="app-btn app-btn-secondary app-btn-block">
                 Browse Communities
             </a>
 
-            <a href="/auth" class="vt-btn vt-btn-secondary vt-btn-block">
+            <a href="/auth" class="app-btn app-btn-secondary app-btn-block">
                 Sign In
             </a>
         <?php endif; ?>
@@ -64,24 +64,24 @@ $is_logged_in = $viewer !== null;
 
     <?php if ($is_logged_in): ?>
     <!-- Profile Card -->
-    <div class="vt-profile-card vt-mt-4">
-        <div class="vt-flex vt-gap vt-mb">
+    <div class="app-profile-card app-mt-4">
+        <div class="app-flex app-gap app-mb">
             <?php
             $user = $viewer;
             $args = ['avatar_size' => 56];
             include __DIR__ . '/member-display.php';
             ?>
             <?php if (!empty($viewer->location)): ?>
-                <div class="vt-flex-1">
-                    <div class="vt-text-muted"><?= htmlspecialchars($viewer->location, ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="app-flex-1">
+                    <div class="app-text-muted"><?= htmlspecialchars($viewer->location, ENT_QUOTES, 'UTF-8') ?></div>
                 </div>
             <?php endif; ?>
         </div>
-        <div class="vt-flex vt-gap vt-flex-column">
-            <a href="/profile" class="vt-btn vt-btn-block">
+        <div class="app-flex app-gap app-flex-column">
+            <a href="/profile" class="app-btn app-btn-block">
                 Profile
             </a>
-            <a href="/logout" class="vt-btn vt-btn-block">
+            <a href="/logout" class="app-btn app-btn-block">
                 Logout
             </a>
         </div>

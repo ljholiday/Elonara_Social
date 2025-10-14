@@ -8,6 +8,8 @@ if (!isset($subject)) {
 	$subject = 'Verify Your Email Address';
 }
 
+$supportEmail = (string)app_config('support_email', 'support@example.com');
+
 $styles = array(
 	'container' => 'max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; line-height: 1.6; color: #333;',
 	'header' => 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center;',
@@ -80,7 +82,7 @@ $styles = array(
 					Didn't create an account? You can safely ignore this email.
 				</p>
 				<p style="color: #718096; font-size: 14px; margin: 0;">
-					Need help? Contact us at support@social.elonara.com
+					Need help? Contact us at <?php echo htmlspecialchars($supportEmail); ?>
 				</p>
 			</div>
 		</div>

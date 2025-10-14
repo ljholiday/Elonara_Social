@@ -11,7 +11,7 @@ require __DIR__ . '/../src/bootstrap.php';
 use App\Http\Router;
 
 /** @var \App\Http\Request $request */
-$request = vt_service('http.request');
+$request = app_service('http.request');
 
 // Normalize: remove trailing slash (except root)
 $path = $request->path();

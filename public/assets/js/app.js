@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Highlight the active navigation item on desktop.
-    const navItems = document.querySelectorAll('.vt-main-nav-item');
+    const navItems = document.querySelectorAll('.app-main-nav-item');
     navItems.forEach((item) => {
         if (item.href && window.location.pathname.includes(item.href.split('/').pop() ?? '')) {
             item.classList.add('active');
@@ -41,14 +41,14 @@ function initializeMobileMenu() {
 
     const closeMobileMenu = () => {
         modal.style.display = 'none';
-        document.body.classList.remove('vt-modal-open');
-        toggleBtn.classList.remove('vt-mobile-menu-toggle-active');
+        document.body.classList.remove('app-modal-open');
+        toggleBtn.classList.remove('app-mobile-menu-toggle-active');
     };
 
     toggleBtn.addEventListener('click', () => {
         modal.style.display = 'block';
-        document.body.classList.add('vt-modal-open');
-        toggleBtn.classList.add('vt-mobile-menu-toggle-active');
+        document.body.classList.add('app-modal-open');
+        toggleBtn.classList.add('app-mobile-menu-toggle-active');
     });
 
     closeElements.forEach((element) => {

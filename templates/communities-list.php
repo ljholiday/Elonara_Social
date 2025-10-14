@@ -4,19 +4,19 @@
 
 $circle = $circle ?? 'all';
 ?>
-<section class="vt-section vt-communities">
-  <h1 class="vt-heading">Communities</h1>
+<section class="app-section app-communities">
+  <h1 class="app-heading">Communities</h1>
 
   <?php
   $card_path = __DIR__ . '/partials/card.php';
   if (!is_file($card_path)) {
-      echo '<p class="vt-text-muted">Card partial not found at templates/partials/card.php</p>';
+      echo '<p class="app-text-muted">Card partial not found at templates/partials/card.php</p>';
       return;
   }
   ?>
 
   <?php if (!empty($communities)) : ?>
-    <div class="vt-grid vt-communities-grid">
+    <div class="app-grid app-communities-grid">
       <?php foreach ($communities as $row):
         $entity = (object)[
           'id'          => $row['id'] ?? null,
@@ -29,6 +29,6 @@ $circle = $circle ?? 'all';
       endforeach; ?>
     </div>
   <?php else: ?>
-    <p class="vt-text-muted">No communities found.</p>
+    <p class="app-text-muted">No communities found.</p>
   <?php endif; ?>
 </section>
