@@ -1,6 +1,14 @@
 <?php
 declare(strict_types=1);
 
+// Force longer PHP session lifetime before any session is started
+ini_set('session.gc_maxlifetime', 86400);   // 24 hours
+ini_set('session.cookie_lifetime', 86400);  // 24 hours
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 use App\Database\Database;
 use App\Http\Controller\AuthController;
 use App\Http\Controller\EventController;

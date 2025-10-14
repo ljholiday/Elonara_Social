@@ -1,16 +1,6 @@
 <?php
 declare(strict_types=1);
 
-// Fix the stupid timeout
-// Force extended session lifetime at runtime
-ini_set('session.gc_maxlifetime', 86400);  // 24 hours
-ini_set('session.cookie_lifetime', 86400); // 24 hours
-
-// Start the session (must be before any output)
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 // Dev-only error display; remove or disable in production.
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
