@@ -19,11 +19,13 @@ $conversations = $recent_conversations ?? [];
           <p class="vt-text-muted vt-text-lg">
             Plan events, keep up with your communities, and jump into the conversations that matter.
           </p>
+<!--
           <div class="vt-flex vt-gap-2 vt-flex-wrap">
             <a class="vt-btn vt-btn-primary" href="/events/create">Create event</a>
             <a class="vt-btn vt-btn-secondary" href="/communities/create">Start a community</a>
             <a class="vt-btn vt-btn-outline" href="/conversations/create">New conversation</a>
           </div>
+-->
         </div>
         <aside class="vt-card vt-max-w-sm">
           <div class="vt-card-body vt-stack vt-gap-2">
