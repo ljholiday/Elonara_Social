@@ -1,0 +1,81 @@
+# Mostly bombproof .gitignore file
+# Last update 2025-10-13
+
+# -------------------------------------------------
+# Local development documentation
+# -------------------------------------------------
+.claude/
+dev/
+
+# -------------------------------------------------
+# Core - Environment-specific configs (never commit)
+# -------------------------------------------------
+config/database.php
+config/security_salts.php
+.env
+*.env
+assets/css/dev.css
+
+# -------------------------------------------------
+# Uploads, cache, and runtime data
+# -------------------------------------------------
+uploads/
+storage/
+cache/
+tmp/
+*.log
+*.sql
+*.sqlite
+*.bak
+*.swp
+error_log
+
+# -------------------------------------------------
+# Composer, Node, and dependency directories
+# -------------------------------------------------
+node_modules/
+
+# -------------------------------------------------
+# Build and distribution artifacts
+# -------------------------------------------------
+*.zip
+*.tar.gz
+*.tgz
+*.tar
+*.gz
+*.rar
+dist/
+build/
+package-lock.json
+npm-debug.log*
+yarn-error.log
+
+# -------------------------------------------------
+# IDE/editor-specific files
+# -------------------------------------------------
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# -------------------------------------------------
+# OS-generated cruft
+# -------------------------------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.tmp
+
+# -------------------------------------------------
+# Tests and local scripts (optional)
+# -------------------------------------------------
+tests/
+test.sh
+tests/.phpunit.result.cache
+phpunit.xml
+phpunit.xml.dist
+migrate.php
+scripts/
+.local/
+
