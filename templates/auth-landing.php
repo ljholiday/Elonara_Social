@@ -1,7 +1,7 @@
 <?php
-$login = $view['login'] ?? ['errors' => [], 'input' => []];
-$register = $view['register'] ?? ['errors' => [], 'input' => []];
-$active = $view['active'] ?? 'login';
+$login = $login ?? ($view['login'] ?? ['errors' => [], 'input' => []]);
+$register = $register ?? ($view['register'] ?? ['errors' => [], 'input' => []]);
+$active = $active ?? ($view['active'] ?? 'login');
 
 $loginInput = array_merge(['identifier' => '', 'remember' => false, 'redirect_to' => ''], $login['input'] ?? []);
 $registerInput = array_merge([
@@ -111,6 +111,7 @@ $registerErrors = $register['errors'] ?? [];
                 autocomplete="username"
                 required
               >
+              <p class="vt-text-muted vt-text-sm">At least 3 characters; letters, numbers, underscores, and dashes only.</p>
               <?php if (isset($registerErrors['username'])): ?>
                 <p class="vt-input-error"><?php echo e($registerErrors['username']); ?></p>
               <?php endif; ?>
@@ -142,6 +143,7 @@ $registerErrors = $register['errors'] ?? [];
                 autocomplete="new-password"
                 required
               >
+              <p class="vt-text-muted vt-text-sm">Minimum 8 characters.</p>
               <?php if (isset($registerErrors['password'])): ?>
                 <p class="vt-input-error"><?php echo e($registerErrors['password']); ?></p>
               <?php endif; ?>

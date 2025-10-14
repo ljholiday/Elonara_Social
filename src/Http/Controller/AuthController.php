@@ -123,6 +123,17 @@ final class AuthController
             $errors = $result['errors'];
         }
 
+        if ($errors !== []) {
+            $this->debugAuth('register_failed', [
+                'input' => [
+                    'display_name' => $displayNameValidation['value'] ?? $displayNameRaw,
+                    'username' => $usernameValidation['value'] ?? $usernameRaw,
+                    'email' => $emailValidation['value'] ?? $emailRaw,
+                ],
+                'errors' => $errors,
+            ]);
+        }
+
         return $this->buildView(
             loginInput: ['redirect_to' => $redirect],
             registerInput: [
@@ -269,6 +280,21 @@ final class AuthController
         /** @var Request $request */
         $request = vt_service('http.request');
         return $request;
+    }
+
+    /**
+     * @param array<string,mixed> $context
+     */
+    private function debugAuth(string $event, array $context = []): void
+    {
+        $logFile = dirname(__DIR__, 3) . '/debug.log';
+        $line = sprintf(
+            "[%s] AuthController:%s %s\n",
+            date('Y-m-d H:i:s'),
+            $event,
+            json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+        );
+        file_put_contents($logFile, $line, FILE_APPEND);
     }
 
     private function sanitizeRedirect($value): string

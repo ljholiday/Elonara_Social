@@ -1,13 +1,13 @@
 /**
  * Elonara Social Core JavaScript
- * Core functionality shared across the application
+ * Core functionality shared across the application.
  */
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Basic form enhancement
+document.addEventListener('DOMContentLoaded', function () {
+    // Disable submit buttons after submission to prevent duplicate requests.
     const forms = document.querySelectorAll('form:not([data-custom-handler])');
-    forms.forEach(form => {
-        form.addEventListener('submit', function(e) {
+    forms.forEach((form) => {
+        form.addEventListener('submit', function () {
             const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
             if (submitBtn) {
                 submitBtn.disabled = true;
@@ -16,20 +16,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Basic navigation active states
+    // Highlight the active navigation item on desktop.
     const navItems = document.querySelectorAll('.vt-main-nav-item');
-    navItems.forEach(item => {
-        if (item.href && window.location.pathname.includes(item.href.split('/').pop())) {
+    navItems.forEach((item) => {
+        if (item.href && window.location.pathname.includes(item.href.split('/').pop() ?? '')) {
             item.classList.add('active');
         }
     });
 
-    // Mobile menu functionality
     initializeMobileMenu();
 });
 
 /**
- * Initialize mobile menu toggle
+ * Initialize mobile menu toggle behaviour.
  */
 function initializeMobileMenu() {
     const toggleBtn = document.getElementById('mobile-menu-toggle');
@@ -40,28 +39,24 @@ function initializeMobileMenu() {
         return;
     }
 
-    // Open mobile menu
-    toggleBtn.addEventListener('click', function() {
+    const closeMobileMenu = () => {
+        modal.style.display = 'none';
+        document.body.classList.remove('vt-modal-open');
+        toggleBtn.classList.remove('vt-mobile-menu-toggle-active');
+    };
+
+    toggleBtn.addEventListener('click', () => {
         modal.style.display = 'block';
         document.body.classList.add('vt-modal-open');
         toggleBtn.classList.add('vt-mobile-menu-toggle-active');
     });
 
-    // Close mobile menu function
-    function closeMobileMenu() {
-        modal.style.display = 'none';
-        document.body.classList.remove('vt-modal-open');
-        toggleBtn.classList.remove('vt-mobile-menu-toggle-active');
-    }
-
-    // Close on close button or overlay click
-    closeElements.forEach(element => {
+    closeElements.forEach((element) => {
         element.addEventListener('click', closeMobileMenu);
     });
 
-    // Close on ESC key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && modal.style.display === 'block') {
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && modal.style.display === 'block') {
             closeMobileMenu();
         }
     });
