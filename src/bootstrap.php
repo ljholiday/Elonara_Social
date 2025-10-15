@@ -372,7 +372,8 @@ if (!function_exists('app_container')) {
                 return new AdminController(
                     $c->get('auth.service'),
                     $c->get('event.service'),
-                    $c->get('community.service')
+                    $c->get('community.service'),
+                    $c->get('mail.service')
                 );
             }, false);
 
