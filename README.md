@@ -69,7 +69,13 @@ Elonara Social is a PHP-based web application designed to help communities organ
    ./install.sh
    ```
 
-5. **Configure web server** (see [INSTALL.md](INSTALL.md) for details)
+5. **Promote an initial admin user**
+   ```bash
+   php scripts/promote-admin.php your@email.com
+   ```
+   Replace the email with the account you created during registration. This assigns the `super_admin` role so you can access the admin dashboard.
+
+6. **Configure web server** (see [INSTALL.md](INSTALL.md) for details)
 
 ### Requirements
 
