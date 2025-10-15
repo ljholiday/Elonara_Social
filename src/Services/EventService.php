@@ -45,6 +45,28 @@ final class EventService
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function countAll(): int
+    {
+        $stmt = $this->db->pdo()->query('SELECT COUNT(*) FROM events');
+        return (int)$stmt->fetchColumn();
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function listRecentForAdmin(int $limit = 5): array
+    {
+        $sql = "SELECT e.id, e.title, e.event_date, u.display_name AS host
+                FROM events e
+                LEFT JOIN users u ON u.id = e.author_id
+                ORDER BY e.event_date DESC
+                LIMIT :lim";
+        $stmt = $this->db->pdo()->prepare($sql);
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     /**
      * @return array<int, array<string, mixed>>
      */

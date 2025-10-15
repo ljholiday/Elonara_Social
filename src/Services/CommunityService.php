@@ -77,6 +77,27 @@ final class CommunityService
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function countAll(): int
+    {
+        $stmt = $this->db->pdo()->query('SELECT COUNT(*) FROM communities');
+        return (int)$stmt->fetchColumn();
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function listRecentForAdmin(int $limit = 5): array
+    {
+        $sql = "SELECT c.id, c.name, c.member_count
+                FROM communities c
+                ORDER BY COALESCE(c.created_at, c.id) DESC
+                LIMIT :lim";
+        $stmt = $this->db->pdo()->prepare($sql);
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     /**
      * @return array<int, array<string, mixed>>
      */

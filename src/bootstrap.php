@@ -10,6 +10,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 use App\Database\Database;
+use Dotenv\Dotenv;
 use App\Http\Controller\AuthController;
 use App\Http\Controller\EventController;
 use App\Http\Controller\HomeController;
@@ -39,19 +40,13 @@ use App\Services\SecurityService;
 use App\Services\UserService;
 use App\Services\BlueskyService;
 use App\Services\DefaultCommunityService;
-use Dotenv\Dotenv;
 use PHPMailer\PHPMailer\PHPMailer;
 
 
 require __DIR__ . '/../vendor/autoload.php';
 
 // Load environment variables from .env if present (local development convenience).
-Dotenv\Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
-
-$rootDir = dirname(__DIR__);
-if (class_exists(Dotenv::class) && is_file($rootDir . '/.env')) {
-    Dotenv::createImmutable($rootDir)->safeLoad();
-}
+Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
 
 if (!function_exists('app_config')) {
     /**
@@ -369,6 +364,14 @@ if (!function_exists('app_container')) {
                     $c->get('community.service'),
                     $c->get('conversation.service'),
                     $c->get('circle.service')
+                );
+            }, false);
+
+            $container->register('controller.admin', static function (VTContainer $c): AdminController {
+                return new AdminController(
+                    $c->get('auth.service'),
+                    $c->get('event.service'),
+                    $c->get('community.service')
                 );
             }, false);
 

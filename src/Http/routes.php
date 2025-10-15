@@ -52,6 +52,13 @@ return static function (Router $router): void {
         return null;
     });
 
+    // Admin
+    $router->get('/admin', static function (Request $request) {
+        $view = app_service('controller.admin')->dashboard();
+        app_render('admin/dashboard.php', $view + ['page_title' => 'Admin Overview'], 'admin');
+        return null;
+    });
+
     // Auth routes
     $router->get('/auth', static function (Request $request) {
         $view = app_service('controller.auth')->landing();
