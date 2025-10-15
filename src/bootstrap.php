@@ -20,6 +20,7 @@ use App\Http\Controller\CommunityApiController;
 use App\Http\Controller\ConversationController;
 use App\Http\Controller\ConversationApiController;
 use App\Http\Controller\InvitationApiController;
+use App\Http\Controller\SearchController;
 use App\Http\Controller\ProfileController;
 use App\Http\Request;
 use App\Services\EventService;
@@ -39,6 +40,7 @@ use App\Services\ImageService;
 use App\Services\EmbedService;
 use App\Services\SecurityService;
 use App\Services\UserService;
+use App\Services\SearchService;
 use App\Services\BlueskyService;
 use App\Services\DefaultCommunityService;
 use PHPMailer\PHPMailer\PHPMailer;
@@ -328,6 +330,10 @@ if (!function_exists('app_container')) {
                 );
             });
 
+            $container->register('search.service', static function (VTContainer $c): SearchService {
+                return new SearchService($c->get('database.connection'));
+            });
+
             $container->register('bluesky.service', static function (VTContainer $c): BlueskyService {
                 return new BlueskyService($c->get('database.connection'));
             });
@@ -397,6 +403,13 @@ if (!function_exists('app_container')) {
                     $c->get('auth.service'),
                     $c->get('authorization.service'),
                     $c->get('security.service')
+                );
+            }, false);
+
+            $container->register('controller.search', static function (VTContainer $c): SearchController {
+                return new SearchController(
+                    $c->get('search.service'),
+                    $c->get('auth.service')
                 );
             }, false);
 

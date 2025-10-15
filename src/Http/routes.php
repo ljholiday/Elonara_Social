@@ -622,6 +622,14 @@ return static function (Router $router): void {
         return true;
     });
 
+    $router->get('/api/search', static function (Request $request) {
+        $response = app_service('controller.search')->search($request);
+        http_response_code($response['status'] ?? 200);
+        header('Content-Type: application/json');
+        echo json_encode($response['body']);
+        return true;
+    });
+
 // API: Bluesky Invitations
     
     $router->post('/api/invitations/bluesky/event/{id}', static function (Request $request, string $id) {
