@@ -3,7 +3,7 @@
         'name' => 'social/elonara',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '3e85f314a6d9125b46322e3c798ec50f8fff8077',
+        'reference' => '29a205725d4beb970e235ca77e35a3c22168c603',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -121,7 +121,7 @@
         'social/elonara' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '3e85f314a6d9125b46322e3c798ec50f8fff8077',
+            'reference' => '29a205725d4beb970e235ca77e35a3c22168c603',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

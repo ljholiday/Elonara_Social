@@ -45,6 +45,9 @@ use PHPMailer\PHPMailer\PHPMailer;
 
 require __DIR__ . '/../vendor/autoload.php';
 
+// Load environment variables from .env if present (local development convenience).
+Dotenv\Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
+
 $rootDir = dirname(__DIR__);
 if (class_exists(Dotenv::class) && is_file($rootDir . '/.env')) {
     Dotenv::createImmutable($rootDir)->safeLoad();
