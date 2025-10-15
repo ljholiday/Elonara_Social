@@ -55,12 +55,13 @@ Elonara Social is a PHP-based web application designed to help communities organ
    mysql -u root -p -e "CREATE DATABASE social_elonara;"
    ```
 
-3. **Configure database & app metadata**
+3. **Configure environment**
    ```bash
+   cp .env.example .env
    cp config/database.php.sample config/database.php
-   # Edit config/database.php with your database credentials
-   # Update config/app.php (name, domain, support email, asset url)
    ```
+   - Edit `.env` with your app name, domain, asset path, and SMTP settings.
+   - Update `config/database.php` only if you prefer hard-coded credentials; by default it reads from the environment values.
 
 4. **Run installation**
    ```bash
@@ -125,7 +126,7 @@ The project includes development standards and guidelines in the `dev/` director
 - `css.xml` - CSS naming conventions and structure
 - `database.xml` - Database design and query standards
 - `security.xml` - Application security guidelines
-- `config/app.php` - Centralized metadata/config consumed via `app_config()`
+- `config/app.php` - Centralized metadata/config consumed via `app_config()` (populated from `.env`)
 
 ## Security
 

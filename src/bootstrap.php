@@ -39,10 +39,16 @@ use App\Services\SecurityService;
 use App\Services\UserService;
 use App\Services\BlueskyService;
 use App\Services\DefaultCommunityService;
+use Dotenv\Dotenv;
 use PHPMailer\PHPMailer\PHPMailer;
 
 
 require __DIR__ . '/../vendor/autoload.php';
+
+$rootDir = dirname(__DIR__);
+if (class_exists(Dotenv::class) && is_file($rootDir . '/.env')) {
+    Dotenv::createImmutable($rootDir)->safeLoad();
+}
 
 if (!function_exists('app_config')) {
     /**

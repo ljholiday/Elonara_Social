@@ -37,42 +37,31 @@ git clone https://github.com/ljholiday/social_elonara.git
 cd social_elonara
 ```
 
-### 3. Configure Database Connection
+### 3. Configure Environment & Database
 
-Create your database configuration file:
+Create your environment file:
 
 ```bash
+cp .env.example .env
 cp config/database.php.sample config/database.php
 ```
 
-Edit `config/database.php` with your database credentials:
+Edit `.env` with your site metadata, SMTP settings, and database credentials:
 
-```php
-<?php
-/**
- * Elonara Social Database Configuration
- * Copy this file to database.php and update with your credentials
- */
+```
+APP_NAME="Elonara Social"
+APP_DOMAIN="social.elonara.local"
+APP_URL="http://social.elonara.local"
+ASSET_URL="/assets"
 
-return [
-    'host' => 'localhost',
-    'dbname' => 'social_elonara',
-    'username' => 'your_db_username',
-    'password' => 'your_db_password',
-    'charset' => 'utf8mb4',
-    'options' => [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
-        PDO::ATTR_EMULATE_PREPARES => false,
-    ]
-];
+DB_HOST="127.0.0.1"
+DB_PORT=3306
+DB_NAME="social_elonara"
+DB_USERNAME="root"
+DB_PASSWORD="root"
 ```
 
-**Update these values:**
-- `host`: Your MySQL server hostname (usually 'localhost')
-- `dbname`: The database name you created in step 1
-- `username`: Your MySQL username
-- `password`: Your MySQL password
+`config/database.php` now defers to those variables, so you only need to edit the PHP file if you prefer hard-coded credentials.
 
 ### 4. Run Installation Script
 
