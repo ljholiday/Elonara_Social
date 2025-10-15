@@ -63,6 +63,24 @@ Elonara Social is a PHP-based web application designed to help communities organ
    - Edit `.env` with your app name, domain, asset path, and SMTP settings.
    - Update `config/database.php` only if you prefer hard-coded credentials; by default it reads from the environment values.
 
+   Mail defaults are defined in `.env`. Typical values:
+
+   ```ini
+   MAIL_DRIVER=smtp
+   MAIL_HOST=127.0.0.1
+   MAIL_PORT=1025
+   MAIL_AUTH=false
+   MAIL_USERNAME=
+   MAIL_PASSWORD=
+   MAIL_ENCRYPTION=
+   MAIL_FROM_ADDRESS=no-reply@elonara.local
+   MAIL_FROM_NAME="Elonara Social"
+   MAIL_REPLY_TO_ADDRESS=support@elonara.local
+   MAIL_REPLY_TO_NAME="Elonara Social Support"
+   ```
+
+   For production, see `.env.production.example` and adjust host/credentials accordingly.
+
 4. **Run installation**
    ```bash
    chmod +x install.sh
