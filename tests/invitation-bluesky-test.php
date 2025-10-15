@@ -177,6 +177,14 @@ try {
             ->execute([':user_id' => $inviteeId]);
     }
 
+    // Delete default communities created during registration
+    foreach (array_filter([$inviteeId, $hostId]) as $userId) {
+        $pdo->prepare('DELETE FROM community_members WHERE user_id = :user_id')
+            ->execute([':user_id' => $userId]);
+        $pdo->prepare('DELETE FROM communities WHERE creator_id = :creator_id')
+            ->execute([':creator_id' => $userId]);
+    }
+
     // Delete user profiles and users
     foreach (array_filter([$inviteeId, $hostId]) as $userId) {
         $pdo->prepare('DELETE FROM user_profiles WHERE user_id = :user_id')

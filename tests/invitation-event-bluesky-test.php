@@ -128,6 +128,8 @@ try {
         $pdo->prepare('DELETE FROM events WHERE id = :id')->execute([':id' => $eventId]);
     }
     if ($hostId !== null) {
+        $pdo->prepare('DELETE FROM community_members WHERE user_id = :user_id')->execute([':user_id' => $hostId]);
+        $pdo->prepare('DELETE FROM communities WHERE creator_id = :creator_id')->execute([':creator_id' => $hostId]);
         $pdo->prepare('DELETE FROM user_profiles WHERE user_id = :user_id')->execute([':user_id' => $hostId]);
         $pdo->prepare('DELETE FROM users WHERE id = :id')->execute([':id' => $hostId]);
     }

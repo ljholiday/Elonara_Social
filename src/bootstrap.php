@@ -38,6 +38,7 @@ use App\Services\EmbedService;
 use App\Services\SecurityService;
 use App\Services\UserService;
 use App\Services\BlueskyService;
+use App\Services\DefaultCommunityService;
 use PHPMailer\PHPMailer\PHPMailer;
 
 
@@ -181,6 +182,10 @@ if (!function_exists('app_container')) {
 
             $container->register('event.guest.service', static function (VTContainer $c): EventGuestService {
                 return new EventGuestService($c->get('database.connection'));
+            });
+
+            $container->register('default.community.service', static function (VTContainer $c): DefaultCommunityService {
+                return new DefaultCommunityService($c->get('community.service'));
             });
 
             $container->register('conversation.service', static function (VTContainer $c): ConversationService {

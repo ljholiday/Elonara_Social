@@ -51,12 +51,19 @@ try {
     }
     $conversationId = (int)$conversation['id'];
 
-    $communitySlug = $communityService->create([
+    $viewer = $auth->getCurrentUser();
+    $viewerEmail = is_object($viewer) && isset($viewer->email) ? (string)$viewer->email : '';
+    $viewerName = is_object($viewer) && isset($viewer->display_name) ? (string)$viewer->display_name : '';
+
+    $createdCommunity = $communityService->create([
         'name' => 'Security Test Community ' . $suffix,
         'description' => 'Used for verifying nonce enforcement.',
         'privacy' => 'public',
+        'creator_id' => $viewerId,
+        'creator_email' => $viewerEmail,
+        'creator_display_name' => $viewerName,
     ]);
-    $community = $communityService->getBySlugOrId($communitySlug);
+    $community = $communityService->getBySlugOrId($createdCommunity['slug']);
     if ($community === null || !isset($community['id'])) {
         throw new RuntimeException('Failed to create test community.');
     }

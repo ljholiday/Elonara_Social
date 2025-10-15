@@ -142,14 +142,21 @@ final class CommunityController
             ];
         }
 
-        $slug = $this->communities->create([
+        $viewer = $this->auth->getCurrentUser();
+        $viewerEmail = is_object($viewer) && isset($viewer->email) ? (string)$viewer->email : '';
+        $viewerName = is_object($viewer) && isset($viewer->display_name) ? (string)$viewer->display_name : '';
+
+        $community = $this->communities->create([
             'name' => $validated['input']['name'],
             'description' => $validated['input']['description'],
             'privacy' => $validated['input']['privacy'],
+            'creator_id' => $viewerId,
+            'creator_email' => $viewerEmail,
+            'creator_display_name' => $viewerName,
         ]);
 
         return [
-            'redirect' => '/communities/' . $slug,
+            'redirect' => '/communities/' . $community['slug'],
         ];
     }
 

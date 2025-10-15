@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Database\Database;
+use App\Services\DefaultCommunityService;
 use PDO;
 
 final class AuthService
@@ -260,6 +261,7 @@ final class AuthService
 
         $userId = (int)$pdo->lastInsertId();
         $this->createUserProfile($userId, $displayName);
+        $this->createDefaultCommunitiesForUser($userId, $displayName, $email);
 
         return [
             'success' => true,
@@ -337,7 +339,7 @@ final class AuthService
         try {
             $stmt = $this->database->pdo()->prepare(
                 "INSERT INTO user_profiles (user_id, display_name)
-                 VALUES (:user_id, :display_name)"
+                VALUES (:user_id, :display_name)"
             );
             $stmt->execute([
                 ':user_id' => $userId,
@@ -346,6 +348,29 @@ final class AuthService
         } catch (\Throwable $e) {
             // Profiles are optional for now; ignore failures.
         }
+    }
+
+    private function createDefaultCommunitiesForUser(int $userId, string $displayName, string $email): void
+    {
+        if (!function_exists('app_service')) {
+            return;
+        }
+
+        try {
+            $service = app_service('default.community.service');
+            if ($service instanceof DefaultCommunityService) {
+                $service->createForUser($userId, $displayName, $email);
+            }
+        } catch (\Throwable $e) {
+            $this->logError('Failed to create default communities for user ' . $userId . ': ' . $e->getMessage());
+        }
+    }
+
+    private function logError(string $message): void
+    {
+        $logFile = dirname(__DIR__, 2) . '/debug.log';
+        $line = sprintf('[%s] %s%s', date('Y-m-d H:i:s'), $message, PHP_EOL);
+        @file_put_contents($logFile, $line, FILE_APPEND);
     }
 
     private function updateLastLogin(int $userId): void

@@ -178,7 +178,19 @@ final class CommunityService
     /**
      * @param array{name:string,description:string,privacy:string} $data
      */
-    public function create(array $data): string
+    /**
+     * @param array{
+     *   name:string,
+     *   description:string,
+     *   privacy:string,
+     *   creator_id?:int,
+     *   creator_email?:string,
+     *   creator_display_name?:string,
+     *   creator_role?:string
+     * } $data
+     * @return array{id:int,slug:string}
+     */
+    public function create(array $data): array
     {
         $name = trim($data['name']);
         if ($name === '') {
@@ -188,6 +200,25 @@ final class CommunityService
         $privacy = $data['privacy'] !== '' ? $data['privacy'] : 'public';
         if (!in_array($privacy, ['public', 'private'], true)) {
             throw new RuntimeException('Invalid privacy value.');
+        }
+
+        $creatorId = isset($data['creator_id']) ? (int)$data['creator_id'] : 0;
+        if ($creatorId <= 0) {
+            throw new RuntimeException('Creator ID is required.');
+        }
+
+        $creatorEmail = trim((string)($data['creator_email'] ?? ''));
+        $creatorDisplayName = trim((string)($data['creator_display_name'] ?? ''));
+        if ($creatorDisplayName === '' && $creatorEmail !== '') {
+            $creatorDisplayName = $creatorEmail;
+        }
+        if ($creatorDisplayName === '') {
+            $creatorDisplayName = 'Member ' . $creatorId;
+        }
+
+        $creatorRole = strtolower((string)($data['creator_role'] ?? 'admin'));
+        if (!in_array($creatorRole, ['admin', 'moderator', 'member'], true)) {
+            $creatorRole = 'admin';
         }
 
         $pdo = $this->db->pdo();
@@ -229,44 +260,31 @@ final class CommunityService
             ':slug' => $slug,
             ':description' => $data['description'],
             ':privacy' => $privacy,
-            ':creator_id' => 1,
-            ':creator_email' => 'demo@example.com',
-            ':created_by' => 1,
+            ':creator_id' => $creatorId,
+            ':creator_email' => $creatorEmail,
+            ':created_by' => $creatorId,
             ':created_at' => $now,
             ':updated_at' => $now,
-            ':member_count' => 1,
+            ':member_count' => 0,
             ':event_count' => 0,
             ':is_active' => 1,
         ]);
 
-    // ------------------------------------------------------
-    // Automatically add creator as admin of new community
-    // ------------------------------------------------------
-    $communityId = (int)$pdo->lastInsertId();
+        $communityId = (int)$pdo->lastInsertId();
 
-    $stmtMember = $pdo->prepare("
-        INSERT INTO community_members (
-            community_id,
-            user_id,
-            role,
-            status,
-            joined_at
-        ) VALUES (
-            :community_id,
-            :user_id,
-            'admin',
-            'active',
-            NOW()
-        )
-    ");
+        $memberService = new CommunityMemberService($this->db);
+        $memberService->addMember(
+            $communityId,
+            $creatorId,
+            $creatorEmail,
+            $creatorDisplayName,
+            $creatorRole
+        );
 
-    $stmtMember->execute([
-        ':community_id' => $communityId,
-        ':user_id' => 1, // same creator as above
-    ]);
-    // ------------------------------------------------------
-
-        return $slug;
+        return [
+            'id' => $communityId,
+            'slug' => $slug,
+        ];
     }
 
     /**

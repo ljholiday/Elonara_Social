@@ -116,7 +116,11 @@ final class CommunityMemberService
         }
 
         $pdo = $this->database->pdo();
-        $pdo->beginTransaction();
+        $startedTransaction = false;
+        if (!$pdo->inTransaction()) {
+            $pdo->beginTransaction();
+            $startedTransaction = true;
+        }
 
         try {
             $stmt = $pdo->prepare(
@@ -165,9 +169,13 @@ final class CommunityMemberService
             }
 
             $this->refreshMemberCount($communityId);
-            $pdo->commit();
+            if ($startedTransaction) {
+                $pdo->commit();
+            }
         } catch (\Throwable $e) {
-            $pdo->rollBack();
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             throw new RuntimeException('Failed to add member: ' . $e->getMessage(), (int)$e->getCode(), $e);
         }
 

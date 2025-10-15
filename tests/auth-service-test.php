@@ -38,6 +38,19 @@ try {
         throw new RuntimeException('Current user not available after login.');
     }
 
+    $createdId = (int)$currentUser->id;
+    $communityCount = $pdo->prepare('SELECT COUNT(*) FROM communities WHERE creator_id = :creator_id');
+    $communityCount->execute([':creator_id' => $createdId]);
+    if ((int)$communityCount->fetchColumn() !== 2) {
+        throw new RuntimeException('Default communities were not created for new user.');
+    }
+
+    $memberCount = $pdo->prepare('SELECT COUNT(*) FROM community_members WHERE user_id = :user_id');
+    $memberCount->execute([':user_id' => $createdId]);
+    if ((int)$memberCount->fetchColumn() < 2) {
+        throw new RuntimeException('Default community memberships missing for new user.');
+    }
+
     $service->logout();
 
     if ($service->isLoggedIn()) {
