@@ -31,7 +31,7 @@ $styles = array(
 	<div style="<?php echo $styles['container']; ?>">
 		<!-- Header -->
 		<div style="<?php echo $styles['header']; ?>">
-			<h1 style="margin: 0; font-size: 28px;">✉️ Verify Your Email</h1>
+			<h1 style="margin: 0; font-size: 28px;">Verify Your Email</h1>
 			<p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;"><?php echo htmlspecialchars($site_name); ?></p>
 		</div>
 

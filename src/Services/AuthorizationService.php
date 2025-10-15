@@ -415,7 +415,7 @@ final class AuthorizationService
 
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare('
-            SELECT id, title, slug, privacy, creator_id, created_at
+            SELECT id, name AS title, slug, privacy, creator_id, created_at
             FROM communities
             WHERE id = ?
         ');
