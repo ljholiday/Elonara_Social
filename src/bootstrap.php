@@ -155,6 +155,12 @@ if (!function_exists('app_container')) {
             // Load application configuration so it's available inside service closures
             $appConfig = app_config();
 
+            $mailConfigPath = __DIR__ . '/../config/mail.php';
+            $mailConfig = is_file($mailConfigPath) ? require $mailConfigPath : [];
+            if (!is_array($mailConfig)) {
+                throw new \RuntimeException('config/mail.php must return an array.');
+            }
+
 
             $container->register('config.database', static function (): array {
                 $path = __DIR__ . '/../config/database.php';
@@ -226,24 +232,56 @@ if (!function_exists('app_container')) {
                 return new AuthService($c->get('database.connection'), $c->get('mail.service'));
             });
 
-            $container->register('mail.service', static function () use ($appConfig): MailService {
-
+            $container->register('mail.service', static function () use ($appConfig, $mailConfig): MailService {
                 $mailer = new PHPMailer(true);
-                $mailer->isSMTP();
-                $mailer->Host = $_ENV['SMTP_HOST'] ?? 'localhost';
-                $mailer->Port = (int)($_ENV['SMTP_PORT'] ?? 587);
-                $mailer->SMTPAuth = !empty($_ENV['SMTP_USERNAME']);
-                if ($mailer->SMTPAuth) {
-                    $mailer->Username = $_ENV['SMTP_USERNAME'];
-                    $mailer->Password = $_ENV['SMTP_PASSWORD'];
+
+                $transport = strtolower((string)($mailConfig['transport'] ?? 'smtp'));
+                switch ($transport) {
+                    case 'sendmail':
+                        $mailer->isSendmail();
+                        if (!empty($mailConfig['sendmail_path'])) {
+                            $mailer->Sendmail = (string)$mailConfig['sendmail_path'];
+                        }
+                        break;
+                    case 'mail':
+                        $mailer->isMail();
+                        break;
+                    case 'smtp':
+                    default:
+                        $mailer->isSMTP();
+                        $mailer->Host = (string)($mailConfig['host'] ?? '127.0.0.1');
+                        $mailer->Port = (int)($mailConfig['port'] ?? 1025);
+                        $mailer->SMTPAuth = (bool)($mailConfig['auth'] ?? false);
+                        if ($mailer->SMTPAuth) {
+                            if (!empty($mailConfig['username'])) {
+                                $mailer->Username = (string)$mailConfig['username'];
+                            }
+                            if (!empty($mailConfig['password'])) {
+                                $mailer->Password = (string)$mailConfig['password'];
+                            }
+                        }
+                        $encryption = $mailConfig['encryption'] ?? '';
+                        if (is_string($encryption) && $encryption !== '' && strtolower($encryption) !== 'none') {
+                            $mailer->SMTPSecure = $encryption;
+                        }
+                        break;
                 }
-                $mailer->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
 
-                $fromEmail = $appConfig['noreply_email'];
-                $fromName  = $appConfig['app_name'];
+                if (!empty($mailConfig['timeout'])) {
+                    $mailer->Timeout = (int)$mailConfig['timeout'];
+                }
 
+                if (!empty($mailConfig['debug'])) {
+                    $mailer->SMTPDebug = (int)$mailConfig['debug'];
+                }
 
-                return new MailService($mailer, $fromEmail, $fromName);
+                $from = $mailConfig['from'] ?? [];
+                $fromEmail = (string)($from['address'] ?? $appConfig['noreply_email']);
+                $fromName  = (string)($from['name'] ?? $appConfig['app_name']);
+
+                $replyTo = $mailConfig['reply_to'] ?? [];
+
+                return new MailService($mailer, $fromEmail, $fromName, $replyTo);
             });
 
             $container->register('image.service', static function (): ImageService {

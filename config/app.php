@@ -8,4 +8,5 @@ return [
     'asset_url' => $_ENV['ASSET_URL'] ?? '/assets',
     'support_email' => $_ENV['SUPPORT_EMAIL'] ?? 'support@social.elonara.com',
     'noreply_email' => $_ENV['NOREPLY_EMAIL'] ?? 'noreply@social.elonara.com',
+    'environment' => $_ENV['APP_ENV'] ?? 'production',
 ];

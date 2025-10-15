@@ -10,14 +10,25 @@ final class MailService
 {
     private string $fromEmail;
     private string $fromName;
+    /** @var array{address?:string,name?:string} */
+    private array $replyTo;
 
     public function __construct(
         private PHPMailer $mailer,
         ?string $fromEmail = null,
-        ?string $fromName = null
+        ?string $fromName = null,
+        array $replyTo = []
     ) {
         $this->fromEmail = $fromEmail ?? (string)app_config('noreply_email', 'noreply@example.com');
         $this->fromName = $fromName ?? (string)app_config('app_name', 'Our Team');
+        $this->replyTo = $replyTo;
+
+        $this->mailer->clearReplyTos();
+        $replyToAddress = $replyTo['address'] ?? $replyTo['email'] ?? null;
+        if (is_string($replyToAddress) && $replyToAddress !== '') {
+            $replyToName = (string)($replyTo['name'] ?? $this->fromName);
+            $this->mailer->addReplyTo($replyToAddress, $replyToName);
+        }
     }
 
     /**
