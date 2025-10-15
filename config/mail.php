@@ -23,10 +23,25 @@ $defaults = [
     'MAIL_DEBUG' => '0',
 ];
 
+$envLookup = static function (string $key): ?string {
+    foreach ([$_ENV, $_SERVER] as $scope) {
+        if (isset($scope[$key]) && $scope[$key] !== '') {
+            return (string)$scope[$key];
+        }
+    }
+
+    $value = getenv($key);
+    if ($value === false || $value === '') {
+        return null;
+    }
+
+    return (string)$value;
+};
+
 $values = [];
 foreach ($defaults as $key => $default) {
-    $envValue = getenv($key);
-    if ($envValue !== false && $envValue !== '') {
+    $envValue = $envLookup($key);
+    if ($envValue !== null) {
         $values[$key] = $envValue;
     }
 }
@@ -56,7 +71,7 @@ if (count($values) < count($defaults)) {
     }
 }
 
-$settings = $defaults + $values;
+$settings = array_merge($defaults, $values);
 
 $bool = static function ($value): bool {
     if (is_bool($value)) {
