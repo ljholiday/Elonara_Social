@@ -89,7 +89,9 @@ final class AuthController
 
         // Validate inputs
         $displayNameValidation = $this->validator->textField($displayNameRaw, 1, 100);
-        $usernameValidation = $this->validator->username($usernameRaw);
+        $usernameMinLength = (int)user_config('username_min_length', 2);
+        $usernameMaxLength = (int)user_config('username_max_length', 30);
+        $usernameValidation = $this->validator->username($usernameRaw, $usernameMinLength, $usernameMaxLength);
         $emailValidation = $this->validator->email($emailRaw);
         $passwordValidation = $this->validator->password($passwordRaw);
 

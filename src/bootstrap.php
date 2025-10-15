@@ -84,6 +84,30 @@ if (!function_exists('app_config')) {
     }
 }
 
+if (!function_exists('user_config')) {
+    /**
+     * Retrieve user-related configuration values (e.g., username requirements).
+     */
+    function user_config(?string $key = null, $default = null)
+    {
+        static $config = null;
+
+        if ($config === null) {
+            $path = __DIR__ . '/../config/users.php';
+            $config = is_file($path) ? require $path : [];
+            if (!is_array($config)) {
+                throw new \RuntimeException('config/users.php must return an array.');
+            }
+        }
+
+        if ($key === null) {
+            return $config;
+        }
+
+        return $config[$key] ?? $default;
+    }
+}
+
 /**
  * Very small service container for modern code paths.
  *

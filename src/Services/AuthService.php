@@ -185,10 +185,10 @@ final class AuthService
         $this->ensureSession();
 
         if (is_array($input)) {
-            $username = trim($input['username'] ?? '');
-            $email = trim($input['email'] ?? '');
-            $password = (string)($input['password'] ?? '');
-            $displayName = trim($input['display_name'] ?? '');
+        $username = trim($input['username'] ?? '');
+        $email = trim($input['email'] ?? '');
+        $password = (string)($input['password'] ?? '');
+        $displayName = trim($input['display_name'] ?? '');
         } else {
             $username = trim((string)$input);
             $email = trim((string)$email);
@@ -198,14 +198,27 @@ final class AuthService
 
         $errors = [];
 
+        $usernameMinLength = (int)user_config('username_min_length', 2);
+        $usernameMaxLength = (int)user_config('username_max_length', 30);
+
         if ($displayName === '') {
             $errors['display_name'] = 'Display name is required.';
         }
 
         if ($username === '') {
             $errors['username'] = 'Username is required.';
-        } elseif (!preg_match('/^[A-Za-z0-9_.-]{3,}$/', $username)) {
-            $errors['username'] = 'Username must be at least 3 characters and contain only letters, numbers, dots, dashes, or underscores.';
+        } elseif (strlen($username) < $usernameMinLength) {
+            $errors['username'] = sprintf(
+                'Username must be at least %d characters long.',
+                $usernameMinLength
+            );
+        } elseif (strlen($username) > $usernameMaxLength) {
+            $errors['username'] = sprintf(
+                'Username cannot exceed %d characters.',
+                $usernameMaxLength
+            );
+        } elseif (!preg_match('/^[A-Za-z0-9_.-]+$/', $username)) {
+            $errors['username'] = 'Username may contain only letters, numbers, dots, dashes, or underscores.';
         }
 
         if ($email === '') {
