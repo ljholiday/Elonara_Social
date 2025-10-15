@@ -60,7 +60,7 @@ final class AuthService
         }
 
         $stmt = $this->database->pdo()->prepare(
-            "SELECT id, username, email, display_name, status, created_at, updated_at
+            "SELECT id, username, email, display_name, status, role, created_at, updated_at
              FROM users
              WHERE id = :id
              LIMIT 1"
@@ -109,7 +109,7 @@ final class AuthService
         }
 
         $stmt = $this->database->pdo()->prepare(
-            "SELECT id, username, email, password_hash, display_name, status, created_at, updated_at
+            "SELECT id, username, email, password_hash, display_name, status, role, created_at, updated_at
              FROM users
              WHERE (email = :email_identifier OR username = :username_identifier)
              LIMIT 1"
@@ -304,7 +304,7 @@ final class AuthService
         }
 
         $stmt = $this->database->pdo()->prepare(
-            "SELECT id, username, email, display_name, status, created_at, updated_at
+            "SELECT id, username, email, display_name, status, role, created_at, updated_at
              FROM users
              WHERE id = :id
              LIMIT 1"
