@@ -59,6 +59,25 @@ return static function (Router $router): void {
         return null;
     });
 
+    $router->get('/admin/settings', static function (Request $request) {
+        $view = app_service('controller.admin')->settings();
+        if (!empty($_SESSION['admin_flash'])) {
+            $view['flash'] = $_SESSION['admin_flash'];
+            unset($_SESSION['admin_flash']);
+        }
+        app_render('admin/settings.php', $view, 'admin');
+        return null;
+    });
+
+    $router->post('/admin/settings/test-mail', static function (Request $request) {
+        $result = app_service('controller.admin')->sendTestEmail();
+        if (!empty($result['flash'])) {
+            $_SESSION['admin_flash'] = $result['flash'];
+        }
+        header('Location: ' . ($result['redirect'] ?? '/admin/settings'));
+        exit;
+    });
+
     // Auth routes
     $router->get('/auth', static function (Request $request) {
         $view = app_service('controller.auth')->landing();
