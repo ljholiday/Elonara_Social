@@ -13,21 +13,34 @@ try {
     $email = 'codex+' . $suffix . '@example.com';
     $password = 'CodexPass!' . $suffix;
 
-    $register = $service->register([
-        'display_name' => 'Codex Tester ' . $suffix,
-        'username' => $username,
-        'email' => $email,
-        'password' => $password,
-    ]);
+$register = $service->register([
+    'display_name' => 'Codex Tester ' . $suffix,
+    'username' => $username,
+    'email' => $email,
+    'password' => $password,
+]);
 
-    if (!$register['success']) {
-        throw new RuntimeException('Registration failed: ' . json_encode($register['errors']));
-    }
+if (!$register['success']) {
+    throw new RuntimeException('Registration failed: ' . json_encode($register['errors']));
+}
 
-    $login = $service->attemptLogin($email, $password);
-    if (!$login['success']) {
-        throw new RuntimeException('Login failed after registration.');
-    }
+$tokenStmt = $pdo->prepare('SELECT token FROM email_verification_tokens WHERE user_id = :user_id ORDER BY id DESC LIMIT 1');
+$tokenStmt->execute([':user_id' => (int)$register['user_id']]);
+$verificationToken = $tokenStmt->fetchColumn();
+
+if (!is_string($verificationToken) || $verificationToken === '') {
+    throw new RuntimeException('Verification token not created for new user.');
+}
+
+$verification = $service->verifyEmail($verificationToken);
+if (!$verification['success']) {
+    throw new RuntimeException('Verification failed: ' . json_encode($verification['errors'] ?? []));
+}
+
+$login = $service->attemptLogin($email, $password);
+if (!$login['success']) {
+    throw new RuntimeException('Login failed after registration.');
+}
 
     if (!$service->isLoggedIn()) {
         throw new RuntimeException('Service did not report logged-in status.');

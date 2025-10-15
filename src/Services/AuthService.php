@@ -112,7 +112,6 @@ final class AuthService
             "SELECT id, username, email, password_hash, display_name, status, created_at, updated_at
              FROM users
              WHERE (email = :email_identifier OR username = :username_identifier)
-               AND status = 'active'
              LIMIT 1"
         );
         $stmt->execute([
@@ -129,6 +128,13 @@ final class AuthService
             return [
                 'success' => false,
                 'errors' => ['credentials' => 'Invalid email or password.'],
+            ];
+        }
+
+        if (($user['status'] ?? '') !== 'active') {
+            return [
+                'success' => false,
+                'errors' => ['credentials' => 'Please verify your email before signing in.'],
             ];
         }
 
@@ -244,7 +250,7 @@ final class AuthService
                 :email,
                 :password_hash,
                 :display_name,
-                'active',
+                'pending',
                 :created_at,
                 :updated_at
             )"
@@ -262,6 +268,14 @@ final class AuthService
         $userId = (int)$pdo->lastInsertId();
         $this->createUserProfile($userId, $displayName);
         $this->createDefaultCommunitiesForUser($userId, $displayName, $email);
+
+        // Fire off the verification email. If mail transport is down we log the failure
+        // but do not block registration so users can retry later.
+        try {
+            $this->sendVerificationEmail($userId, $email);
+        } catch (\Throwable $e) {
+            $this->logMailFailure('verification', $userId, $email, $e);
+        }
 
         return [
             'success' => true,
@@ -609,6 +623,14 @@ final class AuthService
             ':id' => $tokenRecord['id'],
         ]);
 
+        $activateStmt = $pdo->prepare(
+            "UPDATE users SET status = 'active', updated_at = :updated_at WHERE id = :user_id"
+        );
+        $activateStmt->execute([
+            ':updated_at' => date('Y-m-d H:i:s'),
+            ':user_id' => $tokenRecord['user_id'],
+        ]);
+
         return [
             'success' => true,
             'message' => 'Email verified successfully.',
@@ -640,6 +662,21 @@ final class AuthService
             'site_name' => (string)app_config('app_name', 'Our Community'),
             'subject' => 'Verify Your Email Address',
         ]);
+    }
+
+    private function logMailFailure(string $context, int $userId, string $email, \Throwable $e): void
+    {
+        $logFile = dirname(__DIR__, 2) . '/debug.log';
+        $timestamp = date('Y-m-d H:i:s');
+        $line = sprintf(
+            '[%s] mail.%s failure for user %d <%s>: %s',
+            $timestamp,
+            $context,
+            $userId,
+            $email,
+            $e->getMessage()
+        );
+        file_put_contents($logFile, $line . PHP_EOL, FILE_APPEND);
     }
 
     private function getSiteUrl(): string

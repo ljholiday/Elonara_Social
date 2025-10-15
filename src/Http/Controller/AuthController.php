@@ -18,10 +18,12 @@ final class AuthController
     public function landing(): array
     {
         $redirect = $this->sanitizeRedirect($this->request()->query('redirect_to'));
+        $flashMessage = $this->popFlashMessage();
 
         return $this->buildView(
             loginInput: ['redirect_to' => $redirect],
-            registerInput: ['redirect_to' => $redirect]
+            registerInput: ['redirect_to' => $redirect],
+            flash: $flashMessage !== null ? ['type' => 'success', 'message' => $flashMessage] : []
         );
     }
 
@@ -35,6 +37,7 @@ final class AuthController
         $passwordRaw = (string)$request->input('password', '');
         $redirect = $this->sanitizeRedirect($request->input('redirect_to'));
         $remember = (string)$request->input('remember', '') === '1';
+        $flashMessage = $this->popFlashMessage();
 
         // Validate inputs
         $identifierValidation = $this->validator->required($identifierRaw, 'Email or username');
@@ -66,7 +69,8 @@ final class AuthController
             ],
             loginErrors: $errors,
             registerInput: ['redirect_to' => $redirect],
-            active: 'login'
+            active: 'login',
+            flash: $flashMessage !== null ? ['type' => 'success', 'message' => $flashMessage] : []
         );
     }
 
@@ -114,10 +118,28 @@ final class AuthController
             ]);
 
             if ($result['success']) {
-                $this->auth->attemptLogin($emailValidation['value'], $passwordRaw);
-                return [
-                    'redirect' => $redirect !== '' ? $redirect : '/',
+                $successFlash = [
+                    'type' => 'success',
+                    // Plain-language guidance so new members know to verify first.
+                    'message' => 'Thanks for registering! Please check your inbox and verify your email before signing in.',
                 ];
+
+                return $this->buildView(
+                    loginInput: [
+                        'identifier' => $emailValidation['value'],
+                        'remember' => false,
+                        'redirect_to' => $redirect,
+                    ],
+                    registerInput: [
+                        'display_name' => '',
+                        'username' => '',
+                        'email' => $emailValidation['value'],
+                        'redirect_to' => $redirect,
+                    ],
+                    registerErrors: [],
+                    active: 'login',
+                    flash: $successFlash
+                );
             }
 
             $errors = $result['errors'];
@@ -134,6 +156,8 @@ final class AuthController
             ]);
         }
 
+        $sessionFlash = $this->popFlashMessage();
+
         return $this->buildView(
             loginInput: ['redirect_to' => $redirect],
             registerInput: [
@@ -143,7 +167,8 @@ final class AuthController
                 'redirect_to' => $redirect,
             ],
             registerErrors: $errors,
-            active: 'register'
+            active: 'register',
+            flash: $sessionFlash !== null ? ['type' => 'success', 'message' => $sessionFlash] : []
         );
     }
 
@@ -265,7 +290,7 @@ final class AuthController
             return [
                 'success' => true,
                 'message' => $result['message'] ?? 'Email verified successfully.',
-                'redirect' => '/',
+                'redirect' => '/auth',
             ];
         }
 
@@ -331,7 +356,8 @@ final class AuthController
         array $loginErrors = [],
         array $registerInput = [],
         array $registerErrors = [],
-        string $active = 'login'
+        string $active = 'login',
+        array $flash = []
     ): array {
         return [
             'active' => $active,
@@ -352,6 +378,19 @@ final class AuthController
                     'redirect_to' => '',
                 ], $registerInput),
             ],
+            'flash' => $flash,
         ];
+    }
+
+    private function popFlashMessage(): ?string
+    {
+        if (!isset($_SESSION['flash_message'])) {
+            return null;
+        }
+
+        $message = (string)$_SESSION['flash_message'];
+        unset($_SESSION['flash_message']);
+
+        return $message;
     }
 }

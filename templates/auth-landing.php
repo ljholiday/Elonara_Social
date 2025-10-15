@@ -3,6 +3,7 @@ $appName = (string)app_config('app_name', 'Elonara Social');
 $login = $login ?? ($view['login'] ?? ['errors' => [], 'input' => []]);
 $register = $register ?? ($view['register'] ?? ['errors' => [], 'input' => []]);
 $active = $active ?? ($view['active'] ?? 'login');
+$flash = $flash ?? ($view['flash'] ?? []);
 
 $loginInput = array_merge(['identifier' => '', 'remember' => false, 'redirect_to' => ''], $login['input'] ?? []);
 $registerInput = array_merge([
@@ -16,6 +17,12 @@ $registerErrors = $register['errors'] ?? [];
 ?>
 <section class="app-section app-auth">
   <div class="app-container">
+    <?php if (!empty($flash['message'])): ?>
+      <!-- Friendly success copy so brand-new members know what to do next -->
+      <div class="app-alert app-alert-success app-mb-4">
+        <p><?php echo e($flash['message']); ?></p>
+      </div>
+    <?php endif; ?>
     <div class="app-grid app-gap-4 app-grid-2">
       <div class="app-card<?php echo $active === 'login' ? ' is-active' : ''; ?>">
         <div class="app-card-header">

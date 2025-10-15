@@ -33,6 +33,17 @@ try {
     }
     $hostId = (int)$register['user_id'];
 
+    $hostTokenStmt = $pdo->prepare('SELECT token FROM email_verification_tokens WHERE user_id = :user_id ORDER BY id DESC LIMIT 1');
+    $hostTokenStmt->execute([':user_id' => $hostId]);
+    $hostToken = $hostTokenStmt->fetchColumn();
+    if (!is_string($hostToken) || $hostToken === '') {
+        throw new RuntimeException('Host verification token missing.');
+    }
+    $verifyResult = $auth->verifyEmail($hostToken);
+    if (!$verifyResult['success']) {
+        throw new RuntimeException('Host verification failed.');
+    }
+
     // Create event
     $stmt = $pdo->prepare("
         INSERT INTO events (

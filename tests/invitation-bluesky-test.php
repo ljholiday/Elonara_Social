@@ -33,6 +33,14 @@ try {
     }
     $hostId = (int)$hostRegister['user_id'];
 
+    $hostTokenStmt = $pdo->prepare('SELECT token FROM email_verification_tokens WHERE user_id = :user_id ORDER BY id DESC LIMIT 1');
+    $hostTokenStmt->execute([':user_id' => $hostId]);
+    $hostToken = $hostTokenStmt->fetchColumn();
+    if (!is_string($hostToken) || $hostToken === '') {
+        throw new RuntimeException('Host verification token missing.');
+    }
+    $auth->verifyEmail($hostToken);
+
     // Community
     $stmt = $pdo->prepare(
         'INSERT INTO communities (name, slug, creator_id, creator_email, created_by)
@@ -86,6 +94,14 @@ try {
         throw new RuntimeException('Invitee registration failed: ' . json_encode($inviteeRegister['errors']));
     }
     $inviteeId = (int)$inviteeRegister['user_id'];
+
+    $inviteeTokenStmt = $pdo->prepare('SELECT token FROM email_verification_tokens WHERE user_id = :user_id ORDER BY id DESC LIMIT 1');
+    $inviteeTokenStmt->execute([':user_id' => $inviteeId]);
+    $inviteeToken = $inviteeTokenStmt->fetchColumn();
+    if (!is_string($inviteeToken) || $inviteeToken === '') {
+        throw new RuntimeException('Invitee verification token missing.');
+    }
+    $auth->verifyEmail($inviteeToken);
 
     // Acceptance without Bluesky should fail
     $initialAttempt = $invitations->acceptCommunityInvitation($invitationToken, $inviteeId);

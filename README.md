@@ -138,6 +138,7 @@ Elonara Social takes security seriously:
 - **Secure Sessions**: HTTP-only, secure session cookies
 - **SQL Injection Prevention**: PDO prepared statements
 - **Password Security**: bcrypt hashing with secure defaults
+- **Email Verification**: New accounts stay pending until the member confirms their inbox
 
 ## Upcoming Work
 
