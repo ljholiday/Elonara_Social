@@ -12,6 +12,7 @@ if (session_status() === PHP_SESSION_NONE) {
 use App\Database\Database;
 use Dotenv\Dotenv;
 use App\Http\Controller\AuthController;
+use App\Http\Controller\AdminController;
 use App\Http\Controller\EventController;
 use App\Http\Controller\HomeController;
 use App\Http\Controller\CommunityController;
