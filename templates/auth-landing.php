@@ -12,6 +12,8 @@ $registerInput = array_merge([
     'email' => '',
     'redirect_to' => '',
 ], $register['input'] ?? []);
+$usernameMinLength = (int)user_config('username_min_length', 2);
+$usernameMaxLength = (int)user_config('username_max_length', 30);
 $loginErrors = $login['errors'] ?? [];
 $registerErrors = $register['errors'] ?? [];
 ?>
@@ -119,7 +121,9 @@ $registerErrors = $register['errors'] ?? [];
                 autocomplete="username"
                 required
               >
-              <p class="app-text-muted app-text-sm">At least 3 characters; letters, numbers, underscores, and dashes only.</p>
+              <p class="app-text-muted app-text-sm">
+                Usernames must be <?= $usernameMinLength; ?>–<?= $usernameMaxLength; ?> characters and may include letters, numbers, underscores, and dashes.
+              </p>
               <?php if (isset($registerErrors['username'])): ?>
                 <p class="app-input-error"><?php echo e($registerErrors['username']); ?></p>
               <?php endif; ?>
