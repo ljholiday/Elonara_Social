@@ -34,12 +34,23 @@ foreach ($defaults as $key => $default) {
 if (count($values) < count($defaults)) {
     $envPath = dirname(__DIR__) . '/.env';
     if (is_file($envPath)) {
-        $parsed = @parse_ini_file($envPath, false, INI_SCANNER_RAW);
-        if (is_array($parsed)) {
-            foreach ($defaults as $key => $default) {
-                if (!array_key_exists($key, $values) && isset($parsed[$key]) && $parsed[$key] !== '') {
-                    $values[$key] = $parsed[$key];
-                }
+        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#')) {
+                continue;
+            }
+            if (!str_contains($line, '=')) {
+                continue;
+            }
+            [$rawKey, $rawValue] = explode('=', $line, 2);
+            $key = trim($rawKey);
+            if (!array_key_exists($key, $defaults)) {
+                continue;
+            }
+            $value = trim($rawValue, " \"'\t");
+            if ($value !== '' && !array_key_exists($key, $values)) {
+                $values[$key] = $value;
             }
         }
     }
