@@ -76,6 +76,5 @@ tests/.phpunit.result.cache
 phpunit.xml
 phpunit.xml.dist
 migrate.php
-scripts/
 .local/
 
