@@ -9,7 +9,11 @@ use RuntimeException;
 
 final class CommunityService
 {
-    public function __construct(private Database $db) {}
+    public function __construct(
+        private Database $db,
+        private ?SearchService $search = null
+    ) {
+    }
 
     /** @return array<int,array<string,mixed>> */
     public function listByIds(array $communityIds): array
@@ -302,6 +306,18 @@ final class CommunityService
             $creatorRole
         );
 
+        if ($this->search !== null) {
+            $this->search->indexCommunity(
+                $communityId,
+                $name,
+                (string)($data['description'] ?? ''),
+                $slug,
+                $creatorId,
+                $privacy,
+                $now
+            );
+        }
+
         return [
             'id' => $communityId,
             'slug' => $slug,
@@ -350,6 +366,18 @@ final class CommunityService
             ':slug' => $slug,
         ]);
 
+        if ($this->search !== null) {
+            $this->search->indexCommunity(
+                (int)($community['id'] ?? 0),
+                $name,
+                (string)($data['description'] ?? ''),
+                $slug,
+                (int)($community['creator_id'] ?? 0),
+                $privacy,
+                $updatedAt
+            );
+        }
+
         return $slug;
     }
 
@@ -366,7 +394,13 @@ final class CommunityService
         $stmt = $pdo->prepare('DELETE FROM communities WHERE slug = :slug LIMIT 1');
         $stmt->execute([':slug' => $slug]);
 
-        return $stmt->rowCount() === 1;
+        $deleted = $stmt->rowCount() === 1;
+
+        if ($deleted && $this->search !== null) {
+            $this->search->remove('community', (int)($community['id'] ?? 0));
+        }
+
+        return $deleted;
     }
 
     private function slugify(string $name): string

@@ -10,6 +10,7 @@ use App\Services\EventService;
 use App\Services\MailService;
 use App\Services\UserService;
 use App\Services\SecurityService;
+use App\Services\SearchService;
 
 final class AdminController
 {
@@ -18,7 +19,8 @@ final class AdminController
         private EventService $events,
         private CommunityService $communities,
         private MailService $mail,
-        private UserService $users
+        private UserService $users,
+        private SearchService $search
     ) {
     }
 
@@ -96,6 +98,35 @@ final class AdminController
                 ? ['type' => 'success', 'message' => 'Test email sent to ' . $to]
                 : ['type' => 'error', 'message' => 'Failed to send test email. Check debug.log for details.'],
         ];
+    }
+
+    public function reindexSearch(): array
+    {
+        $this->guard();
+
+        $request = $this->request();
+        $nonce = (string)$request->input('_admin_nonce', '');
+        $currentUser = $this->auth->getCurrentUser();
+        $currentUserId = $currentUser?->id ?? 0;
+
+        if (!$this->security()->verifyNonce($nonce, 'app_admin', (int)$currentUserId)) {
+            return $this->redirectWithFlash('error', 'Security check failed. Please refresh and try again.', '/admin');
+        }
+
+        try {
+            $counts = $this->search->reindexAll();
+            $message = sprintf(
+                'Search index rebuilt (%d communities, %d events, %d conversations).',
+                $counts['communities'] ?? 0,
+                $counts['events'] ?? 0,
+                $counts['conversations'] ?? 0
+            );
+
+            return $this->redirectWithFlash('success', $message, '/admin');
+        } catch (\Throwable $e) {
+            $this->logAdminError('reindex_search', (int)$currentUserId, $e->getMessage());
+            return $this->redirectWithFlash('error', 'Failed to rebuild search index. Check logs for details.', '/admin');
+        }
     }
 
     /**

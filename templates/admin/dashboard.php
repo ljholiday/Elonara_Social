@@ -58,9 +58,13 @@ $recentCommunities = $recentCommunities ?? [];
 
 <div class="admin-card">
   <h3 style="font-size:1.1rem; margin-bottom:1rem;">Quick Actions</h3>
-  <div style="display:flex; flex-wrap:wrap; gap:1rem;">
+  <div style="display:flex; flex-wrap:wrap; gap:1rem; align-items:center;">
     <a class="app-btn admin-dashboard-btn app-btn-primary" style="text-decoration:none;" href="/admin/settings">Update site settings</a>
     <a class="app-btn admin-dashboard-btn app-btn-secondary" style="text-decoration:none;" href="/admin/events">Manage events</a>
     <a class="app-btn admin-dashboard-btn app-btn-secondary" style="text-decoration:none;" href="/admin/communities">Manage communities</a>
+    <form method="post" action="/admin/search/reindex" style="margin:0;">
+      <?= app_service('security.service')->nonceField('app_admin', '_admin_nonce', false); ?>
+      <button type="submit" class="app-btn admin-dashboard-btn app-btn-secondary">Reindex search index</button>
+    </form>
   </div>
 </div>

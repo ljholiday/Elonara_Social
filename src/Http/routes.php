@@ -98,6 +98,15 @@ return static function (Router $router): void {
         exit;
     });
 
+    $router->post('/admin/search/reindex', static function (Request $request) {
+        $result = app_service('controller.admin')->reindexSearch();
+        if (!empty($result['flash'])) {
+            $_SESSION['admin_flash'] = $result['flash'];
+        }
+        header('Location: ' . ($result['redirect'] ?? '/admin'));
+        exit;
+    });
+
     // Auth routes
     $router->get('/auth', static function (Request $request) {
         $view = app_service('controller.auth')->landing();

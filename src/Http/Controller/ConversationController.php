@@ -161,9 +161,18 @@ final class ConversationController
             ];
         }
 
+        $viewer = $this->auth->getCurrentUser();
+        $authorId = $viewer?->id ? (int)$viewer->id : 0;
+        $authorName = $viewer?->display_name ?? $viewer?->username ?? $viewer?->email ?? 'Member';
+        $authorName = is_string($authorName) && $authorName !== '' ? $authorName : 'Member';
+        $authorEmail = $viewer?->email ?? '';
+
         $slug = $this->conversations->create([
             'title' => $input['title'],
             'content' => $input['content'],
+            'author_id' => $authorId,
+            'author_name' => $authorName,
+            'author_email' => $authorEmail,
         ]);
 
         return [

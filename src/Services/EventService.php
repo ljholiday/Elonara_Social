@@ -19,8 +19,10 @@ final class EventService
 {
     private Database $db;
 
-    public function __construct(Database $db)
-    {
+    public function __construct(
+        Database $db,
+        private ?SearchService $search = null
+    ) {
         $this->db = $db;
     }
 
@@ -200,6 +202,20 @@ final class EventService
             ':privacy' => 'public',
         ]);
 
+        $eventId = (int)$pdo->lastInsertId();
+
+        if ($this->search !== null) {
+            $this->search->indexEvent(
+                $eventId,
+                $title,
+                (string)($data['description'] ?? ''),
+                $slug,
+                (int)($data['author_id'] ?? 0),
+                (string)($data['privacy'] ?? 'public'),
+                $data['event_date'] ?? null
+            );
+        }
+
         return $slug;
     }
 
@@ -240,6 +256,18 @@ final class EventService
             ':slug' => $slug,
         ]);
 
+        if ($this->search !== null) {
+            $this->search->indexEvent(
+                (int)($event['id'] ?? 0),
+                $title,
+                (string)($data['description'] ?? ''),
+                $slug,
+                (int)($event['author_id'] ?? 0),
+                (string)($event['privacy'] ?? 'public'),
+                $data['event_date'] ?? ($event['event_date'] ?? null)
+            );
+        }
+
         return $slug;
     }
 
@@ -256,7 +284,13 @@ final class EventService
         $stmt = $pdo->prepare('DELETE FROM events WHERE slug = :slug LIMIT 1');
         $stmt->execute([':slug' => $slug]);
 
-        return $stmt->rowCount() === 1;
+        $deleted = $stmt->rowCount() === 1;
+
+        if ($deleted && $this->search !== null) {
+            $this->search->remove('event', (int)($event['id'] ?? 0));
+        }
+
+        return $deleted;
     }
 
     /**

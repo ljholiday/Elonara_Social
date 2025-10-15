@@ -206,11 +206,17 @@ if (!function_exists('app_container')) {
             });
 
             $container->register('event.service', static function (VTContainer $c): EventService {
-                return new EventService($c->get('database.connection'));
+                return new EventService(
+                    $c->get('database.connection'),
+                    $c->get('search.service')
+                );
             });
 
             $container->register('community.service', static function (VTContainer $c): CommunityService {
-                return new CommunityService($c->get('database.connection'));
+                return new CommunityService(
+                    $c->get('database.connection'),
+                    $c->get('search.service')
+                );
             });
 
             $container->register('community.member.service', static function (VTContainer $c): CommunityMemberService {
@@ -229,7 +235,8 @@ if (!function_exists('app_container')) {
                 return new ConversationService(
                     $c->get('database.connection'),
                     $c->get('image.service'),
-                    $c->get('embed.service')
+                    $c->get('embed.service'),
+                    $c->get('search.service')
                 );
             });
 
@@ -380,7 +387,8 @@ if (!function_exists('app_container')) {
                     $c->get('event.service'),
                     $c->get('community.service'),
                     $c->get('mail.service'),
-                    $c->get('user.service')
+                    $c->get('user.service'),
+                    $c->get('search.service')
                 );
             }, false);
 

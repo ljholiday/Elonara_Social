@@ -11,7 +11,8 @@ final class ConversationService
     public function __construct(
         private Database $db,
         private ?ImageService $imageService = null,
-        private ?EmbedService $embedService = null
+        private ?EmbedService $embedService = null,
+        private ?SearchService $search = null
     ) {
     }
 
@@ -90,6 +91,18 @@ final class ConversationService
             throw new \RuntimeException('Content is required.');
         }
 
+        $authorId = isset($data['author_id']) ? (int)$data['author_id'] : 0;
+        $authorName = trim((string)($data['author_name'] ?? ''));
+        $authorEmail = trim((string)($data['author_email'] ?? ''));
+        if ($authorName === '') {
+            $authorName = 'Anonymous';
+        }
+
+        $privacy = (string)($data['privacy'] ?? 'public');
+        if (!in_array($privacy, ['public', 'private'], true)) {
+            $privacy = 'public';
+        }
+
         $pdo = $this->db->pdo();
         $slug = $this->ensureUniqueSlug($pdo, $this->slugify($title));
         $now = date('Y-m-d H:i:s');
@@ -126,15 +139,31 @@ final class ConversationService
             ':title' => $title,
             ':slug' => $slug,
             ':content' => $content,
-            ':author_id' => 1,
-            ':author_name' => 'Demo Author',
-            ':author_email' => 'demo@example.com',
+            ':author_id' => $authorId,
+            ':author_name' => $authorName,
+            ':author_email' => $authorEmail,
             ':created_at' => $now,
             ':updated_at' => $now,
             ':reply_count' => 0,
             ':last_reply_date' => $now,
-            ':privacy' => 'public',
+            ':privacy' => $privacy,
         ]);
+
+        $conversationId = (int)$pdo->lastInsertId();
+
+        if ($this->search !== null) {
+            $this->search->indexConversation(
+                $conversationId,
+                $title,
+                $content,
+                $slug,
+                $authorId,
+                isset($data['community_id']) ? (int)$data['community_id'] : null,
+                isset($data['event_id']) ? (int)$data['event_id'] : null,
+                $privacy,
+                $now
+            );
+        }
 
         return $slug;
     }
@@ -522,6 +551,20 @@ final class ConversationService
             ':slug' => $slug,
         ]);
 
+        if ($this->search !== null) {
+            $this->search->indexConversation(
+                (int)($conversation['id'] ?? 0),
+                $title,
+                $content,
+                $slug,
+                (int)($conversation['author_id'] ?? 0),
+                isset($conversation['community_id']) ? (int)$conversation['community_id'] : null,
+                isset($conversation['event_id']) ? (int)$conversation['event_id'] : null,
+                (string)($conversation['privacy'] ?? 'public'),
+                $now
+            );
+        }
+
         return $slug;
     }
 
@@ -538,7 +581,13 @@ final class ConversationService
         $stmt = $pdo->prepare('DELETE FROM conversations WHERE slug = :slug LIMIT 1');
         $stmt->execute([':slug' => $slug]);
 
-        return $stmt->rowCount() === 1;
+        $deleted = $stmt->rowCount() === 1;
+
+        if ($deleted && $this->search !== null) {
+            $this->search->remove('conversation', (int)($conversation['id'] ?? 0));
+        }
+
+        return $deleted;
     }
 
     /**

@@ -3,7 +3,15 @@
  * Core functionality shared across the application.
  */
 
-document.addEventListener('DOMContentLoaded', function () {
+function runOnReady(callback) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', callback, { once: true });
+    } else {
+        callback();
+    }
+}
+
+runOnReady(function () {
     // Disable submit buttons after submission to prevent duplicate requests.
     const forms = document.querySelectorAll('form:not([data-custom-handler])');
     forms.forEach((form) => {
