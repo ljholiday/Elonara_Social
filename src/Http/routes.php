@@ -69,6 +69,26 @@ return static function (Router $router): void {
         return null;
     });
 
+    $router->get('/admin/users', static function (Request $request) {
+        $view = app_service('controller.admin')->users();
+        if (!empty($_SESSION['admin_flash'])) {
+            $view['flash'] = $_SESSION['admin_flash'];
+            unset($_SESSION['admin_flash']);
+        }
+        app_render('admin/users.php', $view, 'admin');
+        return null;
+    });
+
+    $router->post('/admin/users/{userId}/{action}', static function (Request $request, string $userId, string $action) {
+        $result = app_service('controller.admin')->handleUserAction($action, (int)$userId);
+        if (!empty($result['flash'])) {
+            $_SESSION['admin_flash'] = $result['flash'];
+        }
+        $redirect = $result['redirect'] ?? '/admin/users';
+        header('Location: ' . $redirect);
+        exit;
+    });
+
     $router->post('/admin/settings/test-mail', static function (Request $request) {
         $result = app_service('controller.admin')->sendTestEmail();
         if (!empty($result['flash'])) {

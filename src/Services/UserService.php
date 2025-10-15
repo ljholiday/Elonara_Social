@@ -27,7 +27,7 @@ final class UserService
     public function getById(int $userId): ?array
     {
         $stmt = $this->db->pdo()->prepare(
-            'SELECT id, username, email, display_name, bio, avatar_url, cover_url, cover_alt, role, created_at, updated_at
+            'SELECT id, username, email, display_name, bio, avatar_url, cover_url, cover_alt, role, status, created_at, updated_at
              FROM users
              WHERE id = :id
              LIMIT 1'
@@ -238,5 +238,213 @@ final class UserService
             'replies' => $replyCount,
             'communities' => $communityCount,
         ];
+    }
+
+    /**
+     * Retrieve a paginated collection for admin dashboards.
+     *
+     * @return array{users: array<int, array<string,mixed>>, total: int}
+     */
+    public function listForAdmin(string $search, int $limit, int $offset): array
+    {
+        $search = trim($search);
+        $pdo = $this->db->pdo();
+
+        $baseFrom = 'FROM users u
+            LEFT JOIN member_identities mi ON mi.user_id = u.id
+            LEFT JOIN user_profiles up ON up.user_id = u.id';
+
+        $params = [];
+        $where = '';
+
+        if ($search !== '') {
+            $likeValue = '%' . $search . '%';
+            $searchFields = [
+                'u.display_name',
+                'u.username',
+                'u.email',
+                'mi.did',
+                'mi.at_protocol_did',
+                'mi.handle',
+            ];
+
+            $searchConditions = [];
+            foreach ($searchFields as $field) {
+                $placeholder = ':p' . count($params);
+                $searchConditions[] = $field . ' LIKE ' . $placeholder;
+                $params[$placeholder] = ['value' => $likeValue, 'type' => PDO::PARAM_STR];
+            }
+
+            if (ctype_digit($search)) {
+                $placeholder = ':p' . count($params);
+                $searchConditions[] = 'u.id = ' . $placeholder;
+                $params[$placeholder] = ['value' => (int)$search, 'type' => PDO::PARAM_INT];
+            }
+
+            $where = ' WHERE (' . implode(' OR ', $searchConditions) . ')';
+        }
+
+        $countSql = 'SELECT COUNT(*) ' . $baseFrom . $where;
+        $countStmt = $pdo->prepare($countSql);
+        foreach ($params as $placeholder => $binding) {
+            $countStmt->bindValue($placeholder, $binding['value'], $binding['type']);
+        }
+        $countStmt->execute();
+        $total = (int)$countStmt->fetchColumn();
+
+        $dataSql = 'SELECT
+                u.id,
+                u.display_name,
+                u.username,
+                u.email,
+                u.role,
+                u.status,
+                u.created_at,
+                COALESCE(NULLIF(mi.did, \'\'), NULLIF(mi.at_protocol_did, \'\')) AS did,
+                CASE
+                    WHEN mi.is_verified = 1 THEN 1
+                    WHEN up.is_verified = 1 THEN 1
+                    WHEN u.status = \'active\' THEN 1
+                    ELSE 0
+                END AS is_verified
+            ' . $baseFrom . $where . '
+            ORDER BY u.created_at DESC
+            LIMIT :limit OFFSET :offset';
+
+        $dataStmt = $pdo->prepare($dataSql);
+        foreach ($params as $placeholder => $binding) {
+            $dataStmt->bindValue($placeholder, $binding['value'], $binding['type']);
+        }
+        $dataStmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $dataStmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $dataStmt->execute();
+
+        $users = $dataStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return [
+            'users' => $users !== false ? $users : [],
+            'total' => $total,
+        ];
+    }
+
+    /**
+     * Fetch essential account details for admin operations.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function getAdminUser(int $userId): ?array
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT
+                u.id,
+                u.email,
+                u.display_name,
+                u.username,
+                u.status,
+                u.role,
+                COALESCE(NULLIF(mi.did, \'\'), NULLIF(mi.at_protocol_did, \'\')) AS did
+             FROM users u
+             LEFT JOIN member_identities mi ON mi.user_id = u.id
+             WHERE u.id = :id
+             LIMIT 1'
+        );
+        $stmt->execute([':id' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * Activate a pending account.
+     */
+    public function activateUser(int $userId): bool
+    {
+        $stmt = $this->db->pdo()->prepare(
+            "UPDATE users
+             SET status = 'active', updated_at = :updated_at
+             WHERE id = :id"
+        );
+
+        $stmt->execute([
+            ':updated_at' => date('Y-m-d H:i:s'),
+            ':id' => $userId,
+        ]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Soft delete while removing sensitive data.
+     */
+    public function deleteUser(int $userId): bool
+    {
+        $pdo = $this->db->pdo();
+
+        try {
+            $pdo->beginTransaction();
+
+            $dependentTables = [
+                'member_identities',
+                'user_profiles',
+                'sessions',
+                'social',
+                'password_reset_tokens',
+                'email_verification_tokens',
+            ];
+
+            foreach ($dependentTables as $table) {
+                $stmt = $pdo->prepare("DELETE FROM {$table} WHERE user_id = :id");
+                $stmt->execute([':id' => $userId]);
+            }
+
+            $placeholderEmail = sprintf('deleted+%d@users.social.elonara.invalid', $userId);
+            $deletedName = sprintf('Deleted User #%d', $userId);
+
+            $updateStmt = $pdo->prepare(
+                "UPDATE users
+                 SET status = 'deleted',
+                     email = :email,
+                     username = NULL,
+                     display_name = :display_name,
+                     bio = NULL,
+                     avatar_url = NULL,
+                     cover_url = NULL,
+                     cover_alt = NULL,
+                     updated_at = :updated_at
+                 WHERE id = :id"
+            );
+
+            $updateStmt->execute([
+                ':email' => $placeholderEmail,
+                ':display_name' => $deletedName,
+                ':updated_at' => date('Y-m-d H:i:s'),
+                ':id' => $userId,
+            ]);
+
+            $pdo->commit();
+
+            return $updateStmt->rowCount() > 0;
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            $this->logAdminError('delete_user', $userId, $e->getMessage());
+            return false;
+        }
+    }
+
+    private function logAdminError(string $context, int $userId, string $message): void
+    {
+        $logFile = dirname(__DIR__, 2) . '/debug.log';
+        $line = sprintf(
+            '[%s] admin.users.%s user %d: %s%s',
+            date('Y-m-d H:i:s'),
+            $context,
+            $userId,
+            $message,
+            PHP_EOL
+        );
+        @file_put_contents($logFile, $line, FILE_APPEND);
     }
 }

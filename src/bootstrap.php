@@ -373,7 +373,8 @@ if (!function_exists('app_container')) {
                     $c->get('auth.service'),
                     $c->get('event.service'),
                     $c->get('community.service'),
-                    $c->get('mail.service')
+                    $c->get('mail.service'),
+                    $c->get('user.service')
                 );
             }, false);
 

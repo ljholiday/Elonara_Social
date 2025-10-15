@@ -650,6 +650,56 @@ final class AuthService
         ];
     }
 
+    /**
+     * Force a password reset email for admin actions.
+     *
+     * @return array{success:bool, message?:string, errors?:array<string,string>}
+     */
+    public function adminSendPasswordReset(int $userId): array
+    {
+        try {
+            $pdo = $this->database->pdo();
+            $stmt = $pdo->prepare(
+                "SELECT email FROM users WHERE id = :id LIMIT 1"
+            );
+            $stmt->execute([':id' => $userId]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user === false || empty($user['email'])) {
+                return [
+                    'success' => false,
+                    'errors' => ['user' => 'User not found.'],
+                ];
+            }
+
+            $token = $this->generateSecureToken();
+            $expiresAt = date('Y-m-d H:i:s', strtotime('+1 hour'));
+
+            $insertStmt = $pdo->prepare(
+                "INSERT INTO password_reset_tokens (user_id, token, expires_at)
+                 VALUES (:user_id, :token, :expires_at)"
+            );
+            $insertStmt->execute([
+                ':user_id' => $userId,
+                ':token' => $token,
+                ':expires_at' => $expiresAt,
+            ]);
+
+            $this->sendPasswordResetEmail((string)$user['email'], $token);
+
+            return [
+                'success' => true,
+                'message' => 'Password reset email sent to ' . $user['email'],
+            ];
+        } catch (\Throwable $e) {
+            $this->logError('Failed admin password reset for user ' . $userId . ': ' . $e->getMessage());
+            return [
+                'success' => false,
+                'errors' => ['user' => 'Unable to send reset email.'],
+            ];
+        }
+    }
+
     private function generateSecureToken(): string
     {
         return bin2hex(random_bytes(32));
