@@ -79,4 +79,3 @@ migrate.php
 scripts/
 .local/
 
-config/database.php
