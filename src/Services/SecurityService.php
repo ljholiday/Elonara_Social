@@ -99,7 +99,7 @@ final class SecurityService
      */
     public function nonceField(string $action = '', string $fieldName = '_app_nonce', bool $includeReferer = true): string
     {
-        $userId = $_SESSION['user_id'] ?? 0;
+        $userId = (int)($_SESSION['user_id'] ?? 0);
         $nonce = $this->createNonce($action, $userId);
 
         $field = '<input type="hidden" name="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars($nonce, ENT_QUOTES, 'UTF-8') . '" />';

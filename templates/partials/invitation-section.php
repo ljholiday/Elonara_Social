@@ -11,7 +11,7 @@
  */
 
 $entity_type = $entity_type ?? 'community';
-$entity_id = $entity_id ?? 0;
+$entity_id = (int)($entity_id ?? 0);
 $show_pending = $show_pending ?? true;
 $invite_url = $invite_url ?? '';
 

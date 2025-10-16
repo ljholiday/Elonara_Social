@@ -38,7 +38,7 @@ final class CommunityController
     {
         $request = $this->request();
         $circle = $this->normalizeCircle($request->query('circle'));
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $context = $this->circles->buildContext($viewerId);
         $allowed = $this->circles->resolveCommunitiesForCircle($context, $circle);
         $memberCommunities = $this->circles->memberCommunities($context);
@@ -62,7 +62,7 @@ final class CommunityController
      */
     public function show(string $slugOrId): array
     {
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $context = $this->circles->buildContext($viewerId);
         $memberCommunities = $this->circles->memberCommunities($context);
 
@@ -171,7 +171,7 @@ final class CommunityController
      */
     public function edit(string $slugOrId): array
     {
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $community = $this->communities->getBySlugOrId($slugOrId);
         if ($community === null) {
             return [
@@ -210,7 +210,7 @@ final class CommunityController
      */
     public function update(string $slugOrId): array
     {
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $community = $this->communities->getBySlugOrId($slugOrId);
         if ($community === null) {
             return [
@@ -272,13 +272,14 @@ final class CommunityController
             ];
         }
 
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $viewerRole = null;
         if ($viewerId > 0) {
             $viewerRole = $this->members->getMemberRole($communityId, $viewerId);
         }
 
-        $canManage = $this->canManageCommunity($viewerRole);
+        $isCreator = $viewerId > 0 && isset($community['creator_id']) && (int)$community['creator_id'] === $viewerId;
+        $canManage = $isCreator || $this->canManageCommunity($viewerRole);
         if (!$canManage) {
             return [
                 'status' => 403,
@@ -311,7 +312,7 @@ final class CommunityController
      */
     public function destroy(string $slugOrId): array
     {
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $community = $this->communities->getBySlugOrId($slugOrId);
 
         if ($community === null) {
@@ -352,7 +353,7 @@ final class CommunityController
 
         $communityId = (int)($community['id'] ?? 0);
         $events = $communityId > 0 ? $this->events->listByCommunity($communityId) : [];
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $canCreateEvent = $communityId > 0 && $this->authz->canCreateEventInCommunity($communityId, $viewerId);
 
         $events = array_map(function (array $event) use ($community): array {
@@ -399,7 +400,7 @@ final class CommunityController
 
         $communityId = (int)($community['id'] ?? 0);
         $conversations = $communityId > 0 ? $this->conversations->listByCommunity($communityId) : [];
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $canCreateConversation = $communityId > 0 && $this->authz->canCreateConversationInCommunity($communityId, $viewerId);
 
         $conversations = array_map(function (array $conversation): array {

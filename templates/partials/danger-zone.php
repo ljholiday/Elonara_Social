@@ -16,7 +16,7 @@
 
 // Required parameters
 $entity_type = $entity_type ?? '';
-$entity_id = $entity_id ?? 0;
+$entity_id = (int)($entity_id ?? 0);
 $entity_name = $entity_name ?? '';
 $can_delete = $can_delete ?? false;
 
@@ -24,7 +24,7 @@ $can_delete = $can_delete ?? false;
 $delete_message = $delete_message ?? 'Once you delete this ' . $entity_type . ', there is no going back. This action cannot be undone.';
 $nonce_action = $nonce_action ?? 'app_delete_' . $entity_type;
 $confirmation_type = $confirmation_type ?? 'confirm'; // 'confirm' or 'type_name'
-$blocker_count = $blocker_count ?? 0;
+$blocker_count = (int)($blocker_count ?? 0);
 $blocker_message = $blocker_message ?? '';
 
 // Don't render if essential parameters are missing

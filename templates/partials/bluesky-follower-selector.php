@@ -10,7 +10,7 @@
  */
 
 $entity_type = $entity_type ?? 'event';
-$entity_id = $entity_id ?? 0;
+$entity_id = (int)($entity_id ?? 0);
 
 // Check if Bluesky is connected
 $blueskyService = function_exists('app_service') ? app_service('bluesky.service') : null;

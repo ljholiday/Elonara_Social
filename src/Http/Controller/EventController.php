@@ -40,7 +40,7 @@ final class EventController
     {
         $request = $this->request();
         $filter = $this->normalizeFilter($request->query('filter'));
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $viewerEmail = $this->auth->currentUserEmail();
 
         if ($filter === 'my') {
@@ -89,7 +89,7 @@ final class EventController
      */
     public function create(): array
     {
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         if ($viewerId <= 0) {
             return [
                 'errors' => ['auth' => 'You must be logged in to create an event.'],
@@ -291,7 +291,7 @@ final class EventController
 
         $eventId = (int)($event['id'] ?? 0);
         $conversations = $eventId > 0 ? $this->conversations->listByEvent($eventId) : [];
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $canCreate = $this->authz->canCreateConversationInEvent($event, $viewerId);
 
         $conversations = array_map(function (array $conversation): array {
@@ -329,7 +329,7 @@ final class EventController
             ];
         }
 
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         if (!$this->canManageEvent($event, $viewerId)) {
             return [
                 'status' => 403,

@@ -45,7 +45,7 @@ final class ConversationController
         $circle = $this->normalizeCircle($request->query('circle'));
         $filter = $this->normalizeFilter($request->query('filter'));
 
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $viewerEmail = $this->auth->currentUserEmail();
         $context = $this->circles->buildContext($viewerId);
         $allowedCommunities = $this->circles->resolveCommunitiesForCircle($context, $circle);
@@ -97,7 +97,7 @@ final class ConversationController
     public function show(string $slugOrId): array
     {
         $conversation = $this->conversations->getBySlugOrId($slugOrId);
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $context = $this->circles->buildContext($viewerId);
         $memberCommunities = $context['inner']['communities'] ?? [];
 
@@ -134,7 +134,7 @@ final class ConversationController
      */
     public function create(): array
     {
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         if ($viewerId <= 0) {
             return [
                 'errors' => ['auth' => 'You must be logged in to start a conversation.'],
@@ -243,7 +243,7 @@ final class ConversationController
      */
     public function edit(string $slugOrId): array
     {
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $conversation = $this->conversations->getBySlugOrId($slugOrId);
         if ($conversation === null) {
             return [
@@ -281,7 +281,7 @@ final class ConversationController
      */
     public function update(string $slugOrId): array
     {
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $conversation = $this->conversations->getBySlugOrId($slugOrId);
         if ($conversation === null) {
             return [
@@ -343,7 +343,7 @@ final class ConversationController
      */
     public function reply(string $slugOrId): array
     {
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         if ($viewerId <= 0) {
             return [
                 'conversation' => null,
@@ -461,7 +461,7 @@ final class ConversationController
      */
     public function destroy(string $slugOrId): array
     {
-        $viewerId = $this->auth->currentUserId() ?? 0;
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $conversation = $this->conversations->getBySlugOrId($slugOrId);
 
         if ($conversation === null) {
@@ -636,7 +636,7 @@ final class ConversationController
             return false;
         }
 
-        $userId = $this->auth->currentUserId() ?? 0;
+        $userId = (int)($this->auth->currentUserId() ?? 0);
         return $this->security->verifyNonce($nonce, $action, $userId);
     }
 }

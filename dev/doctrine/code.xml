@@ -23,6 +23,8 @@
   </structure>
 
   <php>
+    <principle>All integer identifiers, including user IDs and foreign keys, must be explicitly cast to (int) at the time of assignment. Implicit or mixed-type handling of identifiers (e.g., "$user->id ?? 0") is prohibited.</principle>
+    <principle>Always cast IDs, user IDs, and foreign keys to (int) immediately upon assignment to prevent mixed-type comparisons (e.g., never leave $user->id ?? 0 uncast).</principle>
     <principle>All server-side logic belongs in `.php` files under `src/` or `templates/`, not embedded in `.html` or `.js` files.</principle>
     <principle>Do not include HTML structure or presentation logic inside PHP classes or functions beyond minimal rendering responsibilities.</principle>
     <principle>Escape all output and sanitize all input — PHP must always be the trust boundary.</principle>

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nImplement spec-compliant circles and auto-membership\n\nChanges circle system from membership-based to ownership-based propagation\nper Elonara Social specification. Implements \"Speaking is joining\" rule\nwhere posting or replying automatically grants community membership.\n\n- CircleService now queries communities by creator_id instead of membership\n- Inner circle: members of communities you created\n- Trusted circle: members of communities created by inner members  \n- Extended circle: members of communities created by trusted members\n- ConversationService auto-adds authors to community_members on create/reply\n- Existing participation requires one-time backfill (via backfill script)\n\nGenerated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git restore:*)",
+      "Bash(for:*)",
+      "Bash(do echo \"Checking $file...\")",
+      "Bash(exit 1)",
+      "Bash(done)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

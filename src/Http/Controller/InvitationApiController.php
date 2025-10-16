@@ -278,7 +278,7 @@ final class InvitationApiController
             return false;
         }
 
-        $userId = $this->auth->currentUserId() ?? 0;
+        $userId = (int)($this->auth->currentUserId() ?? 0);
         return $this->security->verifyNonce($nonce, $action, $userId);
     }
 

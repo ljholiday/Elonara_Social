@@ -86,7 +86,7 @@ final class ProfileController
      */
     public function edit(): array
     {
-        $currentUserId = $this->auth->currentUserId() ?? 0;
+        $currentUserId = (int)($this->auth->currentUserId() ?? 0);
 
         if ($currentUserId <= 0) {
             return [
@@ -132,7 +132,7 @@ final class ProfileController
     public function update(Request $request): array
     {
         try {
-            $currentUserId = $this->auth->currentUserId() ?? 0;
+            $currentUserId = (int)($this->auth->currentUserId() ?? 0);
 
             if ($currentUserId <= 0) {
                 return ['error' => 'Please log in to update your profile.'];
