@@ -101,6 +101,8 @@ final class CircleService
     }
 
     /**
+     * Fetch communities CREATED BY the given users (ownership-based).
+     *
      * @param array<int> $userIds
      * @return array<int>
      */
@@ -112,7 +114,7 @@ final class CircleService
         }
 
         $placeholders = implode(',', array_fill(0, count($userIds), '?'));
-        $sql = "SELECT DISTINCT community_id FROM community_members WHERE user_id IN ($placeholders) AND status = 'active'";
+        $sql = "SELECT DISTINCT id FROM communities WHERE creator_id IN ($placeholders) AND is_active = 1";
 
         $stmt = $this->db->pdo()->prepare($sql);
         foreach ($userIds as $index => $id) {

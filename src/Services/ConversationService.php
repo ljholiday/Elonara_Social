@@ -30,6 +30,7 @@ final class ConversationService
                     conv.created_at,
                     conv.reply_count,
                     conv.last_reply_date,
+                    conv.privacy,
                     conv.community_id,
                     conv.event_id,
                     com.name AS community_name,
@@ -173,6 +174,23 @@ final class ConversationService
 
         $conversationId = (int)$pdo->lastInsertId();
 
+        // Auto-membership: "Speaking is joining"
+        if ($communityId > 0 && $authorId > 0 && $authorEmail !== '') {
+            $memberService = new CommunityMemberService($this->db);
+            try {
+                $memberService->addMember(
+                    $communityId,
+                    $authorId,
+                    $authorEmail,
+                    $authorName,
+                    'member'
+                );
+            } catch (\RuntimeException $e) {
+                // Silently ignore if already a member or other membership errors
+                // The conversation was created successfully, membership is secondary
+            }
+        }
+
         if ($this->search !== null) {
             $this->search->indexConversation(
                 $conversationId,
@@ -273,6 +291,7 @@ final class ConversationService
                 conv.created_at,
                 conv.reply_count,
                 conv.last_reply_date,
+                conv.privacy,
                 conv.community_id,
                 conv.event_id,
                 com.name AS community_name,
@@ -525,6 +544,24 @@ final class ConversationService
             ':updated_at' => $now,
         ]);
 
+        // Auto-membership: "Speaking is joining"
+        $communityId = isset($conversation['community_id']) ? (int)$conversation['community_id'] : 0;
+        if ($communityId > 0 && $authorId > 0 && $authorEmail !== '') {
+            $memberService = new CommunityMemberService($this->db);
+            try {
+                $memberService->addMember(
+                    $communityId,
+                    $authorId,
+                    $authorEmail,
+                    $authorName,
+                    'member'
+                );
+            } catch (\RuntimeException $e) {
+                // Silently ignore if already a member or other membership errors
+                // The reply was created successfully, membership is secondary
+            }
+        }
+
         return (int)$pdo->lastInsertId();
     }
 
@@ -628,7 +665,7 @@ final class ConversationService
         $pdo = $this->db->pdo();
         $stmt = $pdo->prepare('
             SELECT c.id, c.title, c.slug, c.content, c.author_id, c.event_id, c.community_id,
-                   c.created_at, c.reply_count, c.last_reply_date,
+                   c.created_at, c.reply_count, c.last_reply_date, c.privacy,
                    u.username AS author_name,
                    com.name AS community_name, com.slug AS community_slug,
                    e.title AS event_title, e.slug AS event_slug
@@ -659,7 +696,7 @@ final class ConversationService
         $pdo = $this->db->pdo();
         $stmt = $pdo->prepare('
             SELECT c.id, c.title, c.slug, c.content, c.author_id, c.event_id, c.community_id,
-                   c.created_at, c.reply_count, c.last_reply_date,
+                   c.created_at, c.reply_count, c.last_reply_date, c.privacy,
                    u.username AS author_name,
                    com.name AS community_name, com.slug AS community_slug,
                    e.title AS event_title, e.slug AS event_slug
