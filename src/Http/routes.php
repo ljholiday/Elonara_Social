@@ -488,9 +488,13 @@ return static function (Router $router): void {
         $securityService = app_service('security.service');
 
         try {
+            // Get current user first
+            $currentUser = $authService->getCurrentUser();
+            $currentUserId = (int)($currentUser->id ?? 0);
+
             // Verify nonce
             $nonce = $request->input('nonce');
-            if (!$securityService->verifyNonce($nonce, 'app_nonce')) {
+            if (!$securityService->verifyNonce($nonce, 'app_nonce', $currentUserId)) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Invalid security token']);
                 return true;
@@ -503,9 +507,6 @@ return static function (Router $router): void {
                 echo json_encode(['success' => false, 'message' => 'Reply not found']);
                 return true;
             }
-
-            $currentUser = $authService->getCurrentUser();
-            $currentUserId = (int)$currentUser->id ?? 0;
             if ($currentUserId !== (int)($reply['author_id'] ?? 0)) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Permission denied']);
@@ -534,9 +535,13 @@ return static function (Router $router): void {
             $authService = app_service('auth.service');
             $securityService = app_service('security.service');
 
+            // Get current user first
+            $currentUser = $authService->getCurrentUser();
+            $currentUserId = (int)($currentUser->id ?? 0);
+
             // Verify nonce
             $nonce = $request->input('nonce');
-            if (!$securityService->verifyNonce($nonce, 'app_nonce')) {
+            if (!$securityService->verifyNonce($nonce, 'app_nonce', $currentUserId)) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Invalid security token']);
                 return true;
@@ -549,9 +554,6 @@ return static function (Router $router): void {
                 echo json_encode(['success' => false, 'message' => 'Reply not found']);
                 return true;
             }
-
-            $currentUser = $authService->getCurrentUser();
-            $currentUserId = (int)$currentUser->id ?? 0;
             if ($currentUserId !== (int)($reply['author_id'] ?? 0)) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Permission denied']);
