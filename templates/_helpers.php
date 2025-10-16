@@ -74,6 +74,25 @@ function app_truncate_words(?string $text, int $limit = 25, string $ellipsis = '
 }
 
 /**
+ * Resolve badge presentation metadata for an entity's visibility.
+ *
+ * @param string|null ...$privacyCandidates One or more privacy hints to inspect.
+ * @return array{status:string,label:string,class:string}
+ */
+function app_visibility_badge(?string ...$privacyCandidates): array
+{
+    $value = null;
+    foreach ($privacyCandidates as $candidate) {
+        if ($candidate !== null && trim((string)$candidate) !== '') {
+            $value = (string)$candidate;
+            break;
+        }
+    }
+
+    return \App\Support\VisibilityBadge::for($value);
+}
+
+/**
  * Render a template within a layout
  *
  * @param string $template_path Path to content template (relative to templates/)

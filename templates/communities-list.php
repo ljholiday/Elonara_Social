@@ -24,6 +24,7 @@ $circle = $circle ?? 'all';
           'description' => $row['description'] ?? '',
           'slug'        => $row['slug'] ?? (string)($row['id'] ?? ''),
           'url'         => '/communities/' . ($row['slug'] ?? (string)($row['id'] ?? '')),
+          'privacy'     => $row['privacy'] ?? null,
         ];
         include __DIR__ . '/partials/card.php';
       endforeach; ?>

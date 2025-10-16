@@ -70,6 +70,14 @@ $conversations = $recent_conversations ?? [];
                   <a href="/events/<?= e($event['slug'] ?? (string)($event['id'] ?? '')); ?>" class="app-text-primary">
                     <?= e($event['context_label'] ?? $event['title'] ?? 'Untitled event'); ?>
                   </a>
+                  <?php
+                    $badge = app_visibility_badge($event['privacy'] ?? null, $event['community_privacy'] ?? null);
+                    if (!empty($badge['label'])):
+                  ?>
+                    <span class="<?= e($badge['class']) ?>" style="margin-left:0.5rem;">
+                      <?= e($badge['label']); ?>
+                    </span>
+                  <?php endif; ?>
                 </h3>
                 <?php if (!empty($event['event_date'])): ?>
                   <p class="app-text-muted">
@@ -110,6 +118,14 @@ $conversations = $recent_conversations ?? [];
                   <a href="/communities/<?= e($community['slug'] ?? (string)($community['id'] ?? '')); ?>" class="app-text-primary">
                     <?= e($community['title'] ?? $community['name'] ?? 'Community'); ?>
                   </a>
+                  <?php
+                    $badge = app_visibility_badge($community['privacy'] ?? null);
+                    if (!empty($badge['label'])):
+                  ?>
+                    <span class="<?= e($badge['class']) ?>" style="margin-left:0.5rem;">
+                      <?= e($badge['label']); ?>
+                    </span>
+                  <?php endif; ?>
                 </h3>
                 <?php if (!empty($community['description'])): ?>
                   <p class="app-text-muted app-text-sm">
@@ -153,6 +169,14 @@ $conversations = $recent_conversations ?? [];
                   <a href="/conversations/<?= e($conversation['slug'] ?? (string)($conversation['id'] ?? '')); ?>" class="app-text-primary">
                     <?= e($conversation['context_label'] ?? $conversation['title'] ?? 'Conversation'); ?>
                   </a>
+                  <?php
+                    $badge = app_visibility_badge($conversation['privacy'] ?? $conversation['community_privacy'] ?? null);
+                    if (!empty($badge['label'])):
+                  ?>
+                    <span class="<?= e($badge['class']) ?>" style="margin-left:0.5rem;">
+                      <?= e($badge['label']); ?>
+                    </span>
+                  <?php endif; ?>
                 </h3>
                 <?php if (!empty($conversation['created_at'])): ?>
                   <p class="app-text-muted app-text-sm">

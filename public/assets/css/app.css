@@ -704,6 +704,16 @@ a:focus {
     color: white;
 }
 
+.app-badge-public {
+    background-color: var(--app-info-light);
+    color: var(--app-info);
+}
+
+.app-badge-private {
+    background-color: var(--app-danger-light);
+    color: var(--app-danger);
+}
+
 
 /* Forms */
 .app-form-group {

@@ -31,7 +31,16 @@ $recentCommunities = $recentCommunities ?? [];
       <ul style="list-style:none; margin:0; padding:0;">
         <?php foreach ($recentEvents as $event): ?>
           <li style="margin-bottom:0.75rem;">
-            <strong><?= htmlspecialchars($event['context_label'] ?? $event['title'] ?? 'Untitled event'); ?></strong><br>
+            <strong><?= htmlspecialchars($event['context_label'] ?? $event['title'] ?? 'Untitled event'); ?></strong>
+            <?php
+              $badge = app_visibility_badge($event['privacy'] ?? null, $event['community_privacy'] ?? null);
+              if (!empty($badge['label'])):
+            ?>
+              <span class="<?= htmlspecialchars($badge['class']); ?>" style="margin-left:0.5rem; font-size:0.7rem;">
+                <?= htmlspecialchars($badge['label']); ?>
+              </span>
+            <?php endif; ?>
+            <br>
             <small style="color:#6b748a;">ID <?= htmlspecialchars((string)($event['id'] ?? '')); ?> · Host <?= htmlspecialchars($event['host'] ?? ''); ?></small>
           </li>
         <?php endforeach; ?>
@@ -47,7 +56,16 @@ $recentCommunities = $recentCommunities ?? [];
       <ul style="list-style:none; margin:0; padding:0;">
         <?php foreach ($recentCommunities as $community): ?>
           <li style="margin-bottom:0.75rem;">
-            <strong><?= htmlspecialchars($community['name'] ?? 'Untitled community'); ?></strong><br>
+            <strong><?= htmlspecialchars($community['name'] ?? 'Untitled community'); ?></strong>
+            <?php
+              $badge = app_visibility_badge($community['privacy'] ?? null);
+              if (!empty($badge['label'])):
+            ?>
+              <span class="<?= htmlspecialchars($badge['class']); ?>" style="margin-left:0.5rem; font-size:0.7rem;">
+                <?= htmlspecialchars($badge['label']); ?>
+              </span>
+            <?php endif; ?>
+            <br>
             <small style="color:#6b748a;">ID <?= htmlspecialchars((string)($community['id'] ?? '')); ?> · Members <?= htmlspecialchars((string)($community['member_count'] ?? 0)); ?></small>
           </li>
         <?php endforeach; ?>

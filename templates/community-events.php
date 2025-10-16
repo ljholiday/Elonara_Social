@@ -43,6 +43,12 @@ $events = $events ?? [];
               <a href="/events/<?= e($ev->slug) ?>" class="app-link">
                 <?= e($ev->context_label ?? $ev->title ?? '') ?>
               </a>
+              <?php
+                $badge = app_visibility_badge($ev->privacy ?? $community['privacy'] ?? null);
+                if (!empty($badge['label'])):
+              ?>
+                <span class="<?= e($badge['class']) ?>" style="margin-left:0.5rem;"><?= e($badge['label']) ?></span>
+              <?php endif; ?>
             </h3>
             <?php if (!empty($ev->description)): ?>
               <p class="app-card-desc"><?= e(mb_substr($ev->description, 0, 200)) ?><?= mb_strlen($ev->description) > 200 ? '...' : '' ?></p>

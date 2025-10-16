@@ -25,6 +25,7 @@ $filter = $filter ?? 'all';
           'event_date'  => $row['event_date'] ?? '',
           'slug'        => $row['slug'] ?? (string)($row['id'] ?? ''),
           'url'         => '/events/' . ($row['slug'] ?? (string)($row['id'] ?? '')),
+          'privacy'     => $row['privacy'] ?? null,
         ];
         include __DIR__ . '/partials/card.php';
       endforeach; ?>

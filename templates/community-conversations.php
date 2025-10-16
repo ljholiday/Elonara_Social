@@ -43,6 +43,12 @@ $conversations = $conversations ?? [];
               <a href="/conversations/<?= e($c->slug) ?>" class="app-link">
                 <?= e($c->context_label ?? $c->title ?? '') ?>
               </a>
+              <?php
+                $badge = app_visibility_badge($c->privacy ?? null, $c->community_privacy ?? null, $community['privacy'] ?? null);
+                if (!empty($badge['label'])):
+              ?>
+                <span class="<?= e($badge['class']) ?>" style="margin-left:0.5rem;"><?= e($badge['label']) ?></span>
+              <?php endif; ?>
             </h3>
             <?php if (!empty($c->content)): ?>
               <p class="app-card-desc"><?= e(mb_substr($c->content, 0, 200)) ?><?= mb_strlen($c->content) > 200 ? '...' : '' ?></p>

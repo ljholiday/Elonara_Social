@@ -6,6 +6,14 @@
     <?php $contextLabelHtml = $context_label_html ?? ''; ?>
     <h1 class="app-heading">
       <?= $contextLabelHtml !== '' ? $contextLabelHtml : e($c->title ?? '') ?>
+      <?php
+        $badge = app_visibility_badge($c->privacy ?? $c->community_privacy ?? null);
+        if (!empty($badge['label'])):
+      ?>
+        <span class="<?= e($badge['class']) ?>" style="margin-left:0.75rem; font-size:0.8rem;">
+          <?= e($badge['label']) ?>
+        </span>
+      <?php endif; ?>
     </h1>
     <div class="app-sub app-flex app-gap">
       <?php

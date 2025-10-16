@@ -19,6 +19,12 @@ $pagination = $pagination ?? ['page' => 1, 'per_page' => 20, 'has_more' => false
             <a class="app-link" href="/conversations/<?= e($item->slug ?? (string)($item->id ?? '')) ?>">
               <?= e($item->context_label ?? $item->title ?? '') ?>
             </a>
+            <?php
+              $badge = app_visibility_badge($item->privacy ?? $item->community_privacy ?? null);
+              if (!empty($badge['label'])):
+            ?>
+              <span class="<?= e($badge['class']) ?>" style="margin-left:0.5rem;"><?= e($badge['label']) ?></span>
+            <?php endif; ?>
           </h3>
           <?php if (!empty($item->author_name)): ?>
             <div class="app-card-sub">Started by <?= e($item->author_name) ?><?php if (!empty($item->created_at)): ?> · <?= e(date_fmt($item->created_at)) ?><?php endif; ?></div>

@@ -12,7 +12,17 @@ $status = $status ?? (empty($community) ? 404 : 200);
     $privacy = isset($c->privacy) ? strtolower((string)$c->privacy) : 'public';
   ?>
     <header class="app-mb-4">
-      <h1 class="app-heading"><?= e($c->title ?? '') ?></h1>
+      <h1 class="app-heading">
+        <?= e($c->title ?? '') ?>
+        <?php
+          $badge = app_visibility_badge($c->privacy ?? null);
+          if (!empty($badge['label'])):
+        ?>
+          <span class="<?= e($badge['class']) ?>" style="margin-left:0.75rem; font-size:0.8rem;">
+            <?= e($badge['label']) ?>
+          </span>
+        <?php endif; ?>
+      </h1>
       <div class="app-sub">
         <?php
         $bits = [];

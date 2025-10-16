@@ -34,7 +34,7 @@ final class EventService
      */
     public function listRecent(int $limit = 20): array
     {
-        $sql = "SELECT id, title, event_date, slug, description
+        $sql = "SELECT id, title, event_date, slug, description, privacy
                 FROM events
                 ORDER BY event_date DESC
                 LIMIT :lim";
@@ -58,7 +58,7 @@ final class EventService
      */
     public function listRecentForAdmin(int $limit = 5): array
     {
-        $sql = "SELECT e.id, e.title, e.event_date, u.display_name AS host,
+        $sql = "SELECT e.id, e.title, e.event_date, e.privacy, u.display_name AS host,
                        e.community_id, com.name AS community_name, com.slug AS community_slug
                 FROM events e
                 LEFT JOIN users u ON u.id = e.author_id
@@ -82,7 +82,7 @@ final class EventService
 
         $email = $viewerEmail !== null ? trim($viewerEmail) : $this->lookupUserEmail($viewerId);
 
-        $sql = "SELECT DISTINCT e.id, e.title, e.event_date, e.slug, e.description,
+        $sql = "SELECT DISTINCT e.id, e.title, e.event_date, e.slug, e.description, e.privacy,
                        e.community_id, com.name AS community_name, com.slug AS community_slug
                 FROM events e
                 LEFT JOIN guests g ON g.event_id = e.id
@@ -322,7 +322,7 @@ final class EventService
 
         $pdo = $this->db->pdo();
         $stmt = $pdo->prepare('
-            SELECT id, title, slug, description, event_date, location, author_id, community_id, created_at
+            SELECT id, title, slug, description, event_date, location, author_id, community_id, created_at, privacy
             FROM events
             WHERE community_id = :community_id
             ORDER BY event_date DESC, created_at DESC

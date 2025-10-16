@@ -92,7 +92,7 @@ final class CommunityService
      */
     public function listRecentForAdmin(int $limit = 5): array
     {
-        $sql = "SELECT c.id, c.name, c.member_count
+        $sql = "SELECT c.id, c.name, c.member_count, c.privacy
                 FROM communities c
                 ORDER BY COALESCE(c.created_at, c.id) DESC
                 LIMIT :lim";
