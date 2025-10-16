@@ -127,6 +127,16 @@ Never call validators inside services — it leads to inconsistent error handlin
   - Event invites accept via `/rsvp/{token}` (see `templates/guest-rsvp.php`).
 - Bluesky-only invitations tag guests with `invitation_source = 'bluesky'` and prefix email fields with `bsky:` followed by the DID.
 
+### Conversations & Default Communities
+
+- Every conversation is scoped to a community or event—there are no free-standing “general discussion” threads. When we need a catch-all space, we provision a **default community** and attach the new conversation there.
+- Services, controllers, and database queries should always load or persist conversations via their owning community/event IDs. Avoid introducing code paths that allow `community_id` and `event_id` to both be null.
+- If you seed demo data or build migrations, remember to create the companion default communities so the UI has a place to anchor system-level conversations.
+
+### Contextual Titles
+
+- Surface namespaced titles everywhere entities appear. Pass raw data through `App\Support\ContextBuilder` and render with `App\Support\ContextLabel` so conversations and events display as `Community : Event : Conversation` consistently across dashboards, search, and detail pages.
+
 ---
 
 ## 6. Database & Migrations

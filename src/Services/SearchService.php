@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Database\Database;
+use App\Support\ContextBuilder;
+use App\Support\ContextLabel;
 use PDO;
 
 final class SearchService
@@ -37,9 +39,23 @@ final class SearchService
         $pdo = $this->database->pdo();
 
         $sql = '
-            SELECT title, content, url, entity_type, visibility_scope, owner_user_id
-            FROM search
-            WHERE (visibility_scope = :public_scope';
+            SELECT
+                s.title,
+                s.content,
+                s.url,
+                s.entity_type,
+                s.visibility_scope,
+                s.owner_user_id,
+                s.community_id,
+                s.event_id,
+                com.name AS community_name,
+                com.slug AS community_slug,
+                evt.title AS event_title,
+                evt.slug AS event_slug
+            FROM search s
+            LEFT JOIN communities com ON s.community_id = com.id
+            LEFT JOIN events evt ON s.event_id = evt.id
+            WHERE (s.visibility_scope = :public_scope';
 
         $params = [
             ':public_scope' => 'public',
@@ -54,8 +70,8 @@ final class SearchService
         }
 
         $sql .= ')
-            AND (title LIKE :like_title OR content LIKE :like_content)
-            ORDER BY last_activity_at DESC
+            AND (s.title LIKE :like_title OR s.content LIKE :like_content)
+            ORDER BY s.last_activity_at DESC
             LIMIT :limit';
 
         $stmt = $pdo->prepare($sql);
@@ -80,8 +96,39 @@ final class SearchService
                 'badge_class' => 'app-badge',
             ];
 
+            $title = (string)$row['title'];
+            $contextPath = [];
+
+            if ($type === 'event') {
+                $eventContext = [
+                    'title' => $row['title'],
+                    'slug' => $row['event_slug'] ?? $this->slugFromUrl((string)$row['url']),
+                    'community_id' => (int)($row['community_id'] ?? 0),
+                    'community_name' => $row['community_name'] ?? null,
+                    'community_slug' => $row['community_slug'] ?? null,
+                ];
+                $contextPath = ContextBuilder::event($eventContext);
+            } elseif ($type === 'conversation') {
+                $conversationContext = [
+                    'title' => $row['title'],
+                    'community_id' => (int)($row['community_id'] ?? 0),
+                    'community_name' => $row['community_name'] ?? null,
+                    'community_slug' => $row['community_slug'] ?? null,
+                    'event_id' => (int)($row['event_id'] ?? 0),
+                    'event_title' => $row['event_title'] ?? null,
+                    'event_slug' => $row['event_slug'] ?? null,
+                ];
+                $contextPath = ContextBuilder::conversation($conversationContext);
+            }
+
+            if ($contextPath !== []) {
+                $title = ContextLabel::renderPlain($contextPath);
+            }
+
             $results[] = [
-                'title' => (string)$row['title'],
+                'title' => $title,
+                'context_label' => $title,
+                'context_path' => $contextPath,
                 'url' => (string)$row['url'],
                 'entity_type' => $type,
                 'badge_label' => $meta['label'],
@@ -120,6 +167,7 @@ final class SearchService
         string $description,
         string $slug,
         int $ownerId,
+        ?int $communityId,
         string $privacy,
         ?string $eventDate = null
     ): void {
@@ -128,7 +176,7 @@ final class SearchService
             'content' => $description,
             'url' => '/events/' . ltrim($slug, '/'),
             'owner_user_id' => $ownerId,
-            'community_id' => 0,
+            'community_id' => $communityId ?? 0,
             'event_id' => $eventId,
             'visibility_scope' => $privacy === 'private' ? 'private' : 'public',
             'last_activity_at' => $eventDate ?? date('Y-m-d H:i:s'),
@@ -206,7 +254,7 @@ final class SearchService
 
         // Events
         $stmt = $pdo->query("
-            SELECT id, title, description, slug, author_id, privacy, event_date, updated_at
+            SELECT id, title, description, slug, author_id, privacy, event_date, updated_at, community_id
             FROM events
         ");
         $rows = $stmt?->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -217,6 +265,7 @@ final class SearchService
                 (string)($row['description'] ?? ''),
                 (string)$row['slug'],
                 (int)($row['author_id'] ?? 0),
+                $row['community_id'] !== null ? (int)$row['community_id'] : null,
                 (string)($row['privacy'] ?? 'public'),
                 (string)($row['event_date'] ?? $row['updated_at'] ?? $now)
             );
@@ -338,5 +387,16 @@ final class SearchService
         }
 
         return $snippet;
+    }
+
+    private function slugFromUrl(string $url): string
+    {
+        $path = parse_url($url, PHP_URL_PATH) ?? '';
+        if ($path === '') {
+            return '';
+        }
+
+        $segments = explode('/', trim($path, '/'));
+        return (string)end($segments);
     }
 }

@@ -11,6 +11,8 @@ use App\Services\MailService;
 use App\Services\UserService;
 use App\Services\SecurityService;
 use App\Services\SearchService;
+use App\Support\ContextBuilder;
+use App\Support\ContextLabel;
 
 final class AdminController
 {
@@ -35,11 +37,19 @@ final class AdminController
             ['label' => 'Communities', 'value' => $this->communities->countAll()],
         ];
 
+        $recentEvents = array_map(function (array $event): array {
+            $path = ContextBuilder::event($event, $this->communities);
+            $plain = ContextLabel::renderPlain($path);
+            $event['context_path'] = $path;
+            $event['context_label'] = $plain !== '' ? $plain : (string)($event['title'] ?? '');
+            return $event;
+        }, $this->events->listRecentForAdmin(5));
+
         return [
             'page_title' => 'Overview',
             'nav_active' => 'dashboard',
             'stats' => $stats,
-            'recentEvents' => $this->events->listRecentForAdmin(5),
+            'recentEvents' => $recentEvents,
             'recentCommunities' => $this->communities->listRecentForAdmin(5),
         ];
     }

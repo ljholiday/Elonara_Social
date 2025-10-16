@@ -22,16 +22,24 @@ final class ConversationService
     public function listRecent(int $limit = 20): array
     {
         $sql = "SELECT
-                    id,
-                    title,
-                    slug,
-                    content,
-                    author_name,
-                    created_at,
-                    reply_count,
-                    last_reply_date
-                FROM conversations
-                ORDER BY COALESCE(updated_at, created_at) DESC
+                    conv.id,
+                    conv.title,
+                    conv.slug,
+                    conv.content,
+                    conv.author_name,
+                    conv.created_at,
+                    conv.reply_count,
+                    conv.last_reply_date,
+                    conv.community_id,
+                    conv.event_id,
+                    com.name AS community_name,
+                    com.slug AS community_slug,
+                    evt.title AS event_title,
+                    evt.slug AS event_slug
+                FROM conversations conv
+                LEFT JOIN communities com ON conv.community_id = com.id
+                LEFT JOIN events evt ON conv.event_id = evt.id
+                ORDER BY COALESCE(conv.updated_at, conv.created_at) DESC
                 LIMIT :lim";
 
         $stmt = $this->db->pdo()->prepare($sql);
@@ -50,10 +58,13 @@ final class ConversationService
 
         if (ctype_digit($slugOrId)) {
             $stmt = $pdo->prepare(
-                "SELECT conv.id, conv.title, conv.slug, conv.content, conv.author_id, conv.author_name, conv.created_at, conv.reply_count, conv.last_reply_date, conv.community_id, conv.privacy, com.privacy AS community_privacy,
-                        u.username AS author_username, u.display_name AS author_display_name, u.email AS author_email, u.avatar_url AS author_avatar_url
+                "SELECT conv.id, conv.title, conv.slug, conv.content, conv.author_id, conv.author_name, conv.created_at, conv.reply_count, conv.last_reply_date, conv.community_id, conv.event_id, conv.privacy, com.privacy AS community_privacy,
+                        u.username AS author_username, u.display_name AS author_display_name, u.email AS author_email, u.avatar_url AS author_avatar_url,
+                        com.name AS community_name, com.slug AS community_slug,
+                        evt.title AS event_title, evt.slug AS event_slug
                  FROM conversations conv
                  LEFT JOIN communities com ON conv.community_id = com.id
+                 LEFT JOIN events evt ON conv.event_id = evt.id
                  LEFT JOIN users u ON conv.author_id = u.id
                  WHERE conv.id = :id
                  LIMIT 1"
@@ -61,10 +72,13 @@ final class ConversationService
             $stmt->execute([':id' => (int)$slugOrId]);
         } else {
             $stmt = $pdo->prepare(
-                "SELECT conv.id, conv.title, conv.slug, conv.content, conv.author_id, conv.author_name, conv.created_at, conv.reply_count, conv.last_reply_date, conv.community_id, conv.privacy, com.privacy AS community_privacy,
-                        u.username AS author_username, u.display_name AS author_display_name, u.email AS author_email, u.avatar_url AS author_avatar_url
+                "SELECT conv.id, conv.title, conv.slug, conv.content, conv.author_id, conv.author_name, conv.created_at, conv.reply_count, conv.last_reply_date, conv.community_id, conv.event_id, conv.privacy, com.privacy AS community_privacy,
+                        u.username AS author_username, u.display_name AS author_display_name, u.email AS author_email, u.avatar_url AS author_avatar_url,
+                        com.name AS community_name, com.slug AS community_slug,
+                        evt.title AS event_title, evt.slug AS event_slug
                  FROM conversations conv
                  LEFT JOIN communities com ON conv.community_id = com.id
+                 LEFT JOIN events evt ON conv.event_id = evt.id
                  LEFT JOIN users u ON conv.author_id = u.id
                  WHERE conv.slug = :slug
                  LIMIT 1"
@@ -106,6 +120,8 @@ final class ConversationService
         $pdo = $this->db->pdo();
         $slug = $this->ensureUniqueSlug($pdo, $this->slugify($title));
         $now = date('Y-m-d H:i:s');
+        $communityId = isset($data['community_id']) ? (int)$data['community_id'] : 0;
+        $eventId = isset($data['event_id']) ? (int)$data['event_id'] : 0;
 
         $stmt = $pdo->prepare(
             "INSERT INTO conversations (
@@ -115,6 +131,8 @@ final class ConversationService
                 author_id,
                 author_name,
                 author_email,
+                community_id,
+                event_id,
                 created_at,
                 updated_at,
                 reply_count,
@@ -127,6 +145,8 @@ final class ConversationService
                 :author_id,
                 :author_name,
                 :author_email,
+                :community_id,
+                :event_id,
                 :created_at,
                 :updated_at,
                 :reply_count,
@@ -142,6 +162,8 @@ final class ConversationService
             ':author_id' => $authorId,
             ':author_name' => $authorName,
             ':author_email' => $authorEmail,
+            ':community_id' => $communityId > 0 ? $communityId : null,
+            ':event_id' => $eventId > 0 ? $eventId : null,
             ':created_at' => $now,
             ':updated_at' => $now,
             ':reply_count' => 0,
@@ -158,8 +180,8 @@ final class ConversationService
                 $content,
                 $slug,
                 $authorId,
-                isset($data['community_id']) ? (int)$data['community_id'] : null,
-                isset($data['event_id']) ? (int)$data['event_id'] : null,
+                $communityId > 0 ? $communityId : null,
+                $eventId > 0 ? $eventId : null,
                 $privacy,
                 $now
             );
@@ -255,9 +277,12 @@ final class ConversationService
                 conv.event_id,
                 com.name AS community_name,
                 com.slug AS community_slug,
-                com.privacy AS community_privacy
+                com.privacy AS community_privacy,
+                evt.title AS event_title,
+                evt.slug AS event_slug
             FROM conversations conv
             LEFT JOIN communities com ON conv.community_id = com.id
+            LEFT JOIN events evt ON conv.event_id = evt.id
             $where
             ORDER BY COALESCE(conv.updated_at, conv.created_at) DESC
             LIMIT $fetchLimit OFFSET $offset";
@@ -265,6 +290,7 @@ final class ConversationService
         $countSql = "SELECT COUNT(*)
             FROM conversations conv
             LEFT JOIN communities com ON conv.community_id = com.id
+            LEFT JOIN events evt ON conv.event_id = evt.id
             $where";
 
         $countStmt = $this->db->pdo()->prepare($countSql);
@@ -603,9 +629,13 @@ final class ConversationService
         $stmt = $pdo->prepare('
             SELECT c.id, c.title, c.slug, c.content, c.author_id, c.event_id, c.community_id,
                    c.created_at, c.reply_count, c.last_reply_date,
-                   u.username AS author_name
+                   u.username AS author_name,
+                   com.name AS community_name, com.slug AS community_slug,
+                   e.title AS event_title, e.slug AS event_slug
             FROM conversations c
             LEFT JOIN users u ON c.author_id = u.id
+            LEFT JOIN communities com ON c.community_id = com.id
+            LEFT JOIN events e ON c.event_id = e.id
             WHERE c.event_id = :event_id
             ORDER BY c.created_at DESC
             LIMIT :limit
@@ -630,9 +660,13 @@ final class ConversationService
         $stmt = $pdo->prepare('
             SELECT c.id, c.title, c.slug, c.content, c.author_id, c.event_id, c.community_id,
                    c.created_at, c.reply_count, c.last_reply_date,
-                   u.username AS author_name
+                   u.username AS author_name,
+                   com.name AS community_name, com.slug AS community_slug,
+                   e.title AS event_title, e.slug AS event_slug
             FROM conversations c
             LEFT JOIN users u ON c.author_id = u.id
+            LEFT JOIN communities com ON c.community_id = com.id
+            LEFT JOIN events e ON c.event_id = e.id
             WHERE c.community_id = :community_id
             ORDER BY c.created_at DESC
             LIMIT :limit

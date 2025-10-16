@@ -12,6 +12,8 @@ use App\Services\ValidatorService;
 use App\Services\CommunityMemberService;
 use App\Services\EventService;
 use App\Services\ConversationService;
+use App\Support\ContextBuilder;
+use App\Support\ContextLabel;
 
 final class CommunityController
 {
@@ -344,15 +346,37 @@ final class CommunityController
             return [
                 'community' => null,
                 'events' => [],
+                'canCreateEvent' => false,
             ];
         }
 
         $communityId = (int)($community['id'] ?? 0);
         $events = $communityId > 0 ? $this->events->listByCommunity($communityId) : [];
+        $viewerId = $this->auth->currentUserId() ?? 0;
+        $canCreateEvent = $communityId > 0 && $this->authz->canCreateEventInCommunity($communityId, $viewerId);
+
+        $events = array_map(function (array $event) use ($community): array {
+            if (!isset($event['community_name']) && isset($community['name'])) {
+                $event['community_name'] = $community['name'];
+            }
+            if (!isset($event['community_slug']) && isset($community['slug'])) {
+                $event['community_slug'] = $community['slug'];
+            }
+
+            $path = ContextBuilder::event($event, $this->communities);
+            $plain = ContextLabel::renderPlain($path);
+            $html = ContextLabel::render($path);
+            $event['context_path'] = $path;
+            $event['context_label'] = $plain !== '' ? $plain : (string)($event['title'] ?? '');
+            $event['context_label_html'] = $html !== '' ? $html : htmlspecialchars((string)($event['title'] ?? ''), ENT_QUOTES, 'UTF-8');
+
+            return $event;
+        }, $events);
 
         return [
             'community' => $community,
             'events' => $events,
+            'canCreateEvent' => $canCreateEvent,
         ];
     }
 
@@ -369,15 +393,29 @@ final class CommunityController
             return [
                 'community' => null,
                 'conversations' => [],
+                'canCreateConversation' => false,
             ];
         }
 
         $communityId = (int)($community['id'] ?? 0);
         $conversations = $communityId > 0 ? $this->conversations->listByCommunity($communityId) : [];
+        $viewerId = $this->auth->currentUserId() ?? 0;
+        $canCreateConversation = $communityId > 0 && $this->authz->canCreateConversationInCommunity($communityId, $viewerId);
+
+        $conversations = array_map(function (array $conversation): array {
+            $path = ContextBuilder::conversation($conversation, $this->communities, $this->events);
+            $plain = ContextLabel::renderPlain($path);
+            $html = ContextLabel::render($path);
+            $conversation['context_path'] = $path;
+            $conversation['context_label'] = $plain !== '' ? $plain : (string)($conversation['title'] ?? '');
+            $conversation['context_label_html'] = $html !== '' ? $html : htmlspecialchars((string)($conversation['title'] ?? ''), ENT_QUOTES, 'UTF-8');
+            return $conversation;
+        }, $conversations);
 
         return [
             'community' => $community,
             'conversations' => $conversations,
+            'canCreateConversation' => $canCreateConversation,
         ];
     }
 

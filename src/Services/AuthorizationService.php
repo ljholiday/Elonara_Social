@@ -330,6 +330,74 @@ final class AuthorizationService
     }
 
     /**
+     * Check if a user can start a conversation inside a community.
+     *
+     * Rules mirror event creation:
+     * - Site admin: yes
+     * - Community admin/creator: yes
+     * - Public community member: yes
+     * - Private community: admin/creator only
+     */
+    public function canCreateConversationInCommunity(int $communityId, int $viewerId): bool
+    {
+        if ($viewerId <= 0 || $communityId <= 0) {
+            return false;
+        }
+
+        $community = $this->getCommunityById($communityId);
+        if ($community === null) {
+            return false;
+        }
+
+        $privacy = strtolower((string)($community['privacy'] ?? 'public'));
+
+        if ($this->isSiteAdmin($viewerId)) {
+            return true;
+        }
+
+        if ($this->isCommunityAdmin($communityId, $viewerId)) {
+            return true;
+        }
+
+        if ($privacy === 'public' && $this->isCommunityMember($communityId, $viewerId)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if a user can start a conversation attached to an event.
+     *
+     * Event creators, community admins, and site admins are allowed.
+     * Public community members may create conversations when the event
+     * belongs to a public community.
+     *
+     * @param array<string,mixed> $event
+     */
+    public function canCreateConversationInEvent(array $event, int $viewerId): bool
+    {
+        if ($viewerId <= 0) {
+            return false;
+        }
+
+        if ($this->isSiteAdmin($viewerId)) {
+            return true;
+        }
+
+        if ((int)($event['author_id'] ?? 0) === $viewerId) {
+            return true;
+        }
+
+        $communityId = (int)($event['community_id'] ?? 0);
+        if ($communityId > 0) {
+            return $this->canCreateConversationInCommunity($communityId, $viewerId);
+        }
+
+        return false;
+    }
+
+    /**
      * Check if user is a member of a community
      */
     public function isCommunityMember(int $communityId, int $userId): bool

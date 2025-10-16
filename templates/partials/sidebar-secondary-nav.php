@@ -27,10 +27,6 @@ $is_logged_in = $viewer !== null;
                 Create Event
             </a>
 
-            <a href="/conversations/create" class="app-btn app-btn-secondary app-btn-block">
-                Create Conversation
-            </a>
-
             <a href="/communities/create" class="app-btn app-btn-secondary app-btn-block">
                 Create Community
             </a>

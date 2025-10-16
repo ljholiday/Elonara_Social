@@ -19,8 +19,18 @@ $conversations = $conversations ?? [];
   <?php if (!$event): ?>
     <p class="app-text-muted">Event not found.</p>
   <?php else: ?>
-    <h1 class="app-heading">Conversations</h1>
-    <p class="app-text-muted">Conversations about <?= e($event['title']) ?></p>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+      <div>
+        <h1 class="app-heading">Conversations</h1>
+        <p class="app-text-muted">Conversations about <?= e($event['title']) ?></p>
+      </div>
+      <?php if (!empty($canCreateConversation) && $canCreateConversation): ?>
+        <a href="/conversations/create?event=<?= urlencode((string)($event['slug'] ?? $event['id'] ?? '')) ?>"
+           class="app-btn app-btn-secondary">
+          Create Conversation
+        </a>
+      <?php endif; ?>
+    </div>
 
     <?php if (empty($conversations)): ?>
       <div class="app-card app-mt-4">
@@ -32,7 +42,7 @@ $conversations = $conversations ?? [];
           <article class="app-card">
             <h3 class="app-heading-sm">
               <a href="/conversations/<?= e($c->slug) ?>" class="app-link">
-                <?= e($c->title) ?>
+                <?= e($c->context_label ?? $c->title ?? '') ?>
               </a>
             </h3>
             <?php if (!empty($c->content)): ?>

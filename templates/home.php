@@ -68,7 +68,7 @@ $conversations = $recent_conversations ?? [];
               <div class="app-card-body app-stack app-gap-2">
                 <h3 class="app-heading app-heading-sm">
                   <a href="/events/<?= e($event['slug'] ?? (string)($event['id'] ?? '')); ?>" class="app-text-primary">
-                    <?= e($event['title'] ?? 'Untitled event'); ?>
+                    <?= e($event['context_label'] ?? $event['title'] ?? 'Untitled event'); ?>
                   </a>
                 </h3>
                 <?php if (!empty($event['event_date'])): ?>
@@ -151,7 +151,7 @@ $conversations = $recent_conversations ?? [];
               <div class="app-card-body app-stack app-gap-2">
                 <h3 class="app-heading app-heading-sm">
                   <a href="/conversations/<?= e($conversation['slug'] ?? (string)($conversation['id'] ?? '')); ?>" class="app-text-primary">
-                    <?= e($conversation['title'] ?? 'Conversation'); ?>
+                    <?= e($conversation['context_label'] ?? $conversation['title'] ?? 'Conversation'); ?>
                   </a>
                 </h3>
                 <?php if (!empty($conversation['created_at'])): ?>

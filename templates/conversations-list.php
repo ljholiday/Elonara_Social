@@ -17,7 +17,7 @@ $pagination = $pagination ?? ['page' => 1, 'per_page' => 20, 'has_more' => false
         <article class="app-card">
           <h3 class="app-card-title">
             <a class="app-link" href="/conversations/<?= e($item->slug ?? (string)($item->id ?? '')) ?>">
-              <?= e($item->title ?? '') ?>
+              <?= e($item->context_label ?? $item->title ?? '') ?>
             </a>
           </h3>
           <?php if (!empty($item->author_name)): ?>

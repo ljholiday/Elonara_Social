@@ -31,7 +31,7 @@ $recentCommunities = $recentCommunities ?? [];
       <ul style="list-style:none; margin:0; padding:0;">
         <?php foreach ($recentEvents as $event): ?>
           <li style="margin-bottom:0.75rem;">
-            <strong><?= htmlspecialchars($event['title'] ?? 'Untitled event'); ?></strong><br>
+            <strong><?= htmlspecialchars($event['context_label'] ?? $event['title'] ?? 'Untitled event'); ?></strong><br>
             <small style="color:#6b748a;">ID <?= htmlspecialchars((string)($event['id'] ?? '')); ?> · Host <?= htmlspecialchars($event['host'] ?? ''); ?></small>
           </li>
         <?php endforeach; ?>

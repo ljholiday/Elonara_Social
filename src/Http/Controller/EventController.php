@@ -9,6 +9,10 @@ use App\Services\AuthService;
 use App\Services\ValidatorService;
 use App\Services\InvitationService;
 use App\Services\ConversationService;
+use App\Services\AuthorizationService;
+use App\Services\CommunityService;
+use App\Support\ContextBuilder;
+use App\Support\ContextLabel;
 
 /**
  * Thin HTTP controller for event listings and detail views.
@@ -23,7 +27,9 @@ final class EventController
         private AuthService $auth,
         private ValidatorService $validator,
         private InvitationService $invitations,
-        private ConversationService $conversations
+        private ConversationService $conversations,
+        private AuthorizationService $authz,
+        private CommunityService $communities
     ) {
     }
 
@@ -43,6 +49,16 @@ final class EventController
             $events = $this->events->listRecent();
         }
 
+        $events = array_map(function (array $event): array {
+            $path = ContextBuilder::event($event, $this->communities);
+            $plain = ContextLabel::renderPlain($path);
+            $html = ContextLabel::render($path);
+            $event['context_path'] = $path;
+            $event['context_label'] = $plain !== '' ? $plain : (string)($event['title'] ?? '');
+            $event['context_label_html'] = $html !== '' ? $html : htmlspecialchars((string)($event['title'] ?? ''), ENT_QUOTES, 'UTF-8');
+            return $event;
+        }, $events);
+
         return [
             'events' => $events,
             'filter' => $filter,
@@ -54,8 +70,14 @@ final class EventController
      */
     public function show(string $slugOrId): array
     {
+        $event = $this->events->getBySlugOrId($slugOrId);
+        $contextPath = $event !== null ? ContextBuilder::event($event, $this->communities) : [];
+
         return [
-            'event' => $this->events->getBySlugOrId($slugOrId),
+            'event' => $event,
+            'context_path' => $contextPath,
+            'context_label' => $contextPath !== [] ? ContextLabel::renderPlain($contextPath) : '',
+            'context_label_html' => $contextPath !== [] ? ContextLabel::render($contextPath) : '',
         ];
     }
 
@@ -67,13 +89,33 @@ final class EventController
      */
     public function create(): array
     {
+        $viewerId = $this->auth->currentUserId() ?? 0;
+        if ($viewerId <= 0) {
+            return [
+                'errors' => ['auth' => 'You must be logged in to create an event.'],
+                'input' => [
+                    'title' => '',
+                    'description' => '',
+                    'event_date' => '',
+                ],
+                'context' => ['allowed' => false],
+            ];
+        }
+
+        $context = $this->resolveCommunityContext($this->request(), $viewerId);
+        $errors = [];
+        if (!empty($context['error'])) {
+            $errors['context'] = $context['error'];
+        }
+
         return [
-            'errors' => [],
+            'errors' => $errors,
             'input' => [
                 'title' => '',
                 'description' => '',
                 'event_date' => '',
             ],
+            'context' => $context,
         ];
     }
 
@@ -87,12 +129,32 @@ final class EventController
      */
     public function store(): array
     {
-        $validated = $this->validateEventInput($this->request());
+        $viewerId = $this->auth->currentUserId();
+        if ($viewerId === null || $viewerId <= 0) {
+            return [
+                'errors' => ['auth' => 'You must be logged in to create an event.'],
+                'input' => ['title' => '', 'description' => '', 'event_date' => ''],
+                'context' => ['allowed' => false],
+            ];
+        }
+
+        $request = $this->request();
+        $validated = $this->validateEventInput($request);
 
         if ($validated['errors']) {
             return [
                 'errors' => $validated['errors'],
                 'input' => $validated['input'],
+                'context' => $this->resolveCommunityContext($request, $viewerId),
+            ];
+        }
+
+        $context = $this->resolveCommunityContext($request, $viewerId);
+        if (!empty($context['error'])) {
+            return [
+                'errors' => ['context' => $context['error']],
+                'input' => $validated['input'],
+                'context' => $context,
             ];
         }
 
@@ -100,6 +162,10 @@ final class EventController
             'title' => $validated['input']['title'],
             'description' => $validated['input']['description'],
             'event_date' => $validated['event_date_db'],
+            'author_id' => $viewerId,
+            'created_by' => $viewerId,
+            'community_id' => $context['community_id'] ?? 0,
+            'privacy' => $context['privacy'] ?? 'public',
         ]);
 
         return [
@@ -219,15 +285,29 @@ final class EventController
             return [
                 'event' => null,
                 'conversations' => [],
+                'canCreateConversation' => false,
             ];
         }
 
         $eventId = (int)($event['id'] ?? 0);
         $conversations = $eventId > 0 ? $this->conversations->listByEvent($eventId) : [];
+        $viewerId = $this->auth->currentUserId() ?? 0;
+        $canCreate = $this->authz->canCreateConversationInEvent($event, $viewerId);
+
+        $conversations = array_map(function (array $conversation): array {
+            $path = ContextBuilder::conversation($conversation, $this->communities, $this->events);
+            $plain = ContextLabel::renderPlain($path);
+            $html = ContextLabel::render($path);
+            $conversation['context_path'] = $path;
+            $conversation['context_label'] = $plain !== '' ? $plain : (string)($conversation['title'] ?? '');
+            $conversation['context_label_html'] = $html !== '' ? $html : htmlspecialchars((string)($conversation['title'] ?? ''), ENT_QUOTES, 'UTF-8');
+            return $conversation;
+        }, $conversations);
 
         return [
             'event' => $event,
             'conversations' => $conversations,
+            'canCreateConversation' => $canCreate,
         ];
     }
 
@@ -283,6 +363,48 @@ final class EventController
             'tab' => $tab,
             'guest_summary' => $guestSummary,
         ];
+    }
+
+    /**
+     * @return array{community?:array<string,mixed>|null,community_id?:int|null,community_slug?:string|null,label:string,allowed:bool,error?:string|null,privacy:string}
+     */
+    private function resolveCommunityContext(Request $request, int $viewerId): array
+    {
+        $context = [
+            'community' => null,
+            'community_id' => null,
+            'community_slug' => null,
+            'label' => '',
+            'allowed' => true,
+            'error' => null,
+            'privacy' => 'public',
+        ];
+
+        $communityId = (int)$request->input('community_id', 0);
+        $communityParam = (string)$request->input('community', $request->query('community', ''));
+
+        if ($communityId > 0 || $communityParam !== '') {
+            $community = $communityId > 0
+                ? $this->communities->getBySlugOrId((string)$communityId)
+                : $this->communities->getBySlugOrId($communityParam);
+
+            if ($community === null) {
+                $context['allowed'] = false;
+                $context['error'] = 'Community not found.';
+                return $context;
+            }
+
+            $context['community'] = $community;
+            $context['community_id'] = (int)($community['id'] ?? 0);
+            $context['community_slug'] = $community['slug'] ?? null;
+            $context['label'] = (string)($community['name'] ?? $community['title'] ?? 'Community');
+            $context['privacy'] = (string)($community['privacy'] ?? 'public');
+            $context['allowed'] = $this->authz->canCreateEventInCommunity((int)$community['id'], $viewerId);
+            if (!$context['allowed']) {
+                $context['error'] = 'You do not have permission to create an event in this community.';
+            }
+        }
+        return $context;
     }
 
     private function request(): Request

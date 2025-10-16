@@ -20,7 +20,7 @@ $filter = $filter ?? 'all';
       <?php foreach ($events as $row):
         $entity = (object)[
           'id'          => $row['id'] ?? null,
-          'title'       => $row['title'] ?? '',
+          'title'       => $row['context_label'] ?? $row['title'] ?? '',
           'description' => $row['description'] ?? '',
           'event_date'  => $row['event_date'] ?? '',
           'slug'        => $row['slug'] ?? (string)($row['id'] ?? ''),

@@ -367,7 +367,9 @@ if (!function_exists('app_container')) {
                     $c->get('auth.service'),
                     $c->get('validator.service'),
                     $c->get('invitation.manager'),
-                    $c->get('conversation.service')
+                    $c->get('conversation.service'),
+                    $c->get('authorization.service'),
+                    $c->get('community.service')
                 );
             }, false);
 
@@ -428,7 +430,9 @@ if (!function_exists('app_container')) {
                     $c->get('auth.service'),
                     $c->get('authorization.service'),
                     $c->get('validator.service'),
-                    $c->get('security.service')
+                    $c->get('security.service'),
+                    $c->get('community.service'),
+                    $c->get('event.service')
                 );
             }, false);
 

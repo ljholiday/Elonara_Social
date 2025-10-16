@@ -3,12 +3,17 @@ declare(strict_types=1);
 
 namespace App\Http\Controller;
 
+use App\Http\Request;
 use App\Services\AuthService;
 use App\Services\CircleService;
 use App\Services\ConversationService;
 use App\Services\AuthorizationService;
 use App\Services\ValidatorService;
 use App\Services\SecurityService;
+use App\Services\CommunityService;
+use App\Services\EventService;
+use App\Support\ContextBuilder;
+use App\Support\ContextLabel;
 
 final class ConversationController
 {
@@ -20,7 +25,9 @@ final class ConversationController
         private AuthService $auth,
         private AuthorizationService $authz,
         private ValidatorService $validator,
-        private SecurityService $security
+        private SecurityService $security,
+        private CommunityService $communities,
+        private EventService $events
     ) {
     }
 
@@ -59,8 +66,19 @@ final class ConversationController
             $options
         );
 
+        $conversations = array_map(function (array $conversation): array {
+            $path = ContextBuilder::conversation($conversation, $this->communities, $this->events);
+            $plain = ContextLabel::renderPlain($path);
+            $html = ContextLabel::render($path);
+
+            $conversation['context_path'] = $path;
+            $conversation['context_label'] = $plain !== '' ? $plain : (string)($conversation['title'] ?? '');
+            $conversation['context_label_html'] = $html !== '' ? $html : htmlspecialchars((string)($conversation['title'] ?? ''), ENT_QUOTES, 'UTF-8');
+            return $conversation;
+        }, $feed['conversations']);
+
         return [
-            'conversations' => $feed['conversations'],
+            'conversations' => $conversations,
             'circle' => $circle,
             'circle_context' => $context,
             'filter' => $filter,
@@ -93,12 +111,18 @@ final class ConversationController
         }
 
         $replies = $this->conversations->listReplies((int)$conversation['id']);
+        $contextPath = $this->buildConversationContextPath($conversation);
+        $contextLabelPlain = $contextPath !== [] ? ContextLabel::renderPlain($contextPath) : (string)($conversation['title'] ?? '');
+        $contextLabelHtml = $contextPath !== [] ? ContextLabel::render($contextPath) : htmlspecialchars((string)($conversation['title'] ?? ''), ENT_QUOTES, 'UTF-8');
 
         return [
             'conversation' => $conversation,
             'replies' => $replies,
             'reply_errors' => [],
             'reply_input' => ['content' => ''],
+            'context_path' => $contextPath,
+            'context_label' => $contextLabelPlain,
+            'context_label_html' => $contextLabelHtml,
         ];
     }
 
@@ -110,12 +134,28 @@ final class ConversationController
      */
     public function create(): array
     {
+        $viewerId = $this->auth->currentUserId() ?? 0;
+        if ($viewerId <= 0) {
+            return [
+                'errors' => ['auth' => 'You must be logged in to start a conversation.'],
+                'input' => ['title' => '', 'content' => ''],
+                'context' => ['allowed' => false],
+            ];
+        }
+
+        $context = $this->resolveConversationContext($this->request(), $viewerId);
+        $errors = [];
+        if (!empty($context['error'])) {
+            $errors['context'] = $context['error'];
+        }
+
         return [
-            'errors' => [],
+            'errors' => $errors,
             'input' => [
                 'title' => '',
                 'content' => '',
             ],
+            'context' => $context,
         ];
     }
 
@@ -158,6 +198,7 @@ final class ConversationController
             return [
                 'errors' => $errors,
                 'input' => $input,
+                'context' => $this->resolveConversationContext($request, $viewerId),
             ];
         }
 
@@ -167,12 +208,25 @@ final class ConversationController
         $authorName = is_string($authorName) && $authorName !== '' ? $authorName : 'Member';
         $authorEmail = $viewer?->email ?? '';
 
+        $context = $this->resolveConversationContext($request, $viewerId);
+        if (empty($context['allowed'])) {
+            $errors['context'] = $context['error'] ?? 'Unable to determine where to start this conversation.';
+            return [
+                'errors' => $errors,
+                'input' => $input,
+                'context' => $context,
+            ];
+        }
+
         $slug = $this->conversations->create([
             'title' => $input['title'],
             'content' => $input['content'],
             'author_id' => $authorId,
             'author_name' => $authorName,
             'author_email' => $authorEmail,
+            'community_id' => $context['community_id'] ?? null,
+            'event_id' => $context['event_id'] ?? null,
+            'privacy' => $context['privacy'] ?? 'public',
         ]);
 
         return [
@@ -427,6 +481,133 @@ final class ConversationController
         return [
             'redirect' => '/conversations',
         ];
+    }
+
+    /**
+     * @return array{type:?string,community?:array<string,mixed>|null,event?:array<string,mixed>|null,community_id?:int|null,event_id?:int|null,community_slug?:string|null,event_slug?:string|null,label:string,label_parts:array<int,string>,allowed:bool,error?:string|null,privacy:string}
+     */
+    private function resolveConversationContext(Request $request, int $viewerId): array
+    {
+        $context = [
+            'type' => null,
+            'community' => null,
+            'event' => null,
+            'community_id' => null,
+            'community_slug' => null,
+            'event_id' => null,
+            'event_slug' => null,
+            'label' => '',
+            'label_html' => '',
+            'label_parts' => [],
+            'label_path' => [],
+            'allowed' => false,
+            'error' => null,
+            'privacy' => 'public',
+        ];
+
+        $eventId = (int)$request->input('event_id', 0);
+        $eventParam = (string)$request->input('event', $request->query('event', ''));
+        $communityId = (int)$request->input('community_id', 0);
+        $communityParam = (string)$request->input('community', $request->query('community', ''));
+
+        if ($eventId > 0 || $eventParam !== '') {
+            $event = $eventId > 0
+                ? $this->events->getBySlugOrId((string)$eventId)
+                : $this->events->getBySlugOrId($eventParam);
+
+            if ($event === null) {
+                $context['error'] = 'Event not found.';
+                return $context;
+            }
+
+            $context['type'] = 'event';
+            $context['event'] = $event;
+            $context['event_id'] = (int)($event['id'] ?? 0);
+            $context['event_slug'] = $event['slug'] ?? null;
+            $context['privacy'] = (string)($event['privacy'] ?? 'public');
+
+            $communityIdFromEvent = (int)($event['community_id'] ?? 0);
+            if ($communityIdFromEvent > 0) {
+                $community = $this->communities->getBySlugOrId((string)$communityIdFromEvent);
+                if ($community !== null) {
+                    $context['community'] = $community;
+                    $context['community_id'] = (int)($community['id'] ?? 0);
+                    $context['community_slug'] = $community['slug'] ?? null;
+                    $communityLabel = (string)($community['name'] ?? $community['title'] ?? 'Community');
+                    $communitySlug = $community['slug'] ?? null;
+                    $context['label_parts'][] = $communityLabel;
+                    $context['label_path'][] = [
+                        'label' => $communityLabel,
+                        'url' => $communitySlug ? '/communities/' . $communitySlug : null,
+                    ];
+                    $context['privacy'] = (string)($community['privacy'] ?? $context['privacy']);
+                }
+            }
+
+            $eventLabel = (string)($event['title'] ?? 'Event');
+            $eventSlug = $event['slug'] ?? null;
+            $context['label_parts'][] = $eventLabel;
+            $context['label_path'][] = [
+                'label' => $eventLabel,
+                'url' => $eventSlug ? '/events/' . $eventSlug : null,
+            ];
+            if ($context['label_path'] !== []) {
+                $context['label'] = ContextLabel::renderPlain($context['label_path']);
+                $context['label_html'] = ContextLabel::render($context['label_path']);
+            }
+            $context['allowed'] = $this->authz->canCreateConversationInEvent($event, $viewerId);
+            if (!$context['allowed']) {
+                $context['error'] = 'You do not have permission to start a conversation for this event.';
+            }
+
+            return $context;
+        }
+
+        if ($communityId > 0 || $communityParam !== '') {
+            $community = $communityId > 0
+                ? $this->communities->getBySlugOrId((string)$communityId)
+                : $this->communities->getBySlugOrId($communityParam);
+
+            if ($community === null) {
+                $context['error'] = 'Community not found.';
+                return $context;
+            }
+
+            $context['type'] = 'community';
+            $context['community'] = $community;
+            $context['community_id'] = (int)($community['id'] ?? 0);
+            $context['community_slug'] = $community['slug'] ?? null;
+            $communityLabel = (string)($community['name'] ?? $community['title'] ?? 'Community');
+            $communitySlug = $community['slug'] ?? null;
+            $context['label_parts'][] = $communityLabel;
+            $context['label_path'][] = [
+                'label' => $communityLabel,
+                'url' => $communitySlug ? '/communities/' . $communitySlug : null,
+            ];
+            if ($context['label_path'] !== []) {
+                $context['label'] = ContextLabel::renderPlain($context['label_path']);
+                $context['label_html'] = ContextLabel::render($context['label_path']);
+            }
+            $context['privacy'] = (string)($community['privacy'] ?? 'public');
+            $context['allowed'] = $this->authz->canCreateConversationInCommunity((int)$community['id'], $viewerId);
+            if (!$context['allowed']) {
+                $context['error'] = 'You do not have permission to start a conversation in this community.';
+            }
+
+            return $context;
+        }
+
+        $context['error'] = 'Choose a community or event before starting a conversation.';
+        return $context;
+    }
+
+    /**
+     * @param array<string,mixed> $conversation
+     * @return array<int,array{label:string,url:?string}>
+     */
+    private function buildConversationContextPath(array $conversation): array
+    {
+        return ContextBuilder::conversation($conversation, $this->communities, $this->events);
     }
 
     private function request(): \App\Http\Request

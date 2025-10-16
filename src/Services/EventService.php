@@ -58,9 +58,11 @@ final class EventService
      */
     public function listRecentForAdmin(int $limit = 5): array
     {
-        $sql = "SELECT e.id, e.title, e.event_date, u.display_name AS host
+        $sql = "SELECT e.id, e.title, e.event_date, u.display_name AS host,
+                       e.community_id, com.name AS community_name, com.slug AS community_slug
                 FROM events e
                 LEFT JOIN users u ON u.id = e.author_id
+                LEFT JOIN communities com ON e.community_id = com.id
                 ORDER BY e.event_date DESC
                 LIMIT :lim";
         $stmt = $this->db->pdo()->prepare($sql);
@@ -80,9 +82,11 @@ final class EventService
 
         $email = $viewerEmail !== null ? trim($viewerEmail) : $this->lookupUserEmail($viewerId);
 
-        $sql = "SELECT DISTINCT e.id, e.title, e.event_date, e.slug, e.description
+        $sql = "SELECT DISTINCT e.id, e.title, e.event_date, e.slug, e.description,
+                       e.community_id, com.name AS community_name, com.slug AS community_slug
                 FROM events e
                 LEFT JOIN guests g ON g.event_id = e.id
+                LEFT JOIN communities com ON e.community_id = com.id
                 WHERE e.event_status = 'active'
                   AND e.status = 'active'
                   AND (
@@ -119,17 +123,21 @@ final class EventService
 
         if (ctype_digit($slugOrId)) {
             $stmt = $pdo->prepare(
-                "SELECT id, title, event_date, slug, description, author_id, event_status, privacy, guest_limit
-                 FROM events
-                 WHERE id = :id
+                "SELECT e.id, e.title, e.event_date, e.slug, e.description, e.author_id, e.event_status, e.privacy, e.guest_limit, e.community_id,
+                        com.name AS community_name, com.slug AS community_slug
+                 FROM events e
+                 LEFT JOIN communities com ON e.community_id = com.id
+                 WHERE e.id = :id
                  LIMIT 1"
             );
             $stmt->execute([':id' => (int)$slugOrId]);
         } else {
             $stmt = $pdo->prepare(
-                "SELECT id, title, event_date, slug, description, author_id, event_status, privacy, guest_limit
-                 FROM events
-                 WHERE slug = :slug
+                "SELECT e.id, e.title, e.event_date, e.slug, e.description, e.author_id, e.event_status, e.privacy, e.guest_limit, e.community_id,
+                        com.name AS community_name, com.slug AS community_slug
+                 FROM events e
+                 LEFT JOIN communities com ON e.community_id = com.id
+                 WHERE e.slug = :slug
                  LIMIT 1"
             );
             $stmt->execute([':slug' => $slugOrId]);
@@ -153,6 +161,11 @@ final class EventService
         $slug = $this->ensureUniqueSlug($pdo, $this->slugify($title));
 
         $createdAt = date('Y-m-d H:i:s');
+        $authorId = (int)($data['author_id'] ?? 0);
+        $createdBy = (int)($data['created_by'] ?? $authorId);
+        $communityId = (int)($data['community_id'] ?? 0);
+        $privacy = (string)($data['privacy'] ?? 'public');
+        $visibility = (string)($data['visibility'] ?? 'public');
 
         $stmt = $pdo->prepare(
             "INSERT INTO events (
@@ -168,7 +181,8 @@ final class EventService
                 event_status,
                 status,
                 visibility,
-                privacy
+                privacy,
+                community_id
             ) VALUES (
                 :title,
                 :slug,
@@ -182,7 +196,8 @@ final class EventService
                 :event_status,
                 :status,
                 :visibility,
-                :privacy
+                :privacy,
+                :community_id
             )"
         );
 
@@ -193,13 +208,14 @@ final class EventService
             ':event_date' => $data['event_date'],
             ':created_at' => $createdAt,
             ':updated_at' => $createdAt,
-            ':created_by' => 1,
-            ':author_id' => 1,
+            ':created_by' => $createdBy,
+            ':author_id' => $authorId,
             ':post_id' => 0,
             ':event_status' => 'active',
             ':status' => 'active',
-            ':visibility' => 'public',
-            ':privacy' => 'public',
+            ':visibility' => $visibility,
+            ':privacy' => $privacy,
+            ':community_id' => $communityId > 0 ? $communityId : null,
         ]);
 
         $eventId = (int)$pdo->lastInsertId();
@@ -210,8 +226,9 @@ final class EventService
                 $title,
                 (string)($data['description'] ?? ''),
                 $slug,
-                (int)($data['author_id'] ?? 0),
-                (string)($data['privacy'] ?? 'public'),
+                $authorId,
+                $communityId,
+                $privacy,
                 $data['event_date'] ?? null
             );
         }
@@ -263,6 +280,7 @@ final class EventService
                 (string)($data['description'] ?? ''),
                 $slug,
                 (int)($event['author_id'] ?? 0),
+                $event['community_id'] !== null ? (int)$event['community_id'] : null,
                 (string)($event['privacy'] ?? 'public'),
                 $data['event_date'] ?? ($event['event_date'] ?? null)
             );

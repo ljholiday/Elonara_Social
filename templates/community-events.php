@@ -18,8 +18,18 @@ $events = $events ?? [];
   <?php if (!$community): ?>
     <p class="app-text-muted">Community not found.</p>
   <?php else: ?>
-    <h1 class="app-heading">Events</h1>
-    <p class="app-text-muted">Events in <?= e($community['title']) ?></p>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+      <div>
+        <h1 class="app-heading">Events</h1>
+        <p class="app-text-muted">Events in <?= e($community['title']) ?></p>
+      </div>
+      <?php if (!empty($canCreateEvent) && $canCreateEvent): ?>
+        <a href="/events/create?community=<?= urlencode((string)($community['slug'] ?? $community['id'] ?? '')) ?>"
+           class="app-btn app-btn-secondary">
+          Create Event
+        </a>
+      <?php endif; ?>
+    </div>
 
     <?php if (empty($events)): ?>
       <div class="app-card app-mt-4">
@@ -31,7 +41,7 @@ $events = $events ?? [];
           <article class="app-card">
             <h3 class="app-heading-sm">
               <a href="/events/<?= e($ev->slug) ?>" class="app-link">
-                <?= e($ev->title) ?>
+                <?= e($ev->context_label ?? $ev->title ?? '') ?>
               </a>
             </h3>
             <?php if (!empty($ev->description)): ?>

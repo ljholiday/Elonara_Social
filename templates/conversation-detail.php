@@ -3,7 +3,10 @@
     <h1 class="app-heading">Conversation not found</h1>
     <p class="app-text-muted">We couldn’t find that conversation.</p>
   <?php else: $c = (object)$conversation; ?>
-    <h1 class="app-heading"><?= e($c->title ?? '') ?></h1>
+    <?php $contextLabelHtml = $context_label_html ?? ''; ?>
+    <h1 class="app-heading">
+      <?= $contextLabelHtml !== '' ? $contextLabelHtml : e($c->title ?? '') ?>
+    </h1>
     <div class="app-sub app-flex app-gap">
       <?php
       if (!empty($c->author_username) || !empty($c->author_display_name)) {
