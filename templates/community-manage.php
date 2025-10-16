@@ -4,7 +4,7 @@ $community = $community ?? null;
 $tab = $tab ?? 'members';
 $members = $members ?? [];
 $viewer_role = $viewer_role ?? null;
-$viewer_id = $viewer_id ?? 0;
+$viewer_id = (int)($viewer_id ?? 0);
 $can_manage_members = $can_manage_members ?? false;
 $statusCode = $status ?? 200;
 
@@ -132,7 +132,7 @@ $statusCode = $status ?? 200;
           $blueskyService = function_exists('app_service') ? app_service('bluesky.service') : null;
           $authService = function_exists('app_service') ? app_service('auth.service') : null;
           $currentUser = $authService ? $authService->getCurrentUser() : null;
-          $isConnected = $blueskyService && $currentUser && $blueskyService->isConnected($currentUser->id);
+          $isConnected = $blueskyService && $currentUser && $blueskyService->isConnected((int)$currentUser->id);
           ?>
           <?php if (!$isConnected): ?>
             <a href="/profile/edit" class="app-text-primary">Connect your Bluesky account</a> to get started.

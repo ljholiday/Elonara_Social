@@ -16,7 +16,7 @@ $entity_id = $entity_id ?? 0;
 $blueskyService = function_exists('app_service') ? app_service('bluesky.service') : null;
 $authService = function_exists('app_service') ? app_service('auth.service') : null;
 $currentUser = $authService ? $authService->getCurrentUser() : null;
-$isConnected = $blueskyService && $currentUser && $blueskyService->isConnected($currentUser->id);
+$isConnected = $blueskyService && $currentUser && $blueskyService->isConnected((int)$currentUser->id);
 
 if (!$isConnected) {
     return;

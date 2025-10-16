@@ -73,6 +73,9 @@ final class AuthService
             return null;
         }
 
+        // Cast id to int to prevent type mismatches in strict comparisons
+        $row['id'] = (int)$row['id'];
+
         $_SESSION['user_email'] = $row['email'];
         $this->cachedUser = $row;
 
@@ -138,9 +141,12 @@ final class AuthService
             ];
         }
 
-        $this->establishSession((int)$user['id'], (string)$user['email']);
+        // Cast id to int to prevent type mismatches in strict comparisons
+        $user['id'] = (int)$user['id'];
+
+        $this->establishSession($user['id'], (string)$user['email']);
         $this->cachedUser = $user;
-        $this->updateLastLogin((int)$user['id']);
+        $this->updateLastLogin($user['id']);
 
         return [
             'success' => true,
@@ -315,6 +321,9 @@ final class AuthService
         if ($row === false || ($row['status'] ?? '') !== 'active') {
             return null;
         }
+
+        // Cast id to int to prevent type mismatches in strict comparisons
+        $row['id'] = (int)$row['id'];
 
         return (object)$row;
     }

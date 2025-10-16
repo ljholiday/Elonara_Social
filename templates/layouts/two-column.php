@@ -27,8 +27,8 @@ $fullTitle = $page_title === $appName ? $appName : $page_title . ' - ' . $appNam
 $security = app_service('security.service');
 $authService = app_service('auth.service');
 $currentUser = $authService->getCurrentUser();
-$userId = $currentUser->id ?? 0;
-$csrf_token = $security->createNonce('app_nonce', (int) $userId);
+$userId = (int)($currentUser->id ?? 0);
+$csrf_token = $security->createNonce('app_nonce', $userId);
 ?><!DOCTYPE html>
 <html lang="en">
 <head>

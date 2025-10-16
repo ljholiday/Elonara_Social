@@ -142,7 +142,7 @@ $tab = in_array($tab, ['settings', 'guests', 'invites'], true) ? $tab : 'setting
           $blueskyService = function_exists('app_service') ? app_service('bluesky.service') : null;
           $authService = function_exists('app_service') ? app_service('auth.service') : null;
           $currentUser = $authService ? $authService->getCurrentUser() : null;
-          $isConnected = $blueskyService && $currentUser && $blueskyService->isConnected($currentUser->id);
+          $isConnected = $blueskyService && $currentUser && $blueskyService->isConnected((int)$currentUser->id);
           ?>
           <?php if (!$isConnected): ?>
             <a href="/profile/edit" class="app-text-primary">Connect your Bluesky account</a> to get started.

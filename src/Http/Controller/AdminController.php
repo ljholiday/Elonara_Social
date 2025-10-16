@@ -117,9 +117,9 @@ final class AdminController
         $request = $this->request();
         $nonce = (string)$request->input('_admin_nonce', '');
         $currentUser = $this->auth->getCurrentUser();
-        $currentUserId = $currentUser?->id ?? 0;
+        $currentUserId = (int)($currentUser?->id ?? 0);
 
-        if (!$this->security()->verifyNonce($nonce, 'app_admin', (int)$currentUserId)) {
+        if (!$this->security()->verifyNonce($nonce, 'app_admin', $currentUserId)) {
             return $this->redirectWithFlash('error', 'Security check failed. Please refresh and try again.', '/admin');
         }
 
@@ -160,9 +160,9 @@ final class AdminController
         $nonce = (string)$request->input('_admin_nonce', '');
 
         $currentUser = $this->auth->getCurrentUser();
-        $currentUserId = $currentUser?->id ?? 0;
+        $currentUserId = (int)($currentUser?->id ?? 0);
 
-        if (!$this->security()->verifyNonce($nonce, 'app_admin', (int)$currentUserId)) {
+        if (!$this->security()->verifyNonce($nonce, 'app_admin', $currentUserId)) {
             return $this->redirectWithFlash('error', 'Security check failed. Please refresh and try again.');
         }
 
