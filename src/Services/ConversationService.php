@@ -461,7 +461,7 @@ final class ConversationService
              FROM conversation_replies r
              LEFT JOIN users u ON r.author_id = u.id
              WHERE r.conversation_id = :cid
-             ORDER BY r.created_at ASC'
+             ORDER BY r.created_at DESC'
         );
         $stmt->execute([':cid' => $conversationId]);
 
@@ -544,6 +544,22 @@ final class ConversationService
             ':updated_at' => $now,
         ]);
 
+        $replyId = (int)$pdo->lastInsertId();
+
+        // Update conversation reply count and last reply date
+        $updateStmt = $pdo->prepare(
+            'UPDATE conversations
+             SET reply_count = reply_count + 1,
+                 last_reply_date = :last_reply_date,
+                 updated_at = :updated_at
+             WHERE id = :conversation_id'
+        );
+        $updateStmt->execute([
+            ':last_reply_date' => $now,
+            ':updated_at' => $now,
+            ':conversation_id' => (int)$conversation['id'],
+        ]);
+
         // Auto-membership: "Speaking is joining"
         $communityId = isset($conversation['community_id']) ? (int)$conversation['community_id'] : 0;
         if ($communityId > 0 && $authorId > 0 && $authorEmail !== '') {
@@ -562,7 +578,7 @@ final class ConversationService
             }
         }
 
-        return (int)$pdo->lastInsertId();
+        return $replyId;
     }
 
     /**
