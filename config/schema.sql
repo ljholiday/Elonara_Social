@@ -443,37 +443,6 @@ CREATE TABLE `member_identities` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `post_images` (
-  `id` mediumint NOT NULL AUTO_INCREMENT,
-  `event_id` mediumint NOT NULL,
-  `user_id` bigint unsigned NOT NULL,
-  `filename` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
-  `original_filename` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL DEFAULT '',
-  `file_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
-  `file_path` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
-  `file_size` bigint DEFAULT '0',
-  `mime_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT '',
-  `width` int DEFAULT '0',
-  `height` int DEFAULT '0',
-  `caption` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci,
-  `alt_text` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT '',
-  `sort_order` int DEFAULT '0',
-  `is_featured` tinyint(1) DEFAULT '0',
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-  `image_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
-  `thumbnail_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT '',
-  `display_order` int DEFAULT '0',
-  PRIMARY KEY (`id`),
-  KEY `event_id` (`event_id`),
-  KEY `user_id` (`user_id`),
-  KEY `sort_order` (`sort_order`),
-  KEY `is_featured` (`is_featured`),
-  KEY `created_at` (`created_at`),
-  KEY `display_order` (`display_order`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `search` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `entity_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,

@@ -107,7 +107,15 @@
               <div class="app-card-body">
                 <?php if (!empty($r->image_url)): ?>
                   <div class="app-reply-image app-mb-3">
-                    <img src="<?= e($r->image_url) ?>" alt="<?= e($r->image_alt ?? '') ?>" class="app-img" loading="lazy">
+                    <?php
+                      $url_data = $r->image_url;
+                      $alt = $r->image_alt ?? '';
+                      $default_size = 'original';
+                      $class = 'app-img';
+                      $lazy = true;
+                      $use_picture = true;
+                      include __DIR__ . '/partials/responsive-image.php';
+                    ?>
                   </div>
                 <?php endif; ?>
                 <div class="app-card-desc"><?= $content ?></div>

@@ -48,6 +48,9 @@ use PHPMailer\PHPMailer\PHPMailer;
 
 require __DIR__ . '/../vendor/autoload.php';
 
+// Load image helper functions
+require __DIR__ . '/../includes/image-helpers.php';
+
 // Load environment variables from .env if present (local development convenience).
 Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
 

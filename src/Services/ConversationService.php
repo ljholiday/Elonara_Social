@@ -519,7 +519,7 @@ final class ConversationService
                 throw new \RuntimeException($uploadResult['error'] ?? 'Failed to upload image.');
             }
 
-            $imageUrl = $uploadResult['url'];
+            $imageUrl = $uploadResult['urls'];
         }
 
         $pdo = $this->db->pdo();

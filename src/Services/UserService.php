@@ -98,6 +98,11 @@ final class UserService
             }
 
             try {
+                // Delete old avatar variants if exists
+                if (!empty($user['avatar_url'])) {
+                    $this->imageService->deleteAllSizes($user['avatar_url']);
+                }
+
                 $uploadResult = $this->imageService->upload(
                     $data['avatar'],
                     $avatarAlt,
@@ -113,7 +118,7 @@ final class UserService
                 }
 
                 $updates[] = 'avatar_url = :avatar_url';
-                $params[':avatar_url'] = $uploadResult['url'];
+                $params[':avatar_url'] = $uploadResult['urls'];
             } catch (\Throwable $e) {
                 file_put_contents(dirname(__DIR__, 2) . '/debug.log', date('[Y-m-d H:i:s] ') . "Avatar upload exception: " . $e->getMessage() . "\n", FILE_APPEND);
                 throw new \RuntimeException('Failed to upload avatar: ' . $e->getMessage());
@@ -128,6 +133,11 @@ final class UserService
             }
 
             try {
+                // Delete old cover variants if exists
+                if (!empty($user['cover_url'])) {
+                    $this->imageService->deleteAllSizes($user['cover_url']);
+                }
+
                 $uploadResult = $this->imageService->upload(
                     $data['cover'],
                     $coverAlt,
@@ -143,7 +153,7 @@ final class UserService
                 }
 
                 $updates[] = 'cover_url = :cover_url';
-                $params[':cover_url'] = $uploadResult['url'];
+                $params[':cover_url'] = $uploadResult['urls'];
                 $updates[] = 'cover_alt = :cover_alt';
                 $params[':cover_alt'] = $coverAlt;
             } catch (\Throwable $e) {
