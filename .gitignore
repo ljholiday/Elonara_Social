@@ -31,6 +31,8 @@ tmp/
 *.bak
 *.swp
 error_log
+debug.log
+error.log
 
 # -------------------------------------------------
 # Composer, Node, and dependency directories
