@@ -20,6 +20,8 @@ assets/css/dev.css
 # Uploads, cache, and runtime data
 # -------------------------------------------------
 uploads/
+public/uploads/*
+!public/uploads/.htaccess
 storage/
 cache/
 tmp/
