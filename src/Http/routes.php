@@ -1180,27 +1180,34 @@ return static function (Router $router): void {
     });
 
     $router->post('/conversations/{slug}/reply', static function (Request $request, string $slug) {
-        $result = app_service('controller.conversations')->reply($slug);
-        if (isset($result['redirect'])) {
-            header('Location: ' . $result['redirect']);
+        try {
+            $result = app_service('controller.conversations')->reply($slug);
+            if (isset($result['redirect'])) {
+                header('Location: ' . $result['redirect']);
+                exit;
+            }
+            $conversationTitle = $result['conversation']['title'] ?? 'Conversation';
+
+            ob_start();
+            $viewer = app_service('auth.service')->getCurrentUser();
+            include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
+            $sidebar = ob_get_clean();
+
+            $navService = app_service('navigation.service');
+            $tabs = $navService->buildConversationTabs($result['conversation'], $viewer, '/conversations/' . $slug);
+
+            app_render('conversation-detail.php', array_merge($result, [
+                'page_title' => $conversationTitle,
+                'nav_items' => $tabs,
+                'sidebar_content' => $sidebar,
+            ]), 'two-column');
+            return null;
+        } catch (\Throwable $e) {
+            file_put_contents(__DIR__ . '/../../debug.log', date('[Y-m-d H:i:s] ') . "Reply route error: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
+            http_response_code(500);
+            echo "Error posting reply. Check debug.log for details.";
             exit;
         }
-        $conversationTitle = $result['conversation']['title'] ?? 'Conversation';
-
-        ob_start();
-        $viewer = app_service('auth.service')->getCurrentUser();
-        include dirname(__DIR__, 2) . '/templates/partials/sidebar-secondary-nav.php';
-        $sidebar = ob_get_clean();
-
-        $navService = app_service('navigation.service');
-        $tabs = $navService->buildConversationTabs($result['conversation'], $viewer, '/conversations/' . $slug);
-
-        app_render('conversation-detail.php', array_merge($result, [
-            'page_title' => $conversationTitle,
-            'nav_items' => $tabs,
-            'sidebar_content' => $sidebar,
-        ]), 'two-column');
-        return null;
     });
 
     $router->get('/conversations/{slug}', static function (Request $request, string $slug) {
