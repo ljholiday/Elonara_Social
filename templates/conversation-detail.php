@@ -83,7 +83,7 @@
                 <?php
                 // Check if current user can edit/delete this reply
                 $currentUser = function_exists('app_service') ? app_service('auth.service')->getCurrentUser() : null;
-                $currentUserId = (int)($currentUser->id ?? 0);
+                $currentUserId = (int)($currentUser?->id ?? 0);
                 $replyAuthorId = (int)($r->author_id ?? 0);
                 $canEdit = $currentUserId > 0 && $currentUserId === $replyAuthorId;
                 ?>
