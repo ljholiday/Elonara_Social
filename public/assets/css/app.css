@@ -2339,6 +2339,23 @@ body.app-modal-open {
   color: var(--app-text);
 }
 
+/* Reply image container */
+.app-reply-image {
+  width: 100%;
+  margin: 0 0 1rem 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 0.0625rem solid var(--app-border);
+}
+
+/* General responsive image utility */
+.app-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
 /* ========================================
    Embed Cards & Video Embeds
    ======================================== */
