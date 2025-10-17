@@ -73,6 +73,7 @@ $reply_input = $reply_input ?? [];
   const openBtn = document.querySelector('[data-open-reply-modal]');
   const closeBtns = modal.querySelectorAll('[data-dismiss-modal]');
   const overlay = modal.querySelector('.app-modal-overlay');
+  const form = modal.querySelector('form');
 
   // Open modal
   if (openBtn) {
@@ -86,6 +87,10 @@ $reply_input = $reply_input ?? [];
   function closeModal() {
     modal.style.display = 'none';
     document.body.classList.remove('app-modal-open');
+    // Clear the form when closing
+    if (form) {
+      form.reset();
+    }
   }
 
   // Close button handlers

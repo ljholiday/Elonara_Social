@@ -1,1 +1,7 @@
-[2025-10-16 19:42:03] Email template not found: nonexistent_template
+[2025-10-17 05:33:35] ImageService::upload called with imageType=post, entityType=conversation, entityId=4
+[2025-10-17 05:33:35] Alt-text validated
+[2025-10-17 05:33:35] File validated
+[2025-10-17 05:33:35] Upload dir: /Users/lonnholiday/Repositories/social.elonara/public/uploads/conversations/4
+[2025-10-17 05:33:35] Directory ensured
+[2025-10-17 05:33:35] Filename: conversation_4_post_1760679215_cccdb3e5.jpg, Path: /Users/lonnholiday/Repositories/social.elonara/public/uploads/conversations/4/conversation_4_post_1760679215_cccdb3e5.jpg
+[2025-10-17 05:33:35] Upload successful: /uploads/conversations/4/conversation_4_post_1760679215_cccdb3e5.jpg
