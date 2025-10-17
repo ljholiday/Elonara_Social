@@ -2623,3 +2623,78 @@ body.app-modal-open {
 .app-modal-lg .app-modal-content {
   max-width: 800px;
 }
+
+/* =============================================================================
+   Responsive Images
+   ============================================================================= */
+
+/* Ensure images are responsive by default */
+.app-img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Profile cover image responsive */
+.app-profile-cover {
+    position: relative;
+    width: 100%;
+    height: 240px;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+}
+
+.app-profile-cover-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Reply images responsive */
+.app-reply-image {
+    width: 100%;
+    max-width: 800px;
+}
+
+.app-reply-image img {
+    width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+}
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+    .app-profile-cover {
+        height: 160px;
+    }
+
+    .app-reply-image {
+        max-width: 100%;
+    }
+
+    /* Smaller avatar sizes on mobile */
+    .app-avatar-lg {
+        width: 80px;
+        height: 80px;
+    }
+
+    .app-profile-avatar {
+        width: 96px;
+        height: 96px;
+    }
+}
+
+/* Tablet adjustments */
+@media (min-width: 641px) and (max-width: 1024px) {
+    .app-profile-cover {
+        height: 200px;
+    }
+}
+
+/* Image preview in forms */
+#avatar-preview,
+#cover-preview {
+    transition: opacity 0.3s ease;
+}
+

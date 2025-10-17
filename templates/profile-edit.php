@@ -67,18 +67,32 @@ $input = $input ?? [];
 
       <div class="app-field">
         <label class="app-label" for="avatar">Avatar</label>
-        <?php if (!empty($u->avatar_url)): ?>
-          <div class="app-mb-3">
-            <img src="<?= e($u->avatar_url) ?>" alt="Current avatar" class="app-avatar app-avatar-lg">
-            <div class="app-text-muted app-mt-1">Current avatar</div>
-          </div>
-        <?php endif; ?>
+        <div class="app-mb-3" id="avatar-preview-container">
+          <?php if (!empty($u->avatar_url)): ?>
+            <?php
+              $avatarUrl = getImageUrl($u->avatar_url, 'medium', 'original');
+              if ($avatarUrl):
+            ?>
+              <img src="<?= e($avatarUrl) ?>" alt="Current avatar" class="app-avatar app-avatar-lg" id="avatar-preview">
+              <div class="app-text-muted app-mt-1">Current avatar</div>
+            <?php else: ?>
+              <div class="app-avatar app-avatar-lg app-avatar-placeholder" id="avatar-preview">
+                <?= strtoupper(substr($u->display_name ?? $u->username ?? 'U', 0, 1)) ?>
+              </div>
+            <?php endif; ?>
+          <?php else: ?>
+            <div class="app-avatar app-avatar-lg app-avatar-placeholder" id="avatar-preview" style="display: none;">
+              <?= strtoupper(substr($u->display_name ?? $u->username ?? 'U', 0, 1)) ?>
+            </div>
+          <?php endif; ?>
+        </div>
         <input
           type="file"
           class="app-input<?= isset($errors['avatar']) ? ' is-invalid' : '' ?>"
           id="avatar"
           name="avatar"
           accept="image/jpeg,image/png,image/gif,image/webp"
+          data-preview="avatar-preview"
         >
         <small class="app-help-text">Upload a new avatar. Maximum 10MB. JPEG, PNG, GIF, or WebP format.</small>
         <?php if (isset($errors['avatar'])): ?>
@@ -104,18 +118,26 @@ $input = $input ?? [];
 
       <div class="app-field">
         <label class="app-label" for="cover">Cover Image</label>
-        <?php if (!empty($u->cover_url)): ?>
-          <div class="app-mb-3">
-            <img src="<?= e($u->cover_url) ?>" alt="<?= e($u->cover_alt ?? 'Current cover') ?>" class="app-img" style="max-width: 400px;">
-            <div class="app-text-muted app-mt-1">Current cover image</div>
-          </div>
-        <?php endif; ?>
+        <div class="app-mb-3" id="cover-preview-container">
+          <?php if (!empty($u->cover_url)): ?>
+            <?php
+              $coverUrl = getImageUrl($u->cover_url, 'tablet', 'original');
+              if ($coverUrl):
+            ?>
+              <img src="<?= e($coverUrl) ?>" alt="<?= e($u->cover_alt ?? 'Current cover') ?>" class="app-img" style="max-width: 400px;" id="cover-preview">
+              <div class="app-text-muted app-mt-1">Current cover image</div>
+            <?php endif; ?>
+          <?php else: ?>
+            <img src="" alt="Cover preview" class="app-img" style="max-width: 400px; display: none;" id="cover-preview">
+          <?php endif; ?>
+        </div>
         <input
           type="file"
           class="app-input<?= isset($errors['cover']) ? ' is-invalid' : '' ?>"
           id="cover"
           name="cover"
           accept="image/jpeg,image/png,image/gif,image/webp"
+          data-preview="cover-preview"
         >
         <small class="app-help-text">Upload a cover image. Maximum 10MB. JPEG, PNG, GIF, or WebP format. Recommended size: 1200x400px.</small>
         <?php if (isset($errors['cover'])): ?>

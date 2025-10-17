@@ -36,14 +36,30 @@ $activity = $recent_activity ?? [];
     <!-- Profile Header with Cover -->
     <div class="app-profile-card app-mb-6">
       <?php if (!empty($u->cover_url)): ?>
-        <div class="app-profile-cover" style="background-image: url('<?= e($u->cover_url) ?>');" role="img" aria-label="<?= e($u->cover_alt ?? 'Cover image') ?>"></div>
+        <div class="app-profile-cover" role="img" aria-label="<?= e($u->cover_alt ?? 'Cover image') ?>">
+          <?php
+            $coverUrl = getImageUrl($u->cover_url, 'original', 'original');
+            if ($coverUrl):
+          ?>
+            <img src="<?= e($coverUrl) ?>" alt="<?= e($u->cover_alt ?? 'Cover image') ?>" class="app-profile-cover-img" loading="eager">
+          <?php endif; ?>
+        </div>
       <?php else: ?>
         <div class="app-profile-cover" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
       <?php endif; ?>
 
       <div class="app-avatar-row">
         <?php if (!empty($u->avatar_url)): ?>
-          <img src="<?= e($u->avatar_url) ?>" alt="<?= e($u->display_name ?? $u->username) ?>" class="app-profile-avatar">
+          <?php
+            $avatarUrl = getImageUrl($u->avatar_url, 'original', 'original');
+            if ($avatarUrl):
+          ?>
+            <img src="<?= e($avatarUrl) ?>" alt="<?= e($u->display_name ?? $u->username) ?>" class="app-profile-avatar" loading="eager">
+          <?php else: ?>
+            <div class="app-profile-avatar app-avatar-placeholder">
+              <?= strtoupper(substr($u->display_name ?? $u->username ?? 'U', 0, 1)) ?>
+            </div>
+          <?php endif; ?>
         <?php else: ?>
           <div class="app-profile-avatar app-avatar-placeholder">
             <?= strtoupper(substr($u->display_name ?? $u->username ?? 'U', 0, 1)) ?>
