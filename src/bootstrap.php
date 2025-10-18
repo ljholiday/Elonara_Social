@@ -5,6 +5,10 @@ declare(strict_types=1);
 ini_set('session.gc_maxlifetime', 86400);   // 24 hours
 ini_set('session.cookie_lifetime', 86400);  // 24 hours
 
+// Extend session duration to 24 hours
+ini_set('session.gc_maxlifetime', 86400);  // 24 hours in seconds
+ini_set('session.cookie_lifetime', 86400);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
