@@ -318,12 +318,16 @@ final class ImageService
 
     private function getRelativePath(string $entityType, int $entityId): string
     {
+        // Use hash prefix for better filesystem performance at scale
+        // Hash = last 2 digits of entity_id, zero-padded
+        $hashPrefix = str_pad((string)($entityId % 100), 2, '0', STR_PAD_LEFT);
+
         return match ($entityType) {
-            'event' => "events/{$entityId}",
-            'conversation' => "conversations/{$entityId}",
-            'community' => "communities/{$entityId}",
-            'user' => "users/{$entityId}",
-            default => "{$entityType}s/{$entityId}",
+            'event' => "events/{$hashPrefix}/{$entityId}",
+            'conversation' => "conversations/{$hashPrefix}/{$entityId}",
+            'community' => "communities/{$hashPrefix}/{$entityId}",
+            'user' => "users/{$hashPrefix}/{$entityId}",
+            default => "{$entityType}s/{$hashPrefix}/{$entityId}",
         };
     }
 
