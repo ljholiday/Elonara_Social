@@ -277,7 +277,15 @@ final class InvitationService
         // Send email
         $inviterName = $this->auth->getCurrentUser()->display_name ?? 'The host';
         $eventName = $event['title'] ?? 'an event';
-        $this->sendInvitationEmail($email, 'event', $eventName, $token, $inviterName, $sanitizedMessage);
+        $this->sendInvitationEmail(
+            $email,
+            'event',
+            $eventName,
+            $token,
+            $inviterName,
+            $sanitizedMessage,
+            ['event_id' => $eventId]
+        );
 
         // Get updated guest list
         $guestRecords = $this->eventGuests->listGuests($eventId);
@@ -384,7 +392,8 @@ final class InvitationService
             $eventName,
             $newToken,
             $inviterName,
-            (string)($guest['notes'] ?? '')
+            (string)($guest['notes'] ?? ''),
+            ['event_id' => $eventId]
         );
 
         $messageText = $emailSent
@@ -419,10 +428,36 @@ final class InvitationService
         string $entityName,
         string $token,
         string $inviterName,
-        string $message = ''
+        string $message = '',
+        array $options = []
     ): bool {
         $url = $this->buildInvitationUrl($type, $token);
-        $appName = (string)app_config('app_name', 'our community');
+        $appName = (string)app_config('app_name', 'Our Community');
+        $siteUrl = (string)app_config('app.url', '/');
+        $fromName = $options['from_name'] ?? ($inviterName !== '' ? $inviterName : $appName);
+
+        $eventTitle = $entityName;
+        $eventDate = null;
+        $eventTime = null;
+        $venueInfo = null;
+        $eventDescription = '';
+
+        if ($type === 'event') {
+            $eventId = $options['event_id'] ?? null;
+            if (is_int($eventId) && $eventId > 0) {
+                $details = $this->getEventDetailsForEmail($eventId);
+                if ($details !== null) {
+                    $eventTitle = $details['title'] ?? $eventTitle;
+                    $eventDate = $details['event_date'] ?? null;
+                    $eventTime = $details['event_time'] ?? null;
+                    $venueInfo = $details['venue_info'] ?? null;
+                    $eventDescription = $details['description'] ?? '';
+                    if (!empty($details['host_name'])) {
+                        $fromName = (string)$details['host_name'];
+                    }
+                }
+            }
+        }
 
         $subject = $type === 'community'
             ? "You've been invited to join {$entityName} on {$appName}"
@@ -435,6 +470,14 @@ final class InvitationService
             'invitation_url' => $url,
             'personal_message' => $message,
             'subject' => $subject,
+            'site_name' => $appName,
+            'site_url' => $siteUrl,
+            'from_name' => $fromName,
+            'event_title' => $eventTitle,
+            'event_date' => $eventDate,
+            'event_time' => $eventTime,
+            'venue_info' => $venueInfo,
+            'event_description' => $eventDescription,
         ];
 
         return $this->mail->sendTemplate($email, 'invitation', $variables);
@@ -445,15 +488,31 @@ final class InvitationService
      */
     private function buildInvitationUrl(string $type, string $token): string
     {
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        $baseUrl = $protocol . '://' . $host;
-
-        if ($type === 'community') {
-            return "{$baseUrl}/invitation/accept?token={$token}";
-        } else {
-            return "{$baseUrl}/rsvp/{$token}";
+        $baseUrl = rtrim((string)app_config('app.url', ''), '/');
+        if ($baseUrl === '') {
+            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            $baseUrl = $protocol . '://' . $host;
         }
+
+        return $type === 'community'
+            ? "{$baseUrl}/invitation/accept?token={$token}"
+            : "{$baseUrl}/rsvp/{$token}";
+    }
+
+    private function getEventDetailsForEmail(int $eventId): ?array
+    {
+        $stmt = $this->database->pdo()->prepare(
+            'SELECT e.id, e.title, e.event_date, e.event_time, e.venue_info, e.description,
+                    u.display_name AS host_name
+             FROM events e
+             LEFT JOIN users u ON u.id = e.author_id
+             WHERE e.id = :id
+             LIMIT 1'
+        );
+        $stmt->execute([':id' => $eventId]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $row !== false ? $row : null;
     }
 
     /**

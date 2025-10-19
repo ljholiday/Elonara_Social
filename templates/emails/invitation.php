@@ -7,6 +7,13 @@
 
 require_once dirname(__DIR__) . '/_helpers.php';
 
+$event_title = isset($event_title) && $event_title !== '' ? (string)$event_title : 'Your Event';
+$from_name = isset($from_name) && $from_name !== '' ? (string)$from_name : ((isset($inviter_name) && $inviter_name !== '') ? (string)$inviter_name : 'A friend');
+$site_name = isset($site_name) && $site_name !== '' ? (string)$site_name : (string)app_config('app_name', 'Our Community');
+$site_url = isset($site_url) && $site_url !== '' ? (string)$site_url : (string)app_config('app.url', '/');
+$invitation_url = isset($invitation_url) && $invitation_url !== '' ? (string)$invitation_url : '#';
+$personal_message = isset($personal_message) ? (string)$personal_message : '';
+
 // Set subject for email
 $subject = sprintf('You\'re invited: %s', $event_title);
 
@@ -23,14 +30,33 @@ $styles = array(
 );
 
 // Format event date/time
-$event_day = date('l', strtotime($event_date ?? ''));
-$event_date_formatted = date('F j, Y', strtotime($event_date ?? ''));
-$event_time_formatted = date('g:i A', strtotime($event_date ?? ''));
+$eventDateTime = null;
+if (!empty($event_date)) {
+    try {
+        $eventDateTime = new DateTime((string)$event_date);
+    } catch (Exception $e) {
+        $eventDateTime = null;
+    }
+}
+
+$event_day = $eventDateTime ? $eventDateTime->format('l') : '';
+$event_date_formatted = $eventDateTime ? $eventDateTime->format('F j, Y') : '';
+$event_time_formatted = $eventDateTime ? $eventDateTime->format('g:i A') : '';
+
+if (!$eventDateTime && !empty($event_time)) {
+    try {
+        $timeOnly = new DateTime((string)$event_time);
+        $event_time_formatted = $timeOnly->format('g:i A');
+    } catch (Exception $e) {
+        $event_time_formatted = '';
+    }
+}
 
 // Generate RSVP URLs
-$rsvp_yes_url = $invitation_url . '&rsvp=yes';
-$rsvp_maybe_url = $invitation_url . '&rsvp=maybe';
-$rsvp_no_url = $invitation_url . '&rsvp=no';
+$separator = str_contains($invitation_url, '?') ? '&' : '?';
+$rsvp_yes_url = $invitation_url . $separator . 'rsvp=yes';
+$rsvp_maybe_url = $invitation_url . $separator . 'rsvp=maybe';
+$rsvp_no_url = $invitation_url . $separator . 'rsvp=no';
 
 ?>
 <!DOCTYPE html>
@@ -50,20 +76,33 @@ $rsvp_no_url = $invitation_url . '&rsvp=no';
 
 		<!-- Body -->
 		<div style="<?php echo $styles['body']; ?>">
-			<?php if (!empty($custom_message)) : ?>
+			<?php if ($personal_message !== '') : ?>
 				<div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
 					<strong>Personal message from <?php echo htmlspecialchars($from_name); ?>:</strong><br>
-					<em><?php echo htmlspecialchars($custom_message); ?></em>
+					<em><?php echo htmlspecialchars($personal_message); ?></em>
 				</div>
 			<?php endif; ?>
 
 			<!-- Event Details -->
 			<div style="<?php echo $styles['event_card']; ?>">
+				<h2 style="margin: 0 0 10px 0; color: #2d3748; font-size: 20px;">You're Invited!</h2>
 				<h2 style="margin: 0 0 15px 0; color: #2d3748; font-size: 20px;"><?php echo htmlspecialchars($event_title); ?></h2>
 
+				<?php if ($event_date_formatted !== '' || $event_time_formatted !== '') : ?>
 				<div style="margin-bottom: 10px;">
-					<strong>When:</strong> <?php echo $event_day; ?>, <?php echo $event_date_formatted; ?> at <?php echo $event_time_formatted; ?>
+					<strong>When:</strong>
+					<?php if ($event_date_formatted !== '') : ?>
+						<?php echo htmlspecialchars($event_day); ?>, <?php echo htmlspecialchars($event_date_formatted); ?>
+					<?php endif; ?>
+					<?php if ($event_time_formatted !== '') : ?>
+						 at <?php echo htmlspecialchars($event_time_formatted); ?>
+					<?php endif; ?>
 				</div>
+				<?php else : ?>
+				<div style="margin-bottom: 10px;">
+					<strong>When:</strong> Details coming soon
+				</div>
+				<?php endif; ?>
 
 				<?php if (!empty($venue_info)) : ?>
 				<div style="margin-bottom: 10px;">
@@ -93,9 +132,11 @@ $rsvp_no_url = $invitation_url . '&rsvp=no';
 						Can't make it
 					</a>
 				</div>
+				<?php if ($invitation_url !== '#') : ?>
 				<p style="margin-top: 20px; font-size: 14px; color: #718096;">
 					Or <a href="<?php echo htmlspecialchars($invitation_url); ?>" style="color: #667eea;">click here to RSVP with more details</a>
 				</p>
+				<?php endif; ?>
 			</div>
 
 			<!-- About Elonara Social -->
@@ -103,9 +144,11 @@ $rsvp_no_url = $invitation_url . '&rsvp=no';
 				<p style="color: #718096; font-size: 14px; margin: 0;">
 					This invitation was sent through <strong><?php echo htmlspecialchars($site_name); ?></strong> - making event planning simple and social.
 				</p>
+				<?php if ($site_url !== '#') : ?>
 				<p style="margin: 10px 0 0 0;">
 					<a href="<?php echo htmlspecialchars($site_url); ?>" style="color: #667eea; font-size: 12px;">Learn more about <?php echo htmlspecialchars($site_name); ?></a>
 				</p>
+				<?php endif; ?>
 			</div>
 		</div>
 
