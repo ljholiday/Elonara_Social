@@ -432,6 +432,12 @@ return static function (Router $router): void {
         }
 
         $nonce = (string)$request->input('nonce', '');
+        if ($nonce === '') {
+            $body = json_decode((string)file_get_contents('php://input'), true);
+            if (is_array($body)) {
+                $nonce = (string)($body['nonce'] ?? '');
+            }
+        }
         if (!$securityService->verifyNonce($nonce, 'app_nonce', (int)$currentUser->id)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Security verification failed']);
