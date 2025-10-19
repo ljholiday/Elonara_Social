@@ -589,6 +589,12 @@ function updateEventGuestUI(guests) {
 
     const rows = guests.map(renderEventGuestRow).join('');
     tableBody.innerHTML = rows;
+
+    const wrapper = document.getElementById('event-guests-section');
+    const eventId = wrapper ? wrapper.getAttribute('data-event-id') : null;
+    if (eventId) {
+        attachEventGuestActionHandlers(eventId);
+    }
 }
 
 function renderEventGuestRow(guest) {
@@ -597,6 +603,8 @@ function renderEventGuestRow(guest) {
     const statusValue = guest.status || 'pending';
     const status = mapGuestStatus(statusValue);
     const date = formatGuestDate(guest.rsvp_date || guest.created_at);
+    const invitationId = guest.id || '';
+    const rsvpToken = guest.rsvp_token || '';
 
     return `
         <tr>
@@ -604,8 +612,99 @@ function renderEventGuestRow(guest) {
             <td>${email}</td>
             <td><span class="app-badge app-badge-${statusValue}">${status}</span></td>
             <td>${date}</td>
+            <td class="app-flex app-gap-2">
+                <button type="button" class="app-btn app-btn-sm" data-guest-action="copy" data-rsvp-token="${escapeHtml(rsvpToken)}">Copy Link</button>
+                ${['pending', 'maybe'].includes(statusValue) ? `<button type="button" class="app-btn app-btn-sm app-btn-secondary" data-guest-action="resend" data-invitation-id="${invitationId}">Resend Email</button>` : ''}
+                ${statusValue === 'pending' ? `<button type="button" class="app-btn app-btn-sm app-btn-danger" data-guest-action="cancel" data-invitation-id="${invitationId}">Remove</button>` : ''}
+            </td>
         </tr>
     `;
+}
+
+function attachEventGuestActionHandlers(eventId) {
+    const tableBody = document.getElementById('event-guests-body');
+    if (!tableBody) {
+        return;
+    }
+
+    tableBody.querySelectorAll('[data-guest-action="copy"]').forEach(button => {
+        button.addEventListener('click', () => {
+            const token = button.getAttribute('data-rsvp-token');
+            if (!token) {
+                return;
+            }
+            const baseUrl = window.location.origin || '';
+            copyInvitationUrl(`${baseUrl}/rsvp/${token}`);
+        });
+    });
+
+    tableBody.querySelectorAll('[data-guest-action="resend"]').forEach(button => {
+        button.addEventListener('click', () => {
+            const invitationId = button.getAttribute('data-invitation-id');
+            if (!invitationId) {
+                return;
+            }
+            resendEventInvitation(eventId, invitationId);
+        });
+    });
+
+    tableBody.querySelectorAll('[data-guest-action="cancel"]').forEach(button => {
+        button.addEventListener('click', () => {
+            const invitationId = button.getAttribute('data-invitation-id');
+            if (!invitationId) {
+                return;
+            }
+            if (confirm('Remove this guest invitation?')) {
+                cancelEventInvitation(eventId, invitationId);
+            }
+        });
+    });
+}
+
+function resendEventInvitation(eventId, invitationId) {
+    const nonce = getCSRFToken();
+    fetch(`/api/events/${eventId}/invitations/${invitationId}/resend`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'nonce=' + encodeURIComponent(nonce)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadEventGuests(eventId);
+        } else {
+            alert(data.message || 'Unable to resend invitation.');
+        }
+    })
+    .catch(error => {
+        console.error('Error resending invitation:', error);
+        alert('An error occurred while resending the invitation.');
+    });
+}
+
+function cancelEventInvitation(eventId, invitationId) {
+    const nonce = getCSRFToken();
+    fetch(`/api/events/${eventId}/invitations/${invitationId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'nonce=' + encodeURIComponent(nonce)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadEventGuests(eventId);
+        } else {
+            alert(data.message || 'Unable to remove invitation.');
+        }
+    })
+    .catch(error => {
+        console.error('Error removing invitation:', error);
+        alert('An error occurred while removing the invitation.');
+    });
 }
 
 /**
