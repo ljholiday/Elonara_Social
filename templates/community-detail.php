@@ -10,7 +10,19 @@ $status = $status ?? (empty($community) ? 404 : 200);
   <?php else:
     $c = (object)$community;
     $privacy = isset($c->privacy) ? strtolower((string)$c->privacy) : 'public';
+    $coverImageData = $community['cover_image'] ?? ($community['featured_image'] ?? null);
+    $coverImageUrl = !empty($coverImageData) ? getImageUrl($coverImageData, 'desktop', 'original') : '';
+    $coverImageAlt = trim((string)($community['cover_image_alt'] ?? $community['featured_image_alt'] ?? ''));
   ?>
+    <?php if ($coverImageUrl !== ''): ?>
+      <figure class="app-mb-4" style="margin:0;border-radius:8px;overflow:hidden;">
+        <img
+          src="<?= e($coverImageUrl) ?>"
+          alt="<?= e($coverImageAlt !== '' ? $coverImageAlt : 'Community cover image') ?>"
+          style="display:block;width:100%;height:auto;"
+        >
+      </figure>
+    <?php endif; ?>
     <header class="app-mb-4">
       <h1 class="app-heading">
         <?= e($c->title ?? '') ?>

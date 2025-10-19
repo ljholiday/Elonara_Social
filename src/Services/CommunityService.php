@@ -61,6 +61,24 @@ final class CommunityService
         return $ints;
     }
 
+    /**
+     * Ensure consumer-facing cover image keys are populated from featured_image columns.
+     *
+     * @param array<string,mixed> $community
+     * @return array<string,mixed>
+     */
+    private function withCoverImageFields(array $community): array
+    {
+        if (array_key_exists('featured_image', $community) && !array_key_exists('cover_image', $community)) {
+            $community['cover_image'] = $community['featured_image'];
+        }
+        if (array_key_exists('featured_image_alt', $community) && !array_key_exists('cover_image_alt', $community)) {
+            $community['cover_image_alt'] = $community['featured_image_alt'];
+        }
+
+        return $community;
+    }
+
     public function listRecent(int $limit = 20): array
     {
         $sql = "SELECT
@@ -180,7 +198,8 @@ final class CommunityService
 
         if (ctype_digit($slugOrId)) {
             $stmt = $pdo->prepare(
-                "SELECT id, name AS title, slug, description, created_at, privacy, member_count, event_count, creator_id
+                "SELECT id, name AS title, slug, description, created_at, privacy, member_count, event_count, creator_id,
+                        featured_image, featured_image_alt
                  FROM communities
                  WHERE id = :id
                  LIMIT 1"
@@ -188,7 +207,8 @@ final class CommunityService
             $stmt->execute([':id' => (int)$slugOrId]);
         } else {
             $stmt = $pdo->prepare(
-                "SELECT id, name AS title, slug, description, created_at, privacy, member_count, event_count, creator_id
+                "SELECT id, name AS title, slug, description, created_at, privacy, member_count, event_count, creator_id,
+                        featured_image, featured_image_alt
                  FROM communities
                  WHERE slug = :slug
                  LIMIT 1"
@@ -197,7 +217,7 @@ final class CommunityService
         }
 
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row !== false ? $row : null;
+        return $row !== false ? $this->withCoverImageFields($row) : null;
     }
 
     /**
@@ -348,23 +368,32 @@ final class CommunityService
         $pdo = $this->db->pdo();
         $updatedAt = date('Y-m-d H:i:s');
 
-        $stmt = $pdo->prepare(
-            "UPDATE communities
-             SET name = :name,
-                 description = :description,
-                 privacy = :privacy,
-                 updated_at = :updated_at
-             WHERE slug = :slug
-             LIMIT 1"
-        );
+        $setFields = [
+            'name = :name',
+            'description = :description',
+            'privacy = :privacy',
+            'updated_at = :updated_at',
+        ];
 
-        $stmt->execute([
+        $params = [
             ':name' => $name,
             ':description' => $data['description'],
             ':privacy' => $privacy,
             ':updated_at' => $updatedAt,
             ':slug' => $slug,
-        ]);
+        ];
+
+        // Only update featured image if provided
+        if (isset($data['cover_image'])) {
+            $setFields[] = 'featured_image = :featured_image';
+            $setFields[] = 'featured_image_alt = :featured_image_alt';
+            $params[':featured_image'] = $data['cover_image'];
+            $params[':featured_image_alt'] = $data['cover_image_alt'] ?? null;
+        }
+
+        $sql = "UPDATE communities SET " . implode(', ', $setFields) . " WHERE slug = :slug LIMIT 1";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
 
         if ($this->search !== null) {
             $this->search->indexCommunity(

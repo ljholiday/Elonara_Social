@@ -12,6 +12,7 @@ use App\Services\ValidatorService;
 use App\Services\CommunityMemberService;
 use App\Services\EventService;
 use App\Services\ConversationService;
+use App\Services\ImageService;
 use App\Support\ContextBuilder;
 use App\Support\ContextLabel;
 
@@ -27,7 +28,8 @@ final class CommunityController
         private ValidatorService $validator,
         private CommunityMemberService $members,
         private EventService $events,
-        private ConversationService $conversations
+        private ConversationService $conversations,
+        private ImageService $images
     ) {
     }
 
@@ -114,6 +116,7 @@ final class CommunityController
                 'name' => '',
                 'description' => '',
                 'privacy' => 'public',
+                'cover_image_alt' => '',
             ],
         ];
     }
@@ -157,6 +160,23 @@ final class CommunityController
             'creator_display_name' => $viewerName,
         ]);
 
+        // Handle cover image upload if provided
+        if (!empty($_FILES['cover_image']) && !empty($_FILES['cover_image']['tmp_name'])) {
+            $communityId = (int)$community['id'];
+            $imageAlt = trim((string)$this->request()->input('cover_image_alt', ''));
+            $imageValidation = $this->validateImageUpload($_FILES['cover_image'], $imageAlt, $communityId);
+
+            if (empty($imageValidation['error'])) {
+                $this->communities->update($community['slug'], [
+                    'name' => $validated['input']['name'],
+                    'description' => $validated['input']['description'],
+                    'privacy' => $validated['input']['privacy'],
+                    'cover_image' => $imageValidation['urls'],
+                    'cover_image_alt' => $imageAlt,
+                ]);
+            }
+        }
+
         return [
             'redirect' => '/communities/' . $community['slug'],
         ];
@@ -196,6 +216,7 @@ final class CommunityController
                 'name' => $community['title'] ?? '',
                 'description' => $community['description'] ?? '',
                 'privacy' => strtolower((string)($community['privacy'] ?? 'public')),
+                'cover_image_alt' => $community['cover_image_alt'] ?? '',
             ],
         ];
     }
@@ -234,11 +255,31 @@ final class CommunityController
             ];
         }
 
-        $this->communities->update($community['slug'], [
+        $updateData = [
             'name' => $validated['input']['name'],
             'description' => $validated['input']['description'],
             'privacy' => $validated['input']['privacy'],
-        ]);
+        ];
+
+        // Handle cover image upload if provided
+        if (!empty($_FILES['cover_image']) && !empty($_FILES['cover_image']['tmp_name'])) {
+            $communityId = (int)$community['id'];
+            $imageAlt = trim((string)$this->request()->input('cover_image_alt', ''));
+            $imageValidation = $this->validateImageUpload($_FILES['cover_image'], $imageAlt, $communityId);
+
+            if (!empty($imageValidation['error'])) {
+                return [
+                    'community' => $community,
+                    'errors' => ['cover_image' => $imageValidation['error']],
+                    'input' => $validated['input'],
+                ];
+            }
+
+            $updateData['cover_image'] = $imageValidation['urls'];
+            $updateData['cover_image_alt'] = $imageAlt;
+        }
+
+        $this->communities->update($community['slug'], $updateData);
 
         return [
             'redirect' => '/communities/' . $community['slug'],
@@ -511,5 +552,33 @@ final class CommunityController
     {
         $circle = strtolower((string) $circle);
         return in_array($circle, self::VALID_CIRCLES, true) ? $circle : 'all';
+    }
+
+    /**
+     * Validate and upload cover image
+     */
+    private function validateImageUpload(array $file, string $altText, int $communityId): array
+    {
+        if (trim($altText) === '') {
+            return ['error' => 'Image description is required for accessibility.'];
+        }
+
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
+
+        $uploadResult = $this->images->upload(
+            file: $file,
+            uploaderId: $viewerId,
+            altText: $altText,
+            imageType: 'cover',
+            entityType: 'community',
+            entityId: $communityId,
+            context: ['community_id' => $communityId]
+        );
+
+        if (!$uploadResult['success']) {
+            return ['error' => $uploadResult['error'] ?? 'Image upload failed.'];
+        }
+
+        return ['urls' => $uploadResult['urls']];
     }
 }

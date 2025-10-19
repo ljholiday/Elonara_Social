@@ -102,7 +102,7 @@ CREATE TABLE `communities` (
   `event_count` int DEFAULT '0',
   `creator_id` bigint unsigned NOT NULL,
   `creator_email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
-  `featured_image` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT '',
+  `featured_image` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `featured_image_alt` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT '',
   `settings` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci,
   `at_protocol_did` varchar(255) COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
@@ -283,7 +283,7 @@ CREATE TABLE `conversations` (
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `community_id` mediumint DEFAULT NULL,
   `privacy` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT 'public',
-  `featured_image` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT '',
+  `featured_image` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `featured_image_alt` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT '',
   PRIMARY KEY (`id`),
   UNIQUE KEY `slug` (`slug`),
@@ -349,7 +349,7 @@ CREATE TABLE `events` (
   `author_id` bigint unsigned DEFAULT '1',
   `post_id` bigint unsigned NOT NULL DEFAULT '0',
   `community_id` mediumint DEFAULT NULL,
-  `featured_image` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT '',
+  `featured_image` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT NULL,
   `featured_image_alt` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT '',
   `meta_title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT '',
   `meta_description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci,
@@ -666,4 +666,3 @@ CREATE TABLE `email_verification_tokens` (
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
-
