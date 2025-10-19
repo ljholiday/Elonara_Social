@@ -17,10 +17,6 @@ $blueskyService = function_exists('app_service') ? app_service('bluesky.service'
 $authService = function_exists('app_service') ? app_service('auth.service') : null;
 $currentUser = $authService ? $authService->getCurrentUser() : null;
 $isConnected = $blueskyService && $currentUser && $blueskyService->isConnected((int)$currentUser?->id);
-
-if (!$isConnected) {
-    return;
-}
 ?>
 
 <!-- Bluesky Follower Selector Modal -->
@@ -41,35 +37,50 @@ if (!$isConnected) {
                         class="app-form-input app-flex-1"
                         placeholder="Search followers by name or handle..."
                     >
-                    <button
-                        type="button"
-                        class="app-btn app-btn-sm app-btn-secondary"
-                        id="sync-followers-btn"
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                        </svg>
-                        Sync
-                    </button>
+                    <?php if ($isConnected): ?>
+                        <button
+                            type="button"
+                            class="app-btn app-btn-sm app-btn-secondary"
+                            id="sync-followers-btn"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                            </svg>
+                            Sync
+                        </button>
+                    <?php else: ?>
+                        <span class="app-btn app-btn-sm app-btn-secondary" data-open-bluesky-connect>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                            </svg>
+                            Connect
+                        </span>
+                    <?php endif; ?>
                 </div>
 
-                <div class="app-flex app-items-center app-justify-between app-text-sm app-text-muted">
-                    <div>
-                        <span id="selected-count">0</span> selected
+                <?php if ($isConnected): ?>
+                    <div class="app-flex app-items-center app-justify-between app-text-sm app-text-muted">
+                        <div>
+                            <span id="selected-count">0</span> selected
+                        </div>
+                        <div id="last-sync-time"></div>
                     </div>
-                    <div id="last-sync-time"></div>
-                </div>
+                <?php endif; ?>
             </div>
 
-            <div id="follower-loading" class="app-text-center app-py-6" style="display: none;">
+            <div id="follower-loading" class="app-text-center app-py-6" style="display: <?= $isConnected ? 'none' : 'block'; ?>;">
                 <div class="app-spinner app-mb-2"></div>
                 <div class="app-text-muted">Loading followers...</div>
             </div>
 
             <div id="follower-error" class="app-alert app-alert-error" style="display: none;"></div>
 
-            <div id="follower-empty" class="app-text-center app-py-6 app-text-muted" style="display: none;">
-                No followers found. Click "Sync" to fetch your Bluesky followers.
+            <div id="follower-empty" class="app-text-center app-py-6 app-text-muted" style="display: <?= $isConnected ? 'none' : 'block'; ?>;">
+                <?php if ($isConnected): ?>
+                    No followers found. Click "Sync" to fetch your Bluesky followers.
+                <?php else: ?>
+                    Connect your Bluesky account to load followers for invitations.
+                <?php endif; ?>
             </div>
 
             <div id="follower-list" class="app-follower-list"></div>
@@ -134,7 +145,13 @@ if (!$isConnected) {
     });
 
     // Load followers from API
-    async function loadFollowers() {
+    async function loadFollowers(force = false) {
+        if (!isConnected) {
+            followerLoading.style.display = 'none';
+            followerEmpty.style.display = 'block';
+            return;
+        }
+
         followerLoading.style.display = 'block';
         followerError.style.display = 'none';
         followerEmpty.style.display = 'none';
@@ -230,7 +247,7 @@ if (!$isConnected) {
     }
 
     // Sync followers
-    if (syncBtn) {
+    if (syncBtn && isConnected) {
         syncBtn.addEventListener('click', async function() {
             syncBtn.disabled = true;
             syncBtn.textContent = 'Syncing...';
@@ -260,6 +277,10 @@ if (!$isConnected) {
                 syncBtn.disabled = false;
                 syncBtn.textContent = 'Sync';
             }
+        });
+    } else if (syncBtn && !isConnected) {
+        syncBtn.addEventListener('click', function() {
+            window.open('/profile/edit#bluesky', '_blank');
         });
     }
 
@@ -315,8 +336,12 @@ if (!$isConnected) {
 
     // Update selected count
     function updateSelectedCount() {
-        selectedCountEl.textContent = selectedFollowers.size;
-        inviteBtn.disabled = selectedFollowers.size === 0;
+        if (selectedCountEl) {
+            selectedCountEl.textContent = selectedFollowers.size;
+        }
+        if (inviteBtn) {
+            inviteBtn.disabled = selectedFollowers.size === 0;
+        }
     }
 
     // Helper function to escape HTML
