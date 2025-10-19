@@ -124,7 +124,7 @@ final class CommunityMemberService
 
         try {
             $stmt = $pdo->prepare(
-                "SELECT id FROM community_members
+                "SELECT id, role FROM community_members
                  WHERE community_id = :community_id AND user_id = :user_id
                  LIMIT 1"
             );
@@ -132,9 +132,16 @@ final class CommunityMemberService
                 ':community_id' => $communityId,
                 ':user_id' => $userId,
             ]);
-            $existingId = $stmt->fetchColumn();
+            $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+            $existingId = $existing['id'] ?? null;
 
             if ($existingId) {
+                $existingRole = isset($existing['role']) ? (string)$existing['role'] : '';
+                $roleToSet = $role;
+                if (in_array($existingRole, ['admin', 'moderator'], true) && $role === 'member') {
+                    $roleToSet = $existingRole;
+                }
+
                 $update = $pdo->prepare(
                     "UPDATE community_members
                      SET email = :email,
@@ -147,7 +154,7 @@ final class CommunityMemberService
                 $update->execute([
                     ':email' => $email,
                     ':display_name' => $displayName,
-                    ':role' => $role,
+                    ':role' => $roleToSet,
                     ':id' => $existingId,
                 ]);
                 $memberId = (int)$existingId;
