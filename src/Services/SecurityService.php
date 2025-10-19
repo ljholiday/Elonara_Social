@@ -313,48 +313,22 @@ final class SecurityService
      */
     private function getOrGenerateSalts(): array
     {
-        $configPath = dirname(__DIR__, 2) . '/config/security_salts.php';
+        // Get salts from unified config file
+        $salts = app_config('security.salts', []);
 
-        if (file_exists($configPath)) {
-            $salts = require $configPath;
-            if (is_array($salts)) {
-                return $salts;
-            }
+        if (!empty($salts['auth']) && !empty($salts['nonce']) && !empty($salts['session'])) {
+            return $salts;
         }
 
-        // Generate and save salts if they don't exist
-        $salts = [
+        // This shouldn't happen since bootstrap auto-generates them,
+        // but fallback just in case
+        return [
             'auth' => bin2hex(random_bytes(32)),
             'nonce' => bin2hex(random_bytes(32)),
             'session' => bin2hex(random_bytes(32))
         ];
-
-        $this->createSaltsFile($configPath, $salts);
-
-        return $salts;
     }
 
-    /**
-     * Create salts configuration file
-     *
-     * @param string $path File path
-     * @param array<string, string> $salts Salts to store
-     */
-    private function createSaltsFile(string $path, array $salts): void
-    {
-        $directory = dirname($path);
-        if (!is_dir($directory)) {
-            if (!mkdir($directory, 0755, true) && !is_dir($directory)) {
-                throw new RuntimeException(sprintf('Failed to create directory: %s', $directory));
-            }
-        }
-
-        $content = "<?php\n// Security salts - DO NOT commit to git\n// Add config/security_salts.php to .gitignore\nreturn " . var_export($salts, true) . ";\n";
-
-        if (file_put_contents($path, $content) === false) {
-            throw new RuntimeException(sprintf('Failed to write salts file: %s', $path));
-        }
-    }
 
     /**
      * Store updated salts (in-memory only for now)

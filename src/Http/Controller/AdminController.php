@@ -61,7 +61,7 @@ final class AdminController
         return [
             'page_title' => 'Site Settings',
             'nav_active' => 'settings',
-            'mailConfig' => require __DIR__ . '/../../../config/mail.php',
+            'mailConfig' => app_config('mail'),
         ];
     }
 

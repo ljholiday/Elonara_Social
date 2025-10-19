@@ -8,7 +8,7 @@ $flash = $flash ?? [];
 <div class="admin-card">
   <h3 style="font-size:1.1rem; margin-bottom:1rem;">Mail Transport</h3>
   <p style="color:#6b748a; margin-bottom:1.5rem;">
-    These values come from <code>config/mail.php</code> or environment overrides. Update them in code or your server environment. You can send a test email to confirm connectivity.
+    These values come from <code>config/config.php</code> in the <code>mail</code> section. Update them in your configuration file. You can send a test email to confirm connectivity.
   </p>
 
   <div style="display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
