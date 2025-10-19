@@ -164,5 +164,3 @@ $tab = in_array($tab, ['settings', 'guests', 'invites'], true) ? $tab : 'setting
     <?php endif; ?>
   <?php endif; ?>
 </section>
-
-<script src="/assets/js/communities.js"></script>

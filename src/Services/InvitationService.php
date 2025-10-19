@@ -74,7 +74,7 @@ final class InvitationService
         // Send email
         $inviterName = $this->auth->getCurrentUser()->display_name ?? 'A member';
         $communityName = $community['name'] ?? 'a community';
-        $appName = (string)app_config('app_name', 'our community');
+        $appName = (string)app_config('app.name', 'our community');
         $this->sendInvitationEmail($email, 'community', $communityName, $token, $inviterName, $sanitizedMessage);
 
         return $this->success([

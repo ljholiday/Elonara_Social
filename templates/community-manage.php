@@ -154,5 +154,3 @@ $statusCode = $status ?? 200;
     <?php endif; ?>
   <?php endif; ?>
 </section>
-
-<script src="/assets/js/communities.js"></script>

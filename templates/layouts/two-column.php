@@ -126,8 +126,7 @@ $csrf_token = $security->createNonce('app_nonce', $userId);
 <script src="<?= htmlspecialchars($assetBase . '/js/conversations.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 <?php endif; ?>
 <?php if (str_contains($current_path, '/communities') || str_contains($current_path, '/events')): ?>
-<script src="<?= htmlspecialchars($assetBase . '/js/communities.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
-<script src="<?= htmlspecialchars($assetBase . '/js/invitation.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?= htmlspecialchars($assetBase . '/js/membership.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 <?php endif; ?>
     
 <!--
