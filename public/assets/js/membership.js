@@ -539,7 +539,7 @@ function loadEventGuests(eventId) {
     }
 
     const nonce = getCSRFToken();
-    fetch(`/api/events/${eventId}/invitations?nonce=${encodeURIComponent(nonce)}`, {
+    fetch(`/api/events/${eventId}/guests?nonce=${encodeURIComponent(nonce)}`, {
         method: 'GET'
     })
     .then(response => response.json())

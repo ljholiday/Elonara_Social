@@ -602,6 +602,16 @@ return static function (Router $router): void {
         return true;
     });
 
+    $router->get('/api/events/{id}/guests', static function (Request $request, string $id) {
+        $eventId = (int)$id;
+        $controller = app_service('controller.invitations');
+        $response = $controller->listEvent($eventId);
+        http_response_code($response['status'] ?? 200);
+        header('Content-Type: application/json');
+        echo json_encode($response['body']);
+        return true;
+    });
+
     $router->get('/api/{type}/{id}/invitations', static function (Request $request, string $type, string $id) {
         $entityId = (int)$id;
         $controller = app_service('controller.invitations');
