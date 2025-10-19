@@ -52,7 +52,7 @@ final class AuthController
         }
 
         if ($errors === []) {
-            $result = $this->auth->attemptLogin($identifierValidation['value'], $passwordRaw);
+            $result = $this->auth->attemptLogin($identifierValidation['value'], $passwordRaw, $remember);
             if ($result['success']) {
                 return [
                     'redirect' => $redirect !== '' ? $redirect : '/',

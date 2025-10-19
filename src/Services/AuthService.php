@@ -9,7 +9,11 @@ use PDO;
 
 final class AuthService
 {
+    private const REMEMBER_COOKIE = 'remember_token';
+    private const REMEMBER_DURATION = 60 * 60 * 24 * 30; // 30 days
+
     private ?array $cachedUser = null;
+    private bool $rememberChecked = false;
 
     public function __construct(
         private Database $database,
@@ -59,22 +63,11 @@ final class AuthService
             return (object)$this->cachedUser;
         }
 
-        $stmt = $this->database->pdo()->prepare(
-            "SELECT id, username, email, display_name, status, role, created_at, updated_at
-             FROM users
-             WHERE id = :id
-             LIMIT 1"
-        );
-        $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($row === false || ($row['status'] ?? '') !== 'active') {
+        $row = $this->loadActiveUserRow($id);
+        if ($row === null) {
             $this->logout();
             return null;
         }
-
-        // Cast id to int to prevent type mismatches in strict comparisons
-        $row['id'] = (int)$row['id'];
 
         $_SESSION['user_email'] = $row['email'];
         $this->cachedUser = $row;
@@ -99,7 +92,7 @@ final class AuthService
      *   user?: object
      * }
      */
-    public function attemptLogin(string $identifier, string $password): array
+    public function attemptLogin(string $identifier, string $password, bool $remember = false): array
     {
         $this->ensureSession();
 
@@ -145,6 +138,10 @@ final class AuthService
         $user['id'] = (int)$user['id'];
 
         $this->establishSession($user['id'], (string)$user['email']);
+        $this->forgetRememberCookie();
+        if ($remember) {
+            $this->issueRememberToken($user['id']);
+        }
         $this->cachedUser = $user;
         $this->updateLastLogin($user['id']);
 
@@ -158,6 +155,8 @@ final class AuthService
     {
         $this->ensureSession();
         $this->cachedUser = null;
+
+        $this->forgetRememberCookie();
 
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
@@ -333,6 +332,11 @@ final class AuthService
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
+
+        if (!$this->rememberChecked && empty($_SESSION['user_id'])) {
+            $this->rememberChecked = true;
+            $this->restoreRememberedLogin();
+        }
     }
 
     private function establishSession(int $userId, string $email): void
@@ -340,6 +344,194 @@ final class AuthService
         session_regenerate_id(true);
         $_SESSION['user_id'] = $userId;
         $_SESSION['user_email'] = $email;
+    }
+
+    private function issueRememberToken(int $userId): void
+    {
+        try {
+            $selector = bin2hex(random_bytes(12));
+            $validator = bin2hex(random_bytes(32));
+        } catch (\Throwable $e) {
+            $this->logError('Failed to generate remember token: ' . $e->getMessage());
+            return;
+        }
+
+        $hash = hash('sha256', $validator);
+        $expiresAtTs = time() + self::REMEMBER_DURATION;
+        $expiresAt = date('Y-m-d H:i:s', $expiresAtTs);
+
+        $stmt = $this->database->pdo()->prepare(
+            "INSERT INTO remember_tokens (
+                user_id, selector, validator_hash, user_agent, ip_address, expires_at, created_at
+            ) VALUES (
+                :user_id, :selector, :validator_hash, :user_agent, :ip_address, :expires_at, NOW()
+            )"
+        );
+
+        $userAgent = isset($_SERVER['HTTP_USER_AGENT']) ? substr((string)$_SERVER['HTTP_USER_AGENT'], 0, 255) : null;
+        $ipAddress = isset($_SERVER['REMOTE_ADDR']) ? substr((string)$_SERVER['REMOTE_ADDR'], 0, 45) : null;
+
+        $stmt->execute([
+            ':user_id' => $userId,
+            ':selector' => $selector,
+            ':validator_hash' => $hash,
+            ':user_agent' => $userAgent,
+            ':ip_address' => $ipAddress,
+            ':expires_at' => $expiresAt,
+        ]);
+
+        $this->setRememberCookie($selector, $validator, $expiresAtTs);
+        $this->pruneExpiredRememberTokens();
+    }
+
+    private function restoreRememberedLogin(): void
+    {
+        $cookie = $_COOKIE[self::REMEMBER_COOKIE] ?? '';
+        if ($cookie === '') {
+            return;
+        }
+
+        $parts = explode(':', $cookie, 2);
+        if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
+            $this->forgetRememberCookie();
+            return;
+        }
+
+        [$selector, $validator] = $parts;
+
+        $stmt = $this->database->pdo()->prepare(
+            "SELECT id, user_id, validator_hash, expires_at
+             FROM remember_tokens
+             WHERE selector = :selector
+             LIMIT 1"
+        );
+        $stmt->execute([':selector' => $selector]);
+        $token = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($token === false) {
+            $this->forgetRememberCookie(false);
+            return;
+        }
+
+        $tokenId = (int)$token['id'];
+        $userId = (int)$token['user_id'];
+
+        if (strtotime((string)$token['expires_at']) <= time()) {
+            $this->deleteRememberToken($tokenId);
+            $this->forgetRememberCookie(false);
+            return;
+        }
+
+        $expected = hash('sha256', $validator);
+        if (!hash_equals((string)$token['validator_hash'], $expected)) {
+            $this->deleteRememberToken($tokenId);
+            $this->forgetRememberCookie(false);
+            return;
+        }
+
+        $user = $this->loadActiveUserRow($userId);
+        if ($user === null) {
+            $this->deleteRememberToken($tokenId);
+            $this->forgetRememberCookie(false);
+            return;
+        }
+
+        $this->establishSession($user['id'], (string)$user['email']);
+        $this->cachedUser = $user;
+        $this->updateLastLogin($user['id']);
+        $this->refreshRememberToken($tokenId, $selector);
+    }
+
+    private function refreshRememberToken(int $tokenId, string $selector): void
+    {
+        try {
+            $validator = bin2hex(random_bytes(32));
+        } catch (\Throwable $e) {
+            $this->logError('Failed to rotate remember token: ' . $e->getMessage());
+            $this->forgetRememberCookie(false);
+            return;
+        }
+
+        $hash = hash('sha256', $validator);
+        $expiresAtTs = time() + self::REMEMBER_DURATION;
+        $expiresAt = date('Y-m-d H:i:s', $expiresAtTs);
+
+        $stmt = $this->database->pdo()->prepare(
+            "UPDATE remember_tokens
+             SET validator_hash = :validator_hash,
+                 expires_at = :expires_at,
+                 last_used_at = NOW()
+             WHERE id = :id"
+        );
+        $stmt->execute([
+            ':validator_hash' => $hash,
+            ':expires_at' => $expiresAt,
+            ':id' => $tokenId,
+        ]);
+
+        $this->setRememberCookie($selector, $validator, $expiresAtTs);
+    }
+
+    private function setRememberCookie(string $selector, string $validator, int $expiresAtTs): void
+    {
+        $cookieValue = $selector . ':' . $validator;
+        $options = [
+            'expires' => $expiresAtTs,
+            'path' => '/',
+            'secure' => !empty($_SERVER['HTTPS']),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ];
+
+        setcookie(self::REMEMBER_COOKIE, $cookieValue, $options);
+        $_COOKIE[self::REMEMBER_COOKIE] = $cookieValue;
+    }
+
+    private function forgetRememberCookie(bool $deleteRecord = true): void
+    {
+        $cookie = $_COOKIE[self::REMEMBER_COOKIE] ?? null;
+        if ($cookie !== null) {
+            unset($_COOKIE[self::REMEMBER_COOKIE]);
+        }
+
+        if ($deleteRecord && $cookie) {
+            $parts = explode(':', $cookie, 2);
+            if (count($parts) === 2 && $parts[0] !== '') {
+                $this->deleteRememberTokenBySelector($parts[0]);
+            }
+        }
+
+        setcookie(self::REMEMBER_COOKIE, '', [
+            'expires' => time() - 3600,
+            'path' => '/',
+            'secure' => !empty($_SERVER['HTTPS']),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+    }
+
+    private function deleteRememberToken(int $tokenId): void
+    {
+        $stmt = $this->database->pdo()->prepare(
+            "DELETE FROM remember_tokens WHERE id = :id LIMIT 1"
+        );
+        $stmt->execute([':id' => $tokenId]);
+    }
+
+    private function deleteRememberTokenBySelector(string $selector): void
+    {
+        $stmt = $this->database->pdo()->prepare(
+            "DELETE FROM remember_tokens WHERE selector = :selector LIMIT 1"
+        );
+        $stmt->execute([':selector' => $selector]);
+    }
+
+    private function pruneExpiredRememberTokens(): void
+    {
+        $stmt = $this->database->pdo()->prepare(
+            "DELETE FROM remember_tokens WHERE expires_at < NOW()"
+        );
+        $stmt->execute();
     }
 
     private function usernameExists(string $username): bool
@@ -400,6 +592,30 @@ final class AuthService
         } catch (\Throwable $e) {
             $this->logError('Failed to create default communities for user ' . $userId . ': ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Load an active user row or return null if unavailable.
+     *
+     * @return array<string,mixed>|null
+     */
+    private function loadActiveUserRow(int $userId): ?array
+    {
+        $stmt = $this->database->pdo()->prepare(
+            "SELECT id, username, email, display_name, status, role, created_at, updated_at
+             FROM users
+             WHERE id = :id
+             LIMIT 1"
+        );
+        $stmt->execute([':id' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($row === false || ($row['status'] ?? '') !== 'active') {
+            return null;
+        }
+
+        $row['id'] = (int)$row['id'];
+        return $row;
     }
 
     private function logError(string $message): void
