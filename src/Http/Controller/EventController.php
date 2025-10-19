@@ -97,6 +97,8 @@ final class EventController
                     'title' => '',
                     'description' => '',
                     'event_date' => '',
+                    'end_date' => '',
+                    'location' => '',
                 ],
                 'context' => ['allowed' => false],
             ];
@@ -114,6 +116,8 @@ final class EventController
                 'title' => '',
                 'description' => '',
                 'event_date' => '',
+                'end_date' => '',
+                'location' => '',
             ],
             'context' => $context,
         ];
@@ -133,7 +137,7 @@ final class EventController
         if ($viewerId === null || $viewerId <= 0) {
             return [
                 'errors' => ['auth' => 'You must be logged in to create an event.'],
-                'input' => ['title' => '', 'description' => '', 'event_date' => ''],
+                'input' => ['title' => '', 'description' => '', 'event_date' => '', 'end_date' => '', 'location' => ''],
                 'context' => ['allowed' => false],
             ];
         }
@@ -162,6 +166,8 @@ final class EventController
             'title' => $validated['input']['title'],
             'description' => $validated['input']['description'],
             'event_date' => $validated['event_date_db'],
+            'end_date' => $validated['end_date_db'],
+            'location' => $validated['input']['location'],
             'author_id' => $viewerId,
             'created_by' => $viewerId,
             'community_id' => $context['community_id'] ?? 0,
@@ -198,6 +204,8 @@ final class EventController
                 'title' => $event['title'] ?? '',
                 'description' => $event['description'] ?? '',
                 'event_date' => $this->formatForInput($event['event_date'] ?? null),
+                'end_date' => $this->formatForInput($event['end_date'] ?? null),
+                'location' => $event['location'] ?? '',
             ],
         ];
     }
@@ -233,6 +241,8 @@ final class EventController
             'title' => $validated['input']['title'],
             'description' => $validated['input']['description'],
             'event_date' => $validated['event_date_db'],
+            'end_date' => $validated['end_date_db'],
+            'location' => $validated['input']['location'],
         ]);
 
         return [
@@ -433,13 +443,17 @@ final class EventController
     {
         $titleValidation = $this->validator->required($request->input('title', ''));
         $descriptionValidation = $this->validator->textField($request->input('description', ''));
+        $locationValidation = $this->validator->textField($request->input('location', ''));
         $eventDateRaw = trim((string)$request->input('event_date', ''));
+        $endDateRaw = trim((string)$request->input('end_date', ''));
 
         $errors = [];
         $input = [
             'title' => $titleValidation['value'],
             'description' => $descriptionValidation['value'],
+            'location' => $locationValidation['value'],
             'event_date' => $eventDateRaw,
+            'end_date' => $endDateRaw,
         ];
 
         if (!$titleValidation['is_valid']) {
@@ -456,10 +470,26 @@ final class EventController
             }
         }
 
+        $endDateDb = null;
+        if ($endDateRaw !== '') {
+            $timestamp = strtotime($endDateRaw);
+            if ($timestamp === false) {
+                $errors['end_date'] = 'Provide a valid end date/time.';
+            } else {
+                $endDateDb = date('Y-m-d H:i:s', $timestamp);
+
+                // Validate that end date is after start date
+                if ($eventDateDb !== null && $endDateDb <= $eventDateDb) {
+                    $errors['end_date'] = 'End date must be after start date.';
+                }
+            }
+        }
+
         return [
             'input' => $input,
             'errors' => $errors,
             'event_date_db' => $eventDateDb,
+            'end_date_db' => $endDateDb,
         ];
     }
 

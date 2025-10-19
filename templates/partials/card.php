@@ -14,7 +14,18 @@ if (property_exists($entity, 'privacy')) {
     <?php endif; ?>
   </h3>
   <?php if (!empty($entity->event_date)): ?>
-    <div class="app-card-sub"><?= e(date_fmt($entity->event_date)) ?></div>
+    <div class="app-card-sub">
+      <?php if (!empty($entity->end_date)): ?>
+        <?= e(date_fmt($entity->event_date)) ?> - <?= e(date_fmt($entity->end_date)) ?>
+      <?php else: ?>
+        <?= e(date_fmt($entity->event_date)) ?>
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
+  <?php if (!empty($entity->location)): ?>
+    <div class="app-card-sub">
+      <?= e($entity->location) ?>
+    </div>
   <?php endif; ?>
   <?php if (!empty($entity->description)): ?>
     <p class="app-card-desc"><?= e($entity->description) ?></p>

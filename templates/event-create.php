@@ -50,7 +50,7 @@ $contextAllowed = (bool)($context['allowed'] ?? false);
     </div>
 
     <div class="app-field">
-      <label class="app-label" for="event_date">Date &amp; Time</label>
+      <label class="app-label" for="event_date">Start Date &amp; Time</label>
       <input
         class="app-input<?= isset($errors['event_date']) ? ' is-invalid' : '' ?>"
         type="datetime-local"
@@ -58,7 +58,32 @@ $contextAllowed = (bool)($context['allowed'] ?? false);
         name="event_date"
         value="<?= e($input['event_date'] ?? '') ?>"
       >
-      <p class="app-field-help">Leave blank for TBD.</p>
+      <p class="app-field-help">Leave blank for TBD. Default time is 6:00 PM.</p>
+    </div>
+
+    <div class="app-field">
+      <label class="app-label" for="end_date">End Date &amp; Time</label>
+      <input
+        class="app-input<?= isset($errors['end_date']) ? ' is-invalid' : '' ?>"
+        type="datetime-local"
+        id="end_date"
+        name="end_date"
+        value="<?= e($input['end_date'] ?? '') ?>"
+      >
+      <p class="app-field-help">Optional. Leave blank for single-day event.</p>
+    </div>
+
+    <div class="app-field">
+      <label class="app-label" for="location">Location</label>
+      <input
+        class="app-input<?= isset($errors['location']) ? ' is-invalid' : '' ?>"
+        type="text"
+        id="location"
+        name="location"
+        value="<?= e($input['location'] ?? '') ?>"
+        placeholder="Enter event location"
+      >
+      <p class="app-field-help">Optional. e.g., "Central Park" or "123 Main St, City"</p>
     </div>
 
     <div class="app-field">
@@ -77,3 +102,8 @@ $contextAllowed = (bool)($context['allowed'] ?? false);
     </div>
   </form>
 </section>
+
+<?php
+$assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
+?>
+<script src="<?= htmlspecialchars($assetBase . '/js/event-form.js', ENT_QUOTES, 'UTF-8'); ?>"></script>

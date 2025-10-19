@@ -16,7 +16,18 @@
       <?php endif; ?>
     </h1>
     <?php if (!empty($e->event_date)): ?>
-      <div class="app-sub"><?= e(date_fmt($e->event_date)) ?></div>
+      <div class="app-sub">
+        <?php if (!empty($e->end_date)): ?>
+          <?= e(date_fmt($e->event_date)) ?> - <?= e(date_fmt($e->end_date)) ?>
+        <?php else: ?>
+          <?= e(date_fmt($e->event_date)) ?>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+    <?php if (!empty($e->location)): ?>
+      <div class="app-sub" style="margin-top: 0.5rem;">
+        <?= e($e->location) ?>
+      </div>
     <?php endif; ?>
     <?php if (!empty($e->description)): ?>
       <p class="app-body"><?= e($e->description) ?></p>

@@ -34,7 +34,7 @@ final class EventService
      */
     public function listRecent(int $limit = 20): array
     {
-        $sql = "SELECT id, title, event_date, slug, description, privacy
+        $sql = "SELECT id, title, event_date, end_date, location, slug, description, privacy
                 FROM events
                 ORDER BY event_date DESC
                 LIMIT :lim";
@@ -58,7 +58,7 @@ final class EventService
      */
     public function listRecentForAdmin(int $limit = 5): array
     {
-        $sql = "SELECT e.id, e.title, e.event_date, e.privacy, u.display_name AS host,
+        $sql = "SELECT e.id, e.title, e.event_date, e.end_date, e.privacy, u.display_name AS host,
                        e.community_id, com.name AS community_name, com.slug AS community_slug
                 FROM events e
                 LEFT JOIN users u ON u.id = e.author_id
@@ -82,7 +82,7 @@ final class EventService
 
         $email = $viewerEmail !== null ? trim($viewerEmail) : $this->lookupUserEmail($viewerId);
 
-        $sql = "SELECT DISTINCT e.id, e.title, e.event_date, e.slug, e.description, e.privacy,
+        $sql = "SELECT DISTINCT e.id, e.title, e.event_date, e.end_date, e.location, e.slug, e.description, e.privacy,
                        e.community_id, com.name AS community_name, com.slug AS community_slug
                 FROM events e
                 LEFT JOIN guests g ON g.event_id = e.id
@@ -123,7 +123,7 @@ final class EventService
 
         if (ctype_digit($slugOrId)) {
             $stmt = $pdo->prepare(
-                "SELECT e.id, e.title, e.event_date, e.slug, e.description, e.author_id, e.event_status, e.privacy, e.guest_limit, e.community_id,
+                "SELECT e.id, e.title, e.event_date, e.end_date, e.location, e.slug, e.description, e.author_id, e.event_status, e.privacy, e.guest_limit, e.community_id,
                         com.name AS community_name, com.slug AS community_slug
                  FROM events e
                  LEFT JOIN communities com ON e.community_id = com.id
@@ -133,7 +133,7 @@ final class EventService
             $stmt->execute([':id' => (int)$slugOrId]);
         } else {
             $stmt = $pdo->prepare(
-                "SELECT e.id, e.title, e.event_date, e.slug, e.description, e.author_id, e.event_status, e.privacy, e.guest_limit, e.community_id,
+                "SELECT e.id, e.title, e.event_date, e.end_date, e.location, e.slug, e.description, e.author_id, e.event_status, e.privacy, e.guest_limit, e.community_id,
                         com.name AS community_name, com.slug AS community_slug
                  FROM events e
                  LEFT JOIN communities com ON e.community_id = com.id
@@ -173,6 +173,8 @@ final class EventService
                 slug,
                 description,
                 event_date,
+                end_date,
+                location,
                 created_at,
                 updated_at,
                 created_by,
@@ -188,6 +190,8 @@ final class EventService
                 :slug,
                 :description,
                 :event_date,
+                :end_date,
+                :location,
                 :created_at,
                 :updated_at,
                 :created_by,
@@ -206,6 +210,8 @@ final class EventService
             ':slug' => $slug,
             ':description' => $data['description'],
             ':event_date' => $data['event_date'],
+            ':end_date' => $data['end_date'] ?? null,
+            ':location' => $data['location'] ?? null,
             ':created_at' => $createdAt,
             ':updated_at' => $createdAt,
             ':created_by' => $createdBy,
@@ -260,6 +266,8 @@ final class EventService
              SET title = :title,
                  description = :description,
                  event_date = :event_date,
+                 end_date = :end_date,
+                 location = :location,
                  updated_at = :updated_at
              WHERE slug = :slug
              LIMIT 1"
@@ -269,6 +277,8 @@ final class EventService
             ':title' => $title,
             ':description' => $data['description'],
             ':event_date' => $data['event_date'],
+            ':end_date' => $data['end_date'] ?? null,
+            ':location' => $data['location'] ?? null,
             ':updated_at' => $updatedAt,
             ':slug' => $slug,
         ]);
@@ -322,7 +332,7 @@ final class EventService
 
         $pdo = $this->db->pdo();
         $stmt = $pdo->prepare('
-            SELECT id, title, slug, description, event_date, location, author_id, community_id, created_at, privacy
+            SELECT id, title, slug, description, event_date, end_date, location, author_id, community_id, created_at, privacy
             FROM events
             WHERE community_id = :community_id
             ORDER BY event_date DESC, created_at DESC

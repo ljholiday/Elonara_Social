@@ -42,7 +42,13 @@ $tab = in_array($tab, ['settings', 'guests', 'invites'], true) ? $tab : 'setting
     <header class="app-mb-4">
       <h1 class="app-heading app-heading-lg"><?= e($title) ?></h1>
       <?php if (!empty($eventDate)): ?>
-        <div class="app-sub"><?= e(date_fmt((string)$eventDate, 'F j, Y \a\t g:i A')) ?></div>
+        <div class="app-sub">
+          <?php if (!empty($event['end_date'])): ?>
+            <?= e(date_fmt((string)$eventDate, 'F j, Y \a\t g:i A')) ?> - <?= e(date_fmt((string)$event['end_date'], 'F j, Y \a\t g:i A')) ?>
+          <?php else: ?>
+            <?= e(date_fmt((string)$eventDate, 'F j, Y \a\t g:i A')) ?>
+          <?php endif; ?>
+        </div>
       <?php endif; ?>
     </header>
 
