@@ -1384,18 +1384,25 @@ $router->get('/invitation/accept', static function (Request $request) {
         return null;
     }
 
-    // Use the existing controller to process the token
     $controller = app_service('controller.invitations');
-    $result = $controller->accept($token);
+    $response = $controller->acceptToken((string)$token);
 
-    // If the controller returns data or redirect info, handle it here
-    if (isset($result['redirect'])) {
-        header('Location: ' . $result['redirect']);
+    if (isset($response['redirect'])) {
+        header('Location: ' . $response['redirect']);
         exit;
     }
 
-    // Simple success message if no redirect is specified
-    echo 'Invitation accepted successfully.';
+    $status = $response['status'] ?? 200;
+    $body = $response['body'] ?? [];
+
+    if (($body['success'] ?? false) && isset($body['data']['redirect_url'])) {
+        header('Location: ' . $body['data']['redirect_url']);
+        exit;
+    }
+
+    http_response_code($status);
+    $message = $body['message'] ?? (($body['success'] ?? false) ? 'Invitation accepted successfully.' : 'Unable to accept invitation.');
+    echo $message;
     return null;
 });
 

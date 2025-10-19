@@ -230,10 +230,18 @@ final class InvitationService
             ]);
         }
 
+        $community = $this->fetchCommunity($communityId);
+        $communitySlug = (string)($community['slug'] ?? '');
+        $redirectUrl = $communitySlug !== ''
+            ? '/communities/' . $communitySlug
+            : '/communities/' . $communityId;
+
         return $this->success([
             'message' => 'You have successfully joined the community!',
             'member_id' => $memberId,
             'community_id' => $communityId,
+            'community_slug' => $communitySlug,
+            'redirect_url' => $redirectUrl,
         ]);
     }
 
@@ -527,7 +535,7 @@ final class InvitationService
     private function fetchCommunity(int $communityId): ?array
     {
         $stmt = $this->database->pdo()->prepare(
-            'SELECT id, name FROM communities WHERE id = :id LIMIT 1'
+            'SELECT id, name, slug FROM communities WHERE id = :id LIMIT 1'
         );
         $stmt->execute([':id' => $communityId]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);

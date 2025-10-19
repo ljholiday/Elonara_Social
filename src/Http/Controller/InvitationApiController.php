@@ -376,8 +376,8 @@ final class InvitationApiController
      */
     public function accept(): array
     {
-        $viewerId = $this->auth->currentUserId();
-        if ($viewerId === null || $viewerId <= 0) {
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
+        if ($viewerId <= 0) {
             return $this->error('You must be logged in to accept invitations', 401);
         }
 
@@ -388,6 +388,42 @@ final class InvitationApiController
             return $this->error('Invitation token is required', 400);
         }
 
+        return $this->completeCommunityAcceptance($token, $viewerId);
+    }
+
+    /**
+     * Handle community invitation acceptance from a direct link.
+     *
+     * @return array{status:int, body:array<string,mixed>}|array{status:int,redirect:string}
+     */
+    public function acceptToken(string $token): array
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return $this->error('Invitation token is required.', 400);
+        }
+
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
+        if ($viewerId <= 0) {
+            $redirect = '/auth/login?redirect_to=' . rawurlencode('/invitation/accept?token=' . rawurlencode($token));
+            return [
+                'status' => 302,
+                'redirect' => $redirect,
+                'body' => [
+                    'success' => false,
+                    'message' => 'Please sign in to accept the invitation.',
+                ],
+            ];
+        }
+
+        return $this->completeCommunityAcceptance($token, $viewerId);
+    }
+
+    /**
+     * Finalize acceptance logic used by both API and direct link flows.
+     */
+    private function completeCommunityAcceptance(string $token, int $viewerId): array
+    {
         $result = $this->invitations->acceptCommunityInvitation($token, $viewerId);
         if (!$result['success']) {
             return $this->error($result['message'], $result['status']);
