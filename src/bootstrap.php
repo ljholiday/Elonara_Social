@@ -85,27 +85,32 @@ if (!function_exists('app_config')) {
             }
 
             // Auto-generate security salts if missing
+            // Check if salts are in main config
             if (empty($loaded['security']['salts']['auth']) ||
                 empty($loaded['security']['salts']['nonce']) ||
                 empty($loaded['security']['salts']['session'])) {
 
-                $loaded['security']['salts'] = [
-                    'auth' => $loaded['security']['salts']['auth'] ?? bin2hex(random_bytes(32)),
-                    'nonce' => $loaded['security']['salts']['nonce'] ?? bin2hex(random_bytes(32)),
-                    'session' => $loaded['security']['salts']['session'] ?? bin2hex(random_bytes(32)),
-                ];
+                // Try loading from separate security_salts.php file (backwards compatibility)
+                $saltsPath = __DIR__ . '/../config/security_salts.php';
+                if (file_exists($saltsPath)) {
+                    $loadedSalts = require $saltsPath;
+                    if (is_array($loadedSalts)) {
+                        $loaded['security']['salts'] = $loadedSalts;
+                    }
+                } else {
+                    // Generate new salts
+                    $newSalts = [
+                        'auth' => bin2hex(random_bytes(32)),
+                        'nonce' => bin2hex(random_bytes(32)),
+                        'session' => bin2hex(random_bytes(32)),
+                    ];
 
-                // Persist generated salts back to config file
-                $configContent = file_get_contents($path);
-                if ($configContent !== false) {
-                    $pattern = "/'salts'\s*=>\s*\[[^\]]+\]/s";
-                    $replacement = "'salts' => [\n" .
-                        "            'auth' => '" . $loaded['security']['salts']['auth'] . "',\n" .
-                        "            'nonce' => '" . $loaded['security']['salts']['nonce'] . "',\n" .
-                        "            'session' => '" . $loaded['security']['salts']['session'] . "',\n" .
-                        "        ]";
-                    $configContent = preg_replace($pattern, $replacement, $configContent);
-                    file_put_contents($path, $configContent);
+                    // Try to persist to separate file (easier permissions management)
+                    $saltsContent = "<?php\n// Security salts - auto-generated\n// DO NOT commit to git\nreturn " . var_export($newSalts, true) . ";\n";
+                    @file_put_contents($saltsPath, $saltsContent);
+
+                    // Use the generated salts regardless of whether file write succeeded
+                    $loaded['security']['salts'] = $newSalts;
                 }
             }
 
