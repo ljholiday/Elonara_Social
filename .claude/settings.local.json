@@ -8,7 +8,12 @@
       "Bash(for:*)",
       "Bash(do echo \"Checking $file...\")",
       "Bash(exit 1)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(mysql -u root -proot social_elonara -e \"SELECT id, title, slug, featured_image FROM events WHERE slug = ''tamale-festival''\")",
+      "Bash(cat /Users/lonnholiday/Repositories/social.elonara/debug.log)",
+      "Bash(mysql -u root -proot social_elonara -e \"SELECT id, title, slug, created_at FROM events WHERE id = 18\")",
+      "Bash(mysql -u root -proot social_elonara -e \"SELECT id, title, slug FROM events WHERE slug LIKE ''%tamale%'' OR title LIKE ''%tamale%''\")",
+      "Bash(mysql -u root -proot social_elonara -e \"SELECT id, title, slug, description, created_at, created_by FROM events WHERE id = 18\")"
     ],
     "deny": [],
     "ask": []

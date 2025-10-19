@@ -22,7 +22,7 @@ $event = $event ?? null;
       </div>
     <?php endif; ?>
 
-    <form method="post" action="/events/<?= e($event['slug'] ?? '') ?>/edit" class="app-form app-stack">
+    <form method="post" action="/events/<?= e($event['slug'] ?? '') ?>/edit" class="app-form app-stack" enctype="multipart/form-data">
       <div class="app-field">
         <label class="app-label" for="title">Title</label>
         <input
@@ -80,6 +80,48 @@ $event = $event ?? null;
           name="description"
           rows="5"
         ><?= e($input['description'] ?? '') ?></textarea>
+      </div>
+
+      <div class="app-field">
+        <label class="app-label" for="featured_image">Featured Image</label>
+        <?php if (!empty($event['featured_image'])): ?>
+          <div class="app-mb-3">
+            <?php
+              $featuredUrl = getImageUrl($event['featured_image'], 'mobile', 'original');
+              if ($featuredUrl):
+            ?>
+              <img src="<?= e($featuredUrl) ?>" alt="<?= e($event['featured_image_alt'] ?? 'Current featured image') ?>" style="max-width: 100%; height: auto; border-radius: 4px;">
+              <div class="app-text-muted app-mt-1">Current featured image</div>
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
+        <input
+          type="file"
+          class="app-input<?= isset($errors['featured_image']) ? ' is-invalid' : '' ?>"
+          id="featured_image"
+          name="featured_image"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+        >
+        <small class="app-help-text">Optional. Upload a new image to replace the current one. Maximum 10MB.</small>
+        <?php if (isset($errors['featured_image'])): ?>
+          <div class="app-field-error"><?= e($errors['featured_image']) ?></div>
+        <?php endif; ?>
+      </div>
+
+      <div class="app-field">
+        <label class="app-label" for="featured_image_alt">Featured image description</label>
+        <input
+          type="text"
+          class="app-input<?= isset($errors['featured_image_alt']) ? ' is-invalid' : '' ?>"
+          id="featured_image_alt"
+          name="featured_image_alt"
+          placeholder="Describe the image for accessibility"
+          value="<?= e($input['featured_image_alt'] ?? '') ?>"
+        >
+        <small class="app-help-text">Required if uploading a new image. Describe what's in the image for screen reader users.</small>
+        <?php if (isset($errors['featured_image_alt'])): ?>
+          <div class="app-field-error"><?= e($errors['featured_image_alt']) ?></div>
+        <?php endif; ?>
       </div>
 
       <div class="app-actions">

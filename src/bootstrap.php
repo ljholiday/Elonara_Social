@@ -405,10 +405,14 @@ if (!function_exists('app_container')) {
                 return new MailService($mailer, $fromEmail, $fromName, $replyTo);
             });
 
-            $container->register('image.service', static function (): ImageService {
+            $container->register('image.service', static function (VTContainer $c): ImageService {
                 $uploadBasePath = dirname(__DIR__) . '/public/uploads';
                 $uploadBaseUrl = '/uploads';
-                return new ImageService($uploadBasePath, $uploadBaseUrl);
+                return new ImageService(
+                    $c->get('database.connection'),
+                    $uploadBasePath,
+                    $uploadBaseUrl
+                );
             });
 
             $container->register('embed.service', static function (): EmbedService {
@@ -458,7 +462,8 @@ if (!function_exists('app_container')) {
                     $c->get('invitation.manager'),
                     $c->get('conversation.service'),
                     $c->get('authorization.service'),
-                    $c->get('community.service')
+                    $c->get('community.service'),
+                    $c->get('image.service')
                 );
             }, false);
 
@@ -492,7 +497,8 @@ if (!function_exists('app_container')) {
                     $c->get('validator.service'),
                     $c->get('community.member.service'),
                     $c->get('event.service'),
-                    $c->get('conversation.service')
+                    $c->get('conversation.service'),
+                    $c->get('image.service')
                 );
             }, false);
 

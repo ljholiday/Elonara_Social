@@ -11,6 +11,7 @@ use App\Services\InvitationService;
 use App\Services\ConversationService;
 use App\Services\AuthorizationService;
 use App\Services\CommunityService;
+use App\Services\ImageService;
 use App\Support\ContextBuilder;
 use App\Support\ContextLabel;
 
@@ -29,7 +30,8 @@ final class EventController
         private InvitationService $invitations,
         private ConversationService $conversations,
         private AuthorizationService $authz,
-        private CommunityService $communities
+        private CommunityService $communities,
+        private ImageService $images
     ) {
     }
 
@@ -162,6 +164,7 @@ final class EventController
             ];
         }
 
+        // Create event first to get the event ID
         $slug = $this->events->create([
             'title' => $validated['input']['title'],
             'description' => $validated['input']['description'],
@@ -173,6 +176,34 @@ final class EventController
             'community_id' => $context['community_id'] ?? 0,
             'privacy' => $context['privacy'] ?? 'public',
         ]);
+
+        // Handle featured image upload if provided
+        if (!empty($_FILES['featured_image']) && !empty($_FILES['featured_image']['tmp_name'])) {
+            $event = $this->events->getBySlugOrId($slug);
+            if ($event !== null) {
+                $eventId = (int)$event['id'];
+                $imageAlt = trim((string)$request->input('featured_image_alt', ''));
+                $imageValidation = $this->validateImageUpload(
+                    $_FILES['featured_image'],
+                    $imageAlt,
+                    $eventId,
+                    $context['community_id'] ?? null
+                );
+
+                if (empty($imageValidation['error'])) {
+                    // Update event with image
+                    $this->events->update($slug, [
+                        'title' => $validated['input']['title'],
+                        'description' => $validated['input']['description'],
+                        'event_date' => $validated['event_date_db'],
+                        'end_date' => $validated['end_date_db'],
+                        'location' => $validated['input']['location'],
+                        'featured_image' => $imageValidation['urls'],
+                        'featured_image_alt' => $imageAlt,
+                    ]);
+                }
+            }
+        }
 
         return [
             'redirect' => '/events/' . $slug,
@@ -206,6 +237,7 @@ final class EventController
                 'event_date' => $this->formatForInput($event['event_date'] ?? null),
                 'end_date' => $this->formatForInput($event['end_date'] ?? null),
                 'location' => $event['location'] ?? '',
+                'featured_image_alt' => $event['featured_image_alt'] ?? '',
             ],
         ];
     }
@@ -227,7 +259,8 @@ final class EventController
             ];
         }
 
-        $validated = $this->validateEventInput($this->request());
+        $request = $this->request();
+        $validated = $this->validateEventInput($request);
 
         if ($validated['errors']) {
             return [
@@ -237,13 +270,39 @@ final class EventController
             ];
         }
 
-        $this->events->update($event['slug'], [
+        $updateData = [
             'title' => $validated['input']['title'],
             'description' => $validated['input']['description'],
             'event_date' => $validated['event_date_db'],
             'end_date' => $validated['end_date_db'],
             'location' => $validated['input']['location'],
-        ]);
+        ];
+
+        // Handle featured image upload if provided
+        if (!empty($_FILES['featured_image']) && !empty($_FILES['featured_image']['tmp_name'])) {
+            $eventId = (int)$event['id'];
+            $communityId = !empty($event['community_id']) ? (int)$event['community_id'] : null;
+            $imageAlt = trim((string)$request->input('featured_image_alt', ''));
+            $imageValidation = $this->validateImageUpload(
+                $_FILES['featured_image'],
+                $imageAlt,
+                $eventId,
+                $communityId
+            );
+
+            if (!empty($imageValidation['error'])) {
+                return [
+                    'event' => $event,
+                    'errors' => ['featured_image' => $imageValidation['error']],
+                    'input' => $validated['input'],
+                ];
+            }
+
+            $updateData['featured_image'] = $imageValidation['urls'];
+            $updateData['featured_image_alt'] = $imageAlt;
+        }
+
+        $this->events->update($event['slug'], $updateData);
 
         return [
             'redirect' => '/events/' . $event['slug'],
@@ -513,5 +572,45 @@ final class EventController
         }
 
         return $this->auth->currentUserCan('edit_others_posts');
+    }
+
+    /**
+     * Validate and upload image file
+     *
+     * @param array $file File from $_FILES
+     * @param string $altText Alt text for accessibility
+     * @param int $eventId Event ID for context
+     * @param int|null $communityId Community ID for context
+     * @return array{urls?: string, error?: string}
+     */
+    private function validateImageUpload(array $file, string $altText, int $eventId, ?int $communityId = null): array
+    {
+        // Require alt text for accessibility
+        if (trim($altText) === '') {
+            return ['error' => 'Image description is required for accessibility.'];
+        }
+
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
+
+        $context = ['event_id' => $eventId];
+        if ($communityId !== null && $communityId > 0) {
+            $context['community_id'] = $communityId;
+        }
+
+        $uploadResult = $this->images->upload(
+            file: $file,
+            uploaderId: $viewerId,
+            altText: $altText,
+            imageType: 'featured',
+            entityType: 'event',
+            entityId: $eventId,
+            context: $context
+        );
+
+        if (!$uploadResult['success']) {
+            return ['error' => $uploadResult['error'] ?? 'Image upload failed.'];
+        }
+
+        return ['urls' => $uploadResult['urls']];
     }
 }

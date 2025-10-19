@@ -507,12 +507,18 @@ final class ConversationService
                 throw new \RuntimeException('Image alt-text is required for accessibility.');
             }
 
+            $uploaderId = (int)($data['author_id'] ?? 0);
             $uploadResult = $this->imageService->upload(
-                $data['image'],
-                $imageAlt,
-                'post',
-                'conversation',
-                $conversationId
+                file: $data['image'],
+                uploaderId: $uploaderId,
+                altText: $imageAlt,
+                imageType: 'reply',
+                entityType: 'conversation',
+                entityId: $conversationId,
+                context: [
+                    'conversation_id' => $conversationId,
+                    'reply_id' => 0  // Will be updated after reply is created
+                ]
             );
 
             if (!$uploadResult['success']) {

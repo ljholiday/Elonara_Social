@@ -30,7 +30,7 @@ $contextAllowed = (bool)($context['allowed'] ?? false);
     </div>
   <?php endif; ?>
 
-  <form method="post" action="/events/create" class="app-form app-stack">
+  <form method="post" action="/events/create" class="app-form app-stack" enctype="multipart/form-data">
     <?php if (!empty($context['community_id'])): ?>
       <input type="hidden" name="community_id" value="<?= (int)$context['community_id']; ?>">
     <?php endif; ?>
@@ -94,6 +94,37 @@ $contextAllowed = (bool)($context['allowed'] ?? false);
         name="description"
         rows="5"
       ><?= e($input['description'] ?? '') ?></textarea>
+    </div>
+
+    <div class="app-field">
+      <label class="app-label" for="featured_image">Featured Image</label>
+      <input
+        type="file"
+        class="app-input<?= isset($errors['featured_image']) ? ' is-invalid' : '' ?>"
+        id="featured_image"
+        name="featured_image"
+        accept="image/jpeg,image/png,image/gif,image/webp"
+      >
+      <small class="app-help-text">Optional. Maximum 10MB. JPEG, PNG, GIF, or WebP format.</small>
+      <?php if (isset($errors['featured_image'])): ?>
+        <div class="app-field-error"><?= e($errors['featured_image']) ?></div>
+      <?php endif; ?>
+    </div>
+
+    <div class="app-field">
+      <label class="app-label" for="featured_image_alt">Featured image description</label>
+      <input
+        type="text"
+        class="app-input<?= isset($errors['featured_image_alt']) ? ' is-invalid' : '' ?>"
+        id="featured_image_alt"
+        name="featured_image_alt"
+        placeholder="Describe the image for accessibility"
+        value="<?= e($input['featured_image_alt'] ?? '') ?>"
+      >
+      <small class="app-help-text">Required if uploading an image. Describe what's in the image for screen reader users.</small>
+      <?php if (isset($errors['featured_image_alt'])): ?>
+        <div class="app-field-error"><?= e($errors['featured_image_alt']) ?></div>
+      <?php endif; ?>
     </div>
 
     <div class="app-actions">

@@ -104,11 +104,13 @@ final class UserService
                 }
 
                 $uploadResult = $this->imageService->upload(
-                    $data['avatar'],
-                    $avatarAlt,
-                    'profile',
-                    'user',
-                    $userId
+                    file: $data['avatar'],
+                    uploaderId: $userId,
+                    altText: $avatarAlt,
+                    imageType: 'profile',
+                    entityType: 'user',
+                    entityId: $userId,
+                    context: []
                 );
 
                 if (!$uploadResult['success']) {
@@ -139,11 +141,13 @@ final class UserService
                 }
 
                 $uploadResult = $this->imageService->upload(
-                    $data['cover'],
-                    $coverAlt,
-                    'cover',
-                    'user',
-                    $userId
+                    file: $data['cover'],
+                    uploaderId: $userId,
+                    altText: $coverAlt,
+                    imageType: 'cover',
+                    entityType: 'user',
+                    entityId: $userId,
+                    context: []
                 );
 
                 if (!$uploadResult['success']) {

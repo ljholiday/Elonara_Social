@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Database\Database;
+use PDO;
+
 /**
  * Modern Image Service
  *
@@ -14,9 +17,11 @@ final class ImageService
     private string $uploadBasePath;
     private string $uploadBaseUrl;
     private array $config;
+    private Database $db;
 
-    public function __construct(string $uploadBasePath, string $uploadBaseUrl = '/uploads')
+    public function __construct(Database $db, string $uploadBasePath, string $uploadBaseUrl = '/uploads')
     {
+        $this->db = $db;
         $this->uploadBasePath = rtrim($uploadBasePath, '/');
         $this->uploadBaseUrl = rtrim($uploadBaseUrl, '/');
 
@@ -30,62 +35,60 @@ final class ImageService
      * Generates multiple size variants for responsive delivery
      *
      * @param array $file Uploaded file array from $_FILES
+     * @param int $uploaderId User ID who is uploading the image
      * @param string $altText Required alt-text for accessibility
-     * @param string $imageType Type: profile, cover, post, featured
+     * @param string $imageType Type: profile, cover, post, featured, reply
      * @param string $entityType Entity: user, event, conversation, community
      * @param int $entityId Entity ID
-     * @return array{success: bool, urls?: string, paths?: array, error?: string}
+     * @param array $context Optional context allocation (community_id, event_id, conversation_id, reply_id)
+     * @return array{success: bool, image_id?: int, urls?: string, paths?: array, error?: string}
      */
-    public function upload(array $file, string $altText, string $imageType, string $entityType, int $entityId): array
+    public function upload(array $file, int $uploaderId, string $altText, string $imageType, string $entityType, int $entityId, array $context = []): array
     {
-        $logFile = dirname(__DIR__, 2) . '/debug.log';
-
         try {
-            file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "ImageService::upload called with imageType={$imageType}, entityType={$entityType}, entityId={$entityId}\n", FILE_APPEND);
-
-            // Enforce alt-text requirement
             if (trim($altText) === '') {
                 return ['success' => false, 'error' => 'Alt-text is required for accessibility.'];
             }
 
-            file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "Alt-text validated\n", FILE_APPEND);
-
-            // Validate file
             $validation = $this->validate($file);
             if (!$validation['is_valid']) {
-                file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "Validation failed: " . ($validation['error'] ?? 'unknown') . "\n", FILE_APPEND);
                 return ['success' => false, 'error' => $validation['error']];
             }
 
-            file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "File validated\n", FILE_APPEND);
-
-            // Set up directory
             $uploadDir = $this->getUploadDirectory($entityType, $entityId);
-            file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "Upload dir: {$uploadDir}\n", FILE_APPEND);
-
             if (!$this->ensureDirectoryExists($uploadDir)) {
-                file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "Failed to create directory\n", FILE_APPEND);
                 return ['success' => false, 'error' => 'Failed to create upload directory.'];
             }
 
-            file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "Directory ensured\n", FILE_APPEND);
-
-            // Generate all size variants
             $variants = $this->generateVariants($file, $imageType, $entityType, $entityId, $uploadDir);
             if (!$variants['success']) {
-                file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "Variant generation failed\n", FILE_APPEND);
                 return $variants;
             }
 
-            file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "Upload successful with " . count($variants['urls']) . " variants\n", FILE_APPEND);
+            $imageInfo = getimagesize($file['tmp_name']);
+            $width = $imageInfo[0] ?? null;
+            $height = $imageInfo[1] ?? null;
+
+            $imageId = $this->trackInDatabase(
+                uploaderId: $uploaderId,
+                imageType: $imageType,
+                urls: json_encode($variants['urls']),
+                altText: $altText,
+                filePath: $variants['paths']['original'] ?? reset($variants['paths']),
+                fileSize: $file['size'],
+                mimeType: $file['type'],
+                width: $width,
+                height: $height,
+                context: $context
+            );
 
             return [
                 'success' => true,
+                'image_id' => $imageId,
                 'urls' => json_encode($variants['urls']),
                 'paths' => $variants['paths'],
             ];
         } catch (\Throwable $e) {
-            file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "ImageService::upload exception: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
             return ['success' => false, 'error' => 'Upload failed: ' . $e->getMessage()];
         }
     }
@@ -392,5 +395,129 @@ final class ImageService
             'upload_base' => '/uploads',
             'generate_webp' => true,
         ];
+    }
+
+    /**
+     * Track uploaded image in database with context allocation
+     *
+     * @param int $uploaderId User who uploaded the image
+     * @param string $imageType Type: profile, cover, featured, post, reply
+     * @param string $urls JSON string of all size variant URLs
+     * @param string $altText Alt text for accessibility
+     * @param string $filePath Primary file path
+     * @param int $fileSize File size in bytes
+     * @param string $mimeType MIME type
+     * @param int|null $width Original image width
+     * @param int|null $height Original image height
+     * @param array $context Context allocation (community_id, event_id, conversation_id, reply_id)
+     * @return int Image ID
+     */
+    private function trackInDatabase(
+        int $uploaderId,
+        string $imageType,
+        string $urls,
+        string $altText,
+        string $filePath,
+        int $fileSize,
+        string $mimeType,
+        ?int $width,
+        ?int $height,
+        array $context
+    ): int {
+        $pdo = $this->db->pdo();
+
+        // Determine which active flag to set based on image type
+        $activeFlagColumn = match ($imageType) {
+            'featured' => 'is_event_cover',
+            'cover' => 'is_community_cover',
+            'profile' => 'is_profile_image',
+            default => null,
+        };
+
+        // If this is a cover/featured image, mark previous ones as inactive
+        if ($activeFlagColumn !== null) {
+            $this->deactivatePreviousImage($activeFlagColumn, $context);
+        }
+
+        // Insert new image record
+        $stmt = $pdo->prepare("
+            INSERT INTO images (
+                uploader_id, image_type, urls, alt_text, file_path,
+                file_size, mime_type, width, height,
+                community_id, event_id, conversation_id, reply_id,
+                is_community_cover, is_event_cover, is_profile_image, is_cover_image,
+                created_at, is_active
+            ) VALUES (
+                :uploader_id, :image_type, :urls, :alt_text, :file_path,
+                :file_size, :mime_type, :width, :height,
+                :community_id, :event_id, :conversation_id, :reply_id,
+                :is_community_cover, :is_event_cover, :is_profile_image, :is_cover_image,
+                NOW(), 1
+            )
+        ");
+
+        $stmt->execute([
+            ':uploader_id' => $uploaderId,
+            ':image_type' => $imageType,
+            ':urls' => $urls,
+            ':alt_text' => $altText,
+            ':file_path' => $filePath,
+            ':file_size' => $fileSize,
+            ':mime_type' => $mimeType,
+            ':width' => $width,
+            ':height' => $height,
+            ':community_id' => $context['community_id'] ?? null,
+            ':event_id' => $context['event_id'] ?? null,
+            ':conversation_id' => $context['conversation_id'] ?? null,
+            ':reply_id' => $context['reply_id'] ?? null,
+            ':is_community_cover' => ($activeFlagColumn === 'is_community_cover') ? 1 : 0,
+            ':is_event_cover' => ($activeFlagColumn === 'is_event_cover') ? 1 : 0,
+            ':is_profile_image' => ($activeFlagColumn === 'is_profile_image') ? 1 : 0,
+            ':is_cover_image' => ($activeFlagColumn === 'is_cover_image') ? 1 : 0,
+        ]);
+
+        return (int)$pdo->lastInsertId();
+    }
+
+    /**
+     * Deactivate previous image with same active flag and context
+     *
+     * @param string $activeFlagColumn Column name (is_event_cover, is_community_cover, etc.)
+     * @param array $context Context to match
+     */
+    private function deactivatePreviousImage(string $activeFlagColumn, array $context): void
+    {
+        $pdo = $this->db->pdo();
+
+        // Build WHERE clause based on context
+        $whereClauses = ["{$activeFlagColumn} = 1"];
+        $params = [];
+
+        if (isset($context['community_id'])) {
+            $whereClauses[] = 'community_id = :community_id';
+            $params[':community_id'] = $context['community_id'];
+        }
+        if (isset($context['event_id'])) {
+            $whereClauses[] = 'event_id = :event_id';
+            $params[':event_id'] = $context['event_id'];
+        }
+        if (isset($context['conversation_id'])) {
+            $whereClauses[] = 'conversation_id = :conversation_id';
+            $params[':conversation_id'] = $context['conversation_id'];
+        }
+        if (isset($context['reply_id'])) {
+            $whereClauses[] = 'reply_id = :reply_id';
+            $params[':reply_id'] = $context['reply_id'];
+        }
+
+        $whereClause = implode(' AND ', $whereClauses);
+
+        $stmt = $pdo->prepare("
+            UPDATE images
+            SET {$activeFlagColumn} = 0
+            WHERE {$whereClause}
+        ");
+
+        $stmt->execute($params);
     }
 }
