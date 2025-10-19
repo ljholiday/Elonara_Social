@@ -517,10 +517,13 @@ function copyInvitationUrl(url) {
  * Initialize event guests section
  */
 function initEventGuestsSection() {
-    const guestsSection = document.getElementById('event-guests-list');
-    if (!guestsSection) return;
+    const wrapper = document.getElementById('event-guests-section');
+    const tableBody = document.getElementById('event-guests-body');
+    if (!wrapper || !tableBody) {
+        return;
+    }
 
-    const eventId = guestsSection.getAttribute('data-event-id');
+    const eventId = wrapper.getAttribute('data-event-id');
     if (eventId) {
         loadEventGuests(eventId);
     }
@@ -530,17 +533,19 @@ function initEventGuestsSection() {
  * Load event guests from API
  */
 function loadEventGuests(eventId) {
-    const guestsSection = document.getElementById('event-guests-list');
-    if (!guestsSection) return;
+    const tableBody = document.getElementById('event-guests-body');
+    if (!tableBody) {
+        return;
+    }
 
     const nonce = getCSRFToken();
-    fetch(`/api/events/${eventId}/guests?nonce=${encodeURIComponent(nonce)}`, {
+    fetch(`/api/events/${eventId}/invitations?nonce=${encodeURIComponent(nonce)}`, {
         method: 'GET'
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            updateEventGuestUI(data.data.guests || []);
+            updateEventGuestUI(data.data.invitations || data.data.guests || []);
         } else {
             showEventGuestError();
         }
@@ -555,65 +560,52 @@ function loadEventGuests(eventId) {
  * Update event guest UI with data
  */
 function updateEventGuestUI(guests) {
-    const guestsSection = document.getElementById('event-guests-list');
-    if (!guestsSection) return;
+    const tableBody = document.getElementById('event-guests-body');
+    const emptyState = document.getElementById('event-guests-empty');
+    const totalDisplay = document.getElementById('event-guest-total');
 
-    if (!guests || guests.length === 0) {
-        guestsSection.innerHTML = '<div class="app-text-center app-text-muted">No guests yet.</div>';
+    if (!tableBody) {
         return;
     }
 
-    // Separate by status
-    const confirmed = guests.filter(g => g.status === 'confirmed');
-    const pending = guests.filter(g => g.status === 'pending');
-    const declined = guests.filter(g => g.status === 'declined');
-
-    let html = '';
-
-    if (confirmed.length > 0) {
-        html += '<h4>Confirmed (' + confirmed.length + ')</h4>';
-        html += renderEventGuestsTable(confirmed);
+    if (!Array.isArray(guests) || guests.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="app-text-center app-text-muted">No guests yet.</td></tr>';
+        if (emptyState) {
+            emptyState.style.display = 'block';
+        }
+        if (totalDisplay) {
+            totalDisplay.textContent = '0';
+        }
+        return;
     }
 
-    if (pending.length > 0) {
-        html += '<h4>Pending (' + pending.length + ')</h4>';
-        html += renderEventGuestsTable(pending);
+    if (emptyState) {
+        emptyState.style.display = 'none';
     }
 
-    if (declined.length > 0) {
-        html += '<h4>Declined (' + declined.length + ')</h4>';
-        html += renderEventGuestsTable(declined);
+    if (totalDisplay) {
+        totalDisplay.textContent = String(guests.length);
     }
 
-    guestsSection.innerHTML = html;
+    const rows = guests.map(renderEventGuestRow).join('');
+    tableBody.innerHTML = rows;
 }
 
-/**
- * Render event guests table
- */
-function renderEventGuestsTable(guests) {
-    let html = '<table class="app-table">';
-    html += '<thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Date</th></tr></thead>';
-    html += '<tbody>';
+function renderEventGuestRow(guest) {
+    const name = escapeHtml(guest.name || guest.guest_name || guest.user_display_name || 'Guest');
+    const email = escapeHtml(guest.email || guest.guest_email || guest.user_email || '');
+    const statusValue = guest.status || 'pending';
+    const status = mapGuestStatus(statusValue);
+    const date = formatGuestDate(guest.rsvp_date || guest.created_at);
 
-    guests.forEach(guest => {
-        const name = escapeHtml(guest.guest_name || guest.user_display_name || 'Guest');
-        const email = escapeHtml(guest.guest_email || guest.user_email || '');
-        const status = mapGuestStatus(guest.status);
-        const date = formatGuestDate(guest.created_at);
-
-        html += `
-            <tr>
-                <td>${name}</td>
-                <td>${email}</td>
-                <td><span class="app-badge app-badge-${guest.status}">${status}</span></td>
-                <td>${date}</td>
-            </tr>
-        `;
-    });
-
-    html += '</tbody></table>';
-    return html;
+    return `
+        <tr>
+            <td>${name}</td>
+            <td>${email}</td>
+            <td><span class="app-badge app-badge-${statusValue}">${status}</span></td>
+            <td>${date}</td>
+        </tr>
+    `;
 }
 
 /**
@@ -642,8 +634,8 @@ function formatGuestDate(dateString) {
  * Show error message in guests section
  */
 function showEventGuestError() {
-    const guestsSection = document.getElementById('event-guests-list');
-    if (guestsSection) {
-        guestsSection.innerHTML = '<div class="app-text-center app-text-muted">Error loading guests.</div>';
+    const tableBody = document.getElementById('event-guests-body');
+    if (tableBody) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="app-alert app-alert-danger">We couldn\'t load this guest list right now. Please refresh and try again.</td></tr>';
     }
 }
