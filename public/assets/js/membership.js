@@ -428,20 +428,28 @@ function renderInvitationsList(invitations, entityType) {
 
     invitations.forEach(inv => {
         const email = escapeHtml(inv.invited_email || '');
-        const token = escapeHtml(inv.invitation_token || '');
-        const status = escapeHtml(inv.status || 'pending');
+        const tokenRaw = inv.invitation_token || '';
+        const tokenAttr = tokenRaw.replace(/"/g, '&quot;');
+        const status = (inv.status || 'pending').toLowerCase();
+        const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
         const createdAt = inv.created_at ? new Date(inv.created_at).toLocaleDateString() : '';
+        const invitationId = inv.id || '';
+        const canResend = entityType === 'event'
+            ? ['pending', 'maybe'].includes(status)
+            : status === 'pending';
+        const canCancel = status === 'pending';
 
         html += `
             <div class="app-invitation-item">
                 <div class="app-invitation-details">
                     <strong>${email}</strong>
-                    <span class="app-badge app-badge-${status}">${status}</span>
+                    <span class="app-badge app-badge-${status}">${escapeHtml(statusLabel)}</span>
                     <small class="app-text-muted">Sent ${createdAt}</small>
                 </div>
                 <div class="app-invitation-actions">
-                    <button type="button" class="app-btn app-btn-sm" onclick="copyInvitationUrl('${token}')">Copy Link</button>
-                    <button type="button" class="app-btn app-btn-sm app-btn-danger" data-action="cancel" data-invitation-id="${inv.id}">Cancel</button>
+                    <button type="button" class="app-btn app-btn-sm" data-action="copy" data-invitation-token="${tokenAttr}">Copy Link</button>
+                    ${canResend ? `<button type="button" class="app-btn app-btn-sm app-btn-secondary" data-action="resend" data-invitation-id="${invitationId}">Resend Email</button>` : ''}
+                    ${canCancel ? `<button type="button" class="app-btn app-btn-sm app-btn-danger" data-action="cancel" data-invitation-id="${invitationId}">Cancel</button>` : ''}
                 </div>
             </div>
         `;
@@ -449,7 +457,7 @@ function renderInvitationsList(invitations, entityType) {
 
     html += '</div>';
 
-    // Re-attach event handlers after rendering
+    // Re-attach action handlers after rendering
     setTimeout(() => {
         attachInvitationActionHandlers(entityType, invitations[0]?.community_id || invitations[0]?.event_id);
     }, 0);
@@ -461,37 +469,73 @@ function renderInvitationsList(invitations, entityType) {
  * Attach invitation action handlers (cancel/resend)
  */
 function attachInvitationActionHandlers(entityType, entityId) {
-    const cancelButtons = document.querySelectorAll('[data-action="cancel"]');
+    const containers = document.querySelectorAll('.app-invitations-list');
+    if (!containers.length) {
+        return;
+    }
 
-    cancelButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const invitationId = this.getAttribute('data-invitation-id');
-
-            if (!confirm('Cancel this invitation?')) {
-                return;
-            }
-
-            const entityTypePlural = entityType === 'community' ? 'communities' : 'events';
-
-            fetch(`/api/${entityTypePlural}/${entityId}/invitations/${invitationId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'nonce=' + encodeURIComponent(getCSRFToken())
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    loadPendingInvitations(entityType, entityId);
-                } else {
-                    alert(data.message || 'Failed to cancel invitation');
+    containers.forEach(container => {
+        container.querySelectorAll('[data-action="copy"]').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const token = this.getAttribute('data-invitation-token');
+                if (!token) {
+                    return;
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred. Please try again.');
+                const baseUrl = window.location.origin || '';
+                const link = entityType === 'event'
+                    ? `${baseUrl}/rsvp/${token}`
+                    : `${baseUrl}/invitation/accept?token=${token}`;
+                copyInvitationUrl(link);
+            });
+        });
+
+        container.querySelectorAll('[data-action="resend"]').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const invitationId = this.getAttribute('data-invitation-id');
+                if (!invitationId) {
+                    return;
+                }
+
+                if (entityType === 'event') {
+                    resendEventInvitation(entityId, invitationId, true);
+                } else {
+                    resendCommunityInvitation(entityId, invitationId);
+                }
+            });
+        });
+
+        container.querySelectorAll('[data-action="cancel"]').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const invitationId = this.getAttribute('data-invitation-id');
+
+                if (!confirm('Cancel this invitation?')) {
+                    return;
+                }
+
+                const entityTypePlural = entityType === 'community' ? 'communities' : 'events';
+
+                fetch(`/api/${entityTypePlural}/${entityId}/invitations/${invitationId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'nonce=' + encodeURIComponent(getCSRFToken())
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadPendingInvitations(entityType, entityId);
+                    } else {
+                        alert(data.message || 'Failed to cancel invitation');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                });
             });
         });
     });
@@ -661,7 +705,7 @@ function attachEventGuestActionHandlers(eventId) {
     });
 }
 
-function resendEventInvitation(eventId, invitationId) {
+function resendEventInvitation(eventId, invitationId, refreshPending = false) {
     const nonce = getCSRFToken();
     fetch(`/api/events/${eventId}/invitations/${invitationId}/resend`, {
         method: 'POST',
@@ -673,7 +717,34 @@ function resendEventInvitation(eventId, invitationId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            loadEventGuests(eventId);
+            if (refreshPending) {
+                loadPendingInvitations('event', eventId);
+            } else {
+                loadEventGuests(eventId);
+            }
+        } else {
+            alert(data.message || 'Unable to resend invitation.');
+        }
+    })
+    .catch(error => {
+        console.error('Error resending invitation:', error);
+        alert('An error occurred while resending the invitation.');
+    });
+}
+
+function resendCommunityInvitation(communityId, invitationId) {
+    const nonce = getCSRFToken();
+    fetch(`/api/communities/${communityId}/invitations/${invitationId}/resend`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'nonce=' + encodeURIComponent(nonce)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadPendingInvitations('community', communityId);
         } else {
             alert(data.message || 'Unable to resend invitation.');
         }

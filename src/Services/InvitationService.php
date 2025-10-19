@@ -108,6 +108,87 @@ final class InvitationService
     /**
      * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
      */
+    public function resendCommunityInvitation(int $communityId, int $invitationId, int $viewerId): array
+    {
+        if (!$this->canManageCommunity($communityId, $viewerId, ['admin', 'moderator'])) {
+            return $this->failure('You do not have permission to resend invitations.', 403);
+        }
+
+        $pdo = $this->database->pdo();
+        $stmt = $pdo->prepare(
+            "SELECT id, invited_email, message, status
+             FROM community_invitations
+             WHERE id = :id AND community_id = :community_id
+             LIMIT 1"
+        );
+        $stmt->execute([
+            ':id' => $invitationId,
+            ':community_id' => $communityId,
+        ]);
+
+        $invitation = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if ($invitation === false) {
+            return $this->failure('Invitation not found.', 404);
+        }
+
+        $status = strtolower((string)($invitation['status'] ?? ''));
+        if ($status !== 'pending') {
+            return $this->failure('This invitation cannot be resent.', 409);
+        }
+
+        $community = $this->fetchCommunity($communityId);
+        if ($community === null) {
+            return $this->failure('Community not found.', 404);
+        }
+
+        $newToken = $this->generateToken();
+        $expiresAt = date('Y-m-d H:i:s', strtotime('+' . self::EXPIRY_DAYS . ' days'));
+
+        $update = $pdo->prepare(
+            "UPDATE community_invitations
+             SET invitation_token = :token,
+                 expires_at = :expires_at,
+                 responded_at = NULL,
+                 status = 'pending'
+             WHERE id = :id AND community_id = :community_id
+             LIMIT 1"
+        );
+        $update->execute([
+            ':token' => $newToken,
+            ':expires_at' => $expiresAt,
+            ':id' => $invitationId,
+            ':community_id' => $communityId,
+        ]);
+
+        $inviterName = $this->auth->getCurrentUser()->display_name ?? 'A member';
+        $communityName = $community['name'] ?? 'a community';
+        $email = (string)($invitation['invited_email'] ?? '');
+        $message = (string)($invitation['message'] ?? '');
+
+        $this->sendInvitationEmail(
+            $email,
+            'community',
+            $communityName,
+            $newToken,
+            $inviterName,
+            $message,
+            ['community_id' => $communityId]
+        );
+
+        $list = $this->listCommunityInvitations($communityId, $viewerId);
+        if (!$list['success']) {
+            return $list;
+        }
+
+        $data = $list['data'] ?? [];
+        $data['message'] = 'Invitation email resent successfully.';
+
+        return $this->success($data);
+    }
+
+    /**
+     * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
+     */
     public function deleteCommunityInvitation(int $communityId, int $invitationId, int $viewerId): array
     {
         if (!$this->canManageCommunity($communityId, $viewerId, ['admin', 'moderator'])) {

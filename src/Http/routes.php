@@ -602,6 +602,14 @@ return static function (Router $router): void {
         return true;
     });
 
+    $router->post('/api/communities/{communityId}/invitations/{invitationId}/resend', static function (Request $request, string $communityId, string $invitationId) {
+        $response = app_service('controller.invitations')->resendCommunity((int)$communityId, (int)$invitationId);
+        http_response_code($response['status'] ?? 200);
+        header('Content-Type: application/json');
+        echo json_encode($response['body']);
+        return true;
+    });
+
     $router->get('/api/events/{id}/guests', static function (Request $request, string $id) {
         $eventId = (int)$id;
         $controller = app_service('controller.invitations');

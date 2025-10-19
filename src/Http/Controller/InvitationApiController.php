@@ -137,6 +137,33 @@ final class InvitationApiController
     /**
      * @return array{status:int, body:array<string,mixed>}
      */
+    public function resendCommunity(int $communityId, int $invitationId): array
+    {
+        $request = $this->request();
+        $nonce = (string)$request->input('nonce', '');
+        if ($nonce === '') {
+            $nonce = (string)$request->query('nonce', '');
+        }
+        if (!$this->verifyNonce($nonce, 'app_nonce')) {
+            return $this->error('Security verification failed.', 403);
+        }
+
+        $viewerId = $this->auth->currentUserId();
+        if ($viewerId === null || $viewerId <= 0) {
+            return $this->error('You must be logged in.', 401);
+        }
+
+        $result = $this->invitations->resendCommunityInvitation($communityId, $invitationId, $viewerId);
+        if (!$result['success']) {
+            return $this->error($result['message'], $result['status']);
+        }
+
+        return $this->success($result['data'], $result['status']);
+    }
+
+    /**
+     * @return array{status:int, body:array<string,mixed>}
+     */
     public function sendEvent(int $eventId): array
     {
         $request = $this->request();
