@@ -917,6 +917,7 @@ final class InvitationService
         $posted = 0;
 
         $communityName = $community['name'] ?? 'a community';
+        $appName = (string)app_config('app.name', 'our community');
 
         $processed = [];
 
