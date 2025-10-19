@@ -38,6 +38,47 @@ php -l path/to/file.php
 php clear-cache.php
 ```
 
+## Configuration System
+
+**Single Source of Truth**: `config/config.php`
+
+All application configuration lives in ONE file with sections for:
+- Environment (`local`, `staging`, `production`)
+- Application settings (name, URL, emails)
+- Database credentials
+- Mail transport
+- Security salts (auto-generated)
+- User settings
+- Image processing
+
+### Configuration Access
+```php
+// Get full config array
+$config = app_config();
+
+// Get specific section
+$dbConfig = app_config('database');
+$mailConfig = app_config('mail');
+
+// Get nested value with dot notation
+$appName = app_config('app.name');
+$dbHost = app_config('database.host');
+
+// Environment helpers
+$env = app_env();              // 'local', 'staging', or 'production'
+if (is_production()) { ... }
+if (is_local()) { ... }
+if (is_staging()) { ... }
+```
+
+### Setup New Environment
+1. Copy `config/config.sample.php` to `config/config.php`
+2. Edit environment, database, and mail settings
+3. Security salts auto-generate on first run
+4. See `docs/CONFIGURATION.md` for complete guide
+
+**IMPORTANT**: `config/config.php` is gitignored. Never commit credentials.
+
 ## Architecture
 
 ### Hybrid Architecture Pattern
@@ -165,9 +206,9 @@ social_elonara/
 │   ├── css/                     # All stylesheets (.app- prefixed)
 │   └── js/                      # All JavaScript modules
 ├── config/
-│   ├── schema.sql               # Database schema (source of truth)
-│   ├── database.php             # DB credentials (gitignored)
-│   ├── security_salts.php       # Security salts
+│   ├── config.php               # MASTER CONFIG - single source of truth (gitignored)
+│   ├── config.sample.php        # Config template (tracked in git)
+│   ├── schema.sql               # Database schema
 │   └── migrations/              # Incremental SQL migrations
 ├── dev/
 │   ├── doctrine/                # XML coding standards

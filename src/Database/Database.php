@@ -17,15 +17,26 @@ final class Database
         // Load project-level configuration if nothing was passed explicitly.
         // ------------------------------------------------------------------
         if (empty($cfg)) {
-            $configPath = __DIR__ . '/../../config/database.php';
-            if (!file_exists($configPath)) {
-                throw new RuntimeException("Database configuration not found at: $configPath");
-            }
-
-            $cfg = require $configPath;
-
-            if (!is_array($cfg)) {
-                throw new RuntimeException("Invalid configuration format in: $configPath");
+            // Try new unified config first
+            $configPath = __DIR__ . '/../../config/config.php';
+            if (file_exists($configPath)) {
+                $fullConfig = require $configPath;
+                if (!is_array($fullConfig) || !isset($fullConfig['database'])) {
+                    throw new RuntimeException("Invalid configuration format in: $configPath");
+                }
+                $cfg = $fullConfig['database'];
+            } else {
+                // Fall back to old database.php for backwards compatibility during migration
+                $configPath = __DIR__ . '/../../config/database.php';
+                if (!file_exists($configPath)) {
+                    throw new RuntimeException(
+                        "Database configuration not found. Copy config/config.sample.php to config/config.php"
+                    );
+                }
+                $cfg = require $configPath;
+                if (!is_array($cfg)) {
+                    throw new RuntimeException("Invalid configuration format in: $configPath");
+                }
             }
         }
 

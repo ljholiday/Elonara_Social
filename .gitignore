@@ -10,6 +10,7 @@ dev/
 # -------------------------------------------------
 # Core - Environment-specific configs (never commit)
 # -------------------------------------------------
+config/config.php
 config/database.php
 config/security_salts.php
 .env

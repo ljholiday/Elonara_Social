@@ -8,26 +8,26 @@ Elonara Social is a PHP-based web application designed to help communities organ
 
 ## Features
 
-### 🎉 Event Management
+### Event Management
 - Create and manage public or private events
 - RSVP tracking with guest limits
 - Venue information and event details
 - Host tools for managing attendees
 
-### 💬 Community Discussions
+### Community Discussions
 - Organized conversations around events and topics
 - Community-based discussion threads
 - Reply and engagement tracking
 - Privacy controls for sensitive discussions
 
-### 👥 Community Building
+### Community Building
 - Create and join communities of interest
 - Member roles and permissions
 - Public and private community options
-- Community-specific events and discussions
+- Community-specific events and conversations. 
 
-### 🔒 Privacy & Security
-- Circle-based privacy controls (Inner, Trusted, Extended)
+### Privacy & Security
+- Circle-based filtering (Inner, Trusted, Extended)
 - Secure authentication and session management
 - CSRF protection and input validation
 - Role-based access control
@@ -86,14 +86,15 @@ Elonara Social is a PHP-based web application designed to help communities organ
    chmod +x install.sh
    ./install.sh
    ```
+5. Create your first member account. 
 
-5. **Promote an initial admin user**
+6. **Promote an initial admin user**
    ```bash
    php scripts/promote-admin.php your@email.com
    ```
    Replace the email with the account you created during registration. This assigns the `super_admin` role so you can access the admin dashboard.
 
-6. **Configure web server** (see [INSTALL.md](INSTALL.md) for details)
+7. **Configure web server** (see [INSTALL.md](INSTALL.md) for details)
 
 ### Requirements
 
@@ -108,6 +109,8 @@ Elonara Social is a PHP-based web application designed to help communities organ
 - **[Development Guidelines](dev/)** - Coding standards and best practices
 
 ## Project Structure
+
+This section is outdated. 
 
 ```
 social_elonara/
@@ -166,7 +169,7 @@ Elonara Social takes security seriously:
 
 ## Upcoming Work
 
-- Default communities automatically created for new members (public + private circles)
+- https://github.com/users/ljholiday/projects/17
 
 ## License
 

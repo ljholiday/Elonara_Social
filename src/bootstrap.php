@@ -56,14 +56,15 @@ require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/../includes/image-helpers.php';
 
 // Load environment variables from .env if present (local development convenience).
+// These can override config file values if needed.
 Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
 
 if (!function_exists('app_config')) {
     /**
-     * Retrieve application configuration values.
+     * Retrieve application configuration values from the master config file.
      *
-     * @param string|null $key
-     * @param mixed $default
+     * @param string|null $key Dot-notation key (e.g., 'app.name', 'database.host')
+     * @param mixed $default Default value if key not found
      * @return mixed
      */
     function app_config(?string $key = null, $default = null)
@@ -71,14 +72,46 @@ if (!function_exists('app_config')) {
         static $config = null;
 
         if ($config === null) {
-            $path = __DIR__ . '/../config/app.php';
+            $path = __DIR__ . '/../config/config.php';
             if (!is_file($path)) {
-                throw new \RuntimeException('Missing config/app.php. Ensure configuration is published.');
+                throw new \RuntimeException(
+                    'Missing config/config.php. Copy config/config.sample.php to config/config.php and configure.'
+                );
             }
 
             $loaded = require $path;
             if (!is_array($loaded)) {
-                throw new \RuntimeException('config/app.php must return an array.');
+                throw new \RuntimeException('config/config.php must return an array.');
+            }
+
+            // Auto-generate security salts if missing
+            if (empty($loaded['security']['salts']['auth']) ||
+                empty($loaded['security']['salts']['nonce']) ||
+                empty($loaded['security']['salts']['session'])) {
+
+                $loaded['security']['salts'] = [
+                    'auth' => $loaded['security']['salts']['auth'] ?? bin2hex(random_bytes(32)),
+                    'nonce' => $loaded['security']['salts']['nonce'] ?? bin2hex(random_bytes(32)),
+                    'session' => $loaded['security']['salts']['session'] ?? bin2hex(random_bytes(32)),
+                ];
+
+                // Persist generated salts back to config file
+                $configContent = file_get_contents($path);
+                if ($configContent !== false) {
+                    $pattern = "/'salts'\s*=>\s*\[[^\]]+\]/s";
+                    $replacement = "'salts' => [\n" .
+                        "            'auth' => '" . $loaded['security']['salts']['auth'] . "',\n" .
+                        "            'nonce' => '" . $loaded['security']['salts']['nonce'] . "',\n" .
+                        "            'session' => '" . $loaded['security']['salts']['session'] . "',\n" .
+                        "        ]";
+                    $configContent = preg_replace($pattern, $replacement, $configContent);
+                    file_put_contents($path, $configContent);
+                }
+            }
+
+            // Apply environment-specific debug settings
+            if ($loaded['environment'] === 'local' && !isset($loaded['app']['debug'])) {
+                $loaded['app']['debug'] = true;
             }
 
             $config = $loaded;
@@ -88,31 +121,79 @@ if (!function_exists('app_config')) {
             return $config;
         }
 
+        // Support dot notation (e.g., 'app.name', 'database.host')
+        if (str_contains($key, '.')) {
+            $parts = explode('.', $key);
+            $value = $config;
+            foreach ($parts as $part) {
+                if (!is_array($value) || !array_key_exists($part, $value)) {
+                    return $default;
+                }
+                $value = $value[$part];
+            }
+            return $value;
+        }
+
         return $config[$key] ?? $default;
+    }
+}
+
+if (!function_exists('app_env')) {
+    /**
+     * Get the current application environment.
+     *
+     * @return string 'local', 'staging', or 'production'
+     */
+    function app_env(): string
+    {
+        return app_config('environment', 'production');
+    }
+}
+
+if (!function_exists('is_production')) {
+    /**
+     * Check if running in production environment.
+     */
+    function is_production(): bool
+    {
+        return app_env() === 'production';
+    }
+}
+
+if (!function_exists('is_local')) {
+    /**
+     * Check if running in local development environment.
+     */
+    function is_local(): bool
+    {
+        return app_env() === 'local';
+    }
+}
+
+if (!function_exists('is_staging')) {
+    /**
+     * Check if running in staging environment.
+     */
+    function is_staging(): bool
+    {
+        return app_env() === 'staging';
     }
 }
 
 if (!function_exists('user_config')) {
     /**
      * Retrieve user-related configuration values (e.g., username requirements).
+     * Now pulls from the master config file.
      */
     function user_config(?string $key = null, $default = null)
     {
-        static $config = null;
-
-        if ($config === null) {
-            $path = __DIR__ . '/../config/users.php';
-            $config = is_file($path) ? require $path : [];
-            if (!is_array($config)) {
-                throw new \RuntimeException('config/users.php must return an array.');
-            }
-        }
+        $userConfig = app_config('users', []);
 
         if ($key === null) {
-            return $config;
+            return $userConfig;
         }
 
-        return $config[$key] ?? $default;
+        return $userConfig[$key] ?? $default;
     }
 }
 
@@ -186,26 +267,11 @@ if (!function_exists('app_container')) {
             $container = new VTContainer();
             // Load application configuration so it's available inside service closures
             $appConfig = app_config();
+            $mailConfig = app_config('mail', []);
+            $dbConfig = app_config('database', []);
 
-            $mailConfigPath = __DIR__ . '/../config/mail.php';
-            $mailConfig = is_file($mailConfigPath) ? require $mailConfigPath : [];
-            if (!is_array($mailConfig)) {
-                throw new \RuntimeException('config/mail.php must return an array.');
-            }
-
-
-            $container->register('config.database', static function (): array {
-                $path = __DIR__ . '/../config/database.php';
-                if (!is_file($path)) {
-                    throw new \RuntimeException('Missing config/database.php. Copy database.php.sample and update credentials.');
-                }
-
-                $config = require $path;
-                if (!is_array($config)) {
-                    throw new \RuntimeException('config/database.php must return an array.');
-                }
-
-                return $config;
+            $container->register('config.database', static function () use ($dbConfig): array {
+                return $dbConfig;
             });
 
             $container->register('database.connection', static function (VTContainer $c): Database {
@@ -314,11 +380,22 @@ if (!function_exists('app_container')) {
                     $mailer->SMTPDebug = (int)$mailConfig['debug'];
                 }
 
-                $from = $mailConfig['from'] ?? [];
-                $fromEmail = (string)($from['address'] ?? $appConfig['noreply_email']);
-                $fromName  = (string)($from['name'] ?? $appConfig['app_name']);
+                // Use mail config or fall back to app config
+                $fromEmail = !empty($mailConfig['from_address'])
+                    ? (string)$mailConfig['from_address']
+                    : (string)($appConfig['app']['noreply_email'] ?? 'noreply@example.com');
+                $fromName = !empty($mailConfig['from_name'])
+                    ? (string)$mailConfig['from_name']
+                    : (string)($appConfig['app']['name'] ?? 'Application');
 
-                $replyTo = $mailConfig['reply_to'] ?? [];
+                $replyTo = [
+                    'address' => !empty($mailConfig['reply_to_address'])
+                        ? (string)$mailConfig['reply_to_address']
+                        : (string)($appConfig['app']['support_email'] ?? ''),
+                    'name' => !empty($mailConfig['reply_to_name'])
+                        ? (string)$mailConfig['reply_to_name']
+                        : (string)($appConfig['app']['name'] ?? 'Application') . ' Support',
+                ];
 
                 return new MailService($mailer, $fromEmail, $fromName, $replyTo);
             });
