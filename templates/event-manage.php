@@ -110,25 +110,10 @@ $blueskyActionNonce = $securityService->createNonce('app_bluesky_action', $viewe
           </div>
         </div>
 
-        <div id="event-guests-section" class="app-table-responsive"
+        <div id="event-guests-section"
           data-event-id="<?= e((string)$eventId) ?>"
           data-event-action-nonce="<?= htmlspecialchars($eventActionNonce, ENT_QUOTES, 'UTF-8'); ?>">
-          <table class="app-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Status</th>
-                <th>RSVP Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="event-guests-body">
-              <tr>
-                <td colspan="5" class="app-text-center app-text-muted">Loading event guests...</td>
-              </tr>
-            </tbody>
-          </table>
+          <div id="event-guests-body" class="app-invitations-list"></div>
         </div>
 
         <div id="event-guests-empty" class="app-text-center app-p-4" style="display:none;">
