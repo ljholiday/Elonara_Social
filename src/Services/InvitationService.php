@@ -260,29 +260,24 @@ final class InvitationService
 
         $userEmail = strtolower((string)($user->email ?? ''));
 
+        $blueskyVerified = false;
+        $blueskyConnectUrl = null;
+
         if ($isBlueskyInvite) {
             if ($invitedDid === '') {
                 return $this->failure('Invalid Bluesky invitation.', 400);
             }
 
             $credentials = $this->bluesky->getCredentials($viewerId);
-            if ($credentials === null) {
+            if ($credentials !== null) {
+                $userDid = strtolower((string)($credentials['did'] ?? ''));
+                if ($userDid === '' || $userDid !== $invitedDid) {
+                    return $this->failure('This invitation was sent to a different Bluesky account.', 403);
+                }
+                $blueskyVerified = true;
+            } else {
                 $redirectBack = '/invitation/accept?token=' . rawurlencode($token);
-                $connectUrl = '/profile/edit?connect=bluesky&redirect=' . rawurlencode($redirectBack);
-
-                return $this->failure(
-                    'Connect your Bluesky account to accept this invitation.',
-                    403,
-                    [
-                        'requires_bluesky' => true,
-                        'connect_url' => $connectUrl,
-                    ]
-                );
-            }
-
-            $userDid = strtolower((string)($credentials['did'] ?? ''));
-            if ($userDid === '' || $userDid !== $invitedDid) {
-                return $this->failure('This invitation was sent to a different Bluesky account.', 403);
+                $blueskyConnectUrl = '/profile/edit?connect=bluesky&redirect=' . rawurlencode($redirectBack);
             }
         } else {
             if ($userEmail === '' || $userEmail !== $invitedEmail) {
@@ -327,12 +322,21 @@ final class InvitationService
             ? '/communities/' . $communitySlug
             : '/communities/' . $communityId;
 
+        $message = $blueskyVerified
+            ? 'You have successfully joined the community!'
+            : ($isBlueskyInvite
+                ? 'Invitation accepted! Connect your Bluesky account to unlock Bluesky-powered features.'
+                : 'You have successfully joined the community!');
+
         return $this->success([
-            'message' => 'You have successfully joined the community!',
+            'message' => $message,
             'member_id' => $memberId,
             'community_id' => $communityId,
             'community_slug' => $communitySlug,
             'redirect_url' => $redirectUrl,
+            'bluesky_verified' => $blueskyVerified,
+            'needs_bluesky_link' => $isBlueskyInvite && !$blueskyVerified,
+            'bluesky_connect_url' => $blueskyConnectUrl,
         ]);
     }
 
@@ -780,10 +784,11 @@ final class InvitationService
      */
     private function success(array $data, int $status = 200): array
     {
+        $message = (string)($data['message'] ?? '');
         return [
             'success' => true,
             'status' => $status,
-            'message' => '',
+            'message' => $message,
             'data' => $data,
         ];
     }

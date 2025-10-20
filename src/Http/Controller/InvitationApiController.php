@@ -578,10 +578,12 @@ final class InvitationApiController
      */
     private function success(array $data, int $status = 200): array
     {
+        $message = (string)($data['message'] ?? '');
         return [
             'status' => $status,
             'body' => [
                 'success' => true,
+                'message' => $message,
                 'data' => $data,
             ],
         ];

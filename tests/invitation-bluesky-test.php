@@ -103,13 +103,27 @@ try {
     }
     $auth->verifyEmail($inviteeToken);
 
-    // Acceptance without Bluesky should fail
+    // Acceptance without Bluesky credentials should still succeed, but flag the linking requirement
     $initialAttempt = $invitations->acceptCommunityInvitation($invitationToken, $inviteeId);
-    if ($initialAttempt['success'] || ($initialAttempt['status'] ?? 0) !== 403) {
-        throw new RuntimeException('Expected Bluesky connection failure on first attempt.');
+    if (!$initialAttempt['success']) {
+        throw new RuntimeException('Initial acceptance failed unexpectedly: ' . ($initialAttempt['message'] ?? 'unknown error'));
     }
 
-    // Connect Bluesky account
+    $needsLink = (bool)($initialAttempt['data']['needs_bluesky_link'] ?? false);
+    if (!$needsLink) {
+        throw new RuntimeException('Expected needs_bluesky_link flag on initial acceptance.');
+    }
+
+    $isVerified = (bool)($initialAttempt['data']['bluesky_verified'] ?? false);
+    if ($isVerified) {
+        throw new RuntimeException('Bluesky should not be marked as verified before connecting.');
+    }
+
+    $inviteeMemberId = isset($initialAttempt['data']['member_id'])
+        ? (int)$initialAttempt['data']['member_id']
+        : null;
+
+    // Connect Bluesky account after acceptance
     $stored = $bluesky->storeCredentials(
         $inviteeId,
         strtolower($invitedDid),
@@ -121,15 +135,11 @@ try {
         throw new RuntimeException('Failed to store Bluesky credentials.');
     }
 
-    // Acceptance should now succeed
-    $finalAttempt = $invitations->acceptCommunityInvitation($invitationToken, $inviteeId);
-    if (!$finalAttempt['success']) {
-        throw new RuntimeException('Acceptance failed: ' . ($finalAttempt['message'] ?? 'unknown error'));
+    // Second acceptance should report that the user is already a member
+    $repeatAttempt = $invitations->acceptCommunityInvitation($invitationToken, $inviteeId);
+    if ($repeatAttempt['success'] || ($repeatAttempt['status'] ?? 0) !== 404) {
+        throw new RuntimeException('Expected invitation to be marked as already accepted.');
     }
-
-    $inviteeMemberId = isset($finalAttempt['data']['member_id'])
-        ? (int)$finalAttempt['data']['member_id']
-        : null;
 
     if (!$communityMembers->isMember($communityId, $inviteeId)) {
         throw new RuntimeException('Invitee not marked as community member.');
