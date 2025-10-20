@@ -9,7 +9,7 @@ require_once dirname(__DIR__) . '/_helpers.php';
 
 $event_title = isset($event_title) && $event_title !== '' ? (string)$event_title : 'Your Event';
 $from_name = isset($from_name) && $from_name !== '' ? (string)$from_name : ((isset($inviter_name) && $inviter_name !== '') ? (string)$inviter_name : 'A friend');
-$site_name = isset($site_name) && $site_name !== '' ? (string)$site_name : (string)app_config('app_name', 'Our Community');
+$site_name = isset($site_name) && $site_name !== '' ? (string)$site_name : (string)app_config('app.name', 'Our Community');
 $site_url = isset($site_url) && $site_url !== '' ? (string)$site_url : (string)app_config('app.url', '/');
 $invitation_url = isset($invitation_url) && $invitation_url !== '' ? (string)$invitation_url : '#';
 $personal_message = isset($personal_message) ? (string)$personal_message : '';

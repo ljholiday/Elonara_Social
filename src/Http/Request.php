@@ -30,7 +30,18 @@ final class Request
 
     public static function fromGlobals(): self
     {
-        return new self($_GET, $_POST, $_SERVER);
+        $server = $_SERVER;
+        $method = strtoupper((string)($server['REQUEST_METHOD'] ?? 'GET'));
+
+        $body = $_POST;
+        if ($body === [] && in_array($method, ['PUT', 'PATCH', 'DELETE', 'OPTIONS'], true)) {
+            $parsedBody = self::parseInputStream((string)($server['CONTENT_TYPE'] ?? ''));
+            if ($parsedBody !== null) {
+                $body = $parsedBody;
+            }
+        }
+
+        return new self($_GET, $body, $server);
     }
 
     public function method(): string
@@ -81,5 +92,31 @@ final class Request
     public function allInput(): array
     {
         return $this->body;
+    }
+
+    /**
+     * Attempt to parse the raw php://input stream when PHP does not populate $_POST.
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function parseInputStream(string $contentType): ?array
+    {
+        $raw = file_get_contents('php://input');
+        if ($raw === false || $raw === '') {
+            return null;
+        }
+
+        if (stripos($contentType, 'application/json') !== false) {
+            $decoded = json_decode($raw, true);
+            return is_array($decoded) ? $decoded : null;
+        }
+
+        if (stripos($contentType, 'application/x-www-form-urlencoded') !== false || $contentType === '') {
+            $parsed = [];
+            parse_str($raw, $parsed);
+            return is_array($parsed) ? $parsed : null;
+        }
+
+        return null;
     }
 }

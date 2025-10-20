@@ -185,6 +185,73 @@ function getCSRFToken() {
     return metaTag ? metaTag.getAttribute('content') : '';
 }
 
+function getInvitationsWrapper() {
+    return document.querySelector('.app-invitations-wrapper');
+}
+
+function getEntityActionNonce(entityType) {
+    if (entityType === 'community') {
+        const section = document.querySelector('.app-community-manage');
+        if (section && section.dataset.communityActionNonce) {
+            return section.dataset.communityActionNonce;
+        }
+    }
+    if (entityType === 'event') {
+        const section = document.querySelector('.app-event-manage');
+        if (section && section.dataset.eventActionNonce) {
+            return section.dataset.eventActionNonce;
+        }
+    }
+    return '';
+}
+
+function getInvitationActionNonce(entityType) {
+    const wrapper = getInvitationsWrapper();
+    if (wrapper && wrapper.dataset.entityType === entityType && wrapper.dataset.cancelNonce) {
+        return wrapper.dataset.cancelNonce;
+    }
+    return getEntityActionNonce(entityType);
+}
+
+function ensureActionNonce(entityType) {
+    const nonce = getInvitationActionNonce(entityType);
+    if (!nonce) {
+        const message = 'Security token missing. Please refresh the page and try again.';
+        console.error(`[nonces] ${message}`, { entityType });
+        alert(message);
+        throw new Error('Missing action nonce');
+    }
+    return nonce;
+}
+
+function updateInvitationsWrapperMeta(entityType, entityId, nonce) {
+    const wrapper = getInvitationsWrapper();
+    if (wrapper) {
+        if (entityType) {
+            wrapper.dataset.entityType = entityType;
+        }
+        if (entityId) {
+            wrapper.dataset.entityId = entityId;
+        }
+        if (nonce) {
+            wrapper.dataset.cancelNonce = nonce;
+        }
+    }
+
+    if (nonce && entityType) {
+        const section = entityType === 'community'
+            ? document.querySelector('.app-community-manage')
+            : document.querySelector('.app-event-manage');
+        if (section) {
+            if (entityType === 'community') {
+                section.dataset.communityActionNonce = nonce;
+            } else if (entityType === 'event') {
+                section.dataset.eventActionNonce = nonce;
+            }
+        }
+    }
+}
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -222,16 +289,26 @@ function changeMemberRole(memberId, newRole, communityId) {
         return;
     }
 
+    let nonce;
+    try {
+        nonce = ensureActionNonce('community');
+    } catch (error) {
+        return;
+    }
+
     fetch('/api/communities/' + communityId + '/members/' + memberId + '/role', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: 'role=' + encodeURIComponent(newRole) + '&nonce=' + encodeURIComponent(getCSRFToken())
+        body: 'role=' + encodeURIComponent(newRole) + '&nonce=' + encodeURIComponent(nonce)
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            if (data.data && data.data.nonce) {
+                updateInvitationsWrapperMeta('community', communityId, data.data.nonce);
+            }
             if (data.data && data.data.html) {
                 refreshMemberTable(communityId, data.data.html);
             } else {
@@ -255,16 +332,26 @@ function removeMember(memberId, memberName, communityId) {
         return;
     }
 
+    let nonce;
+    try {
+        nonce = ensureActionNonce('community');
+    } catch (error) {
+        return;
+    }
+
     fetch('/api/communities/' + communityId + '/members/' + memberId, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: 'nonce=' + encodeURIComponent(getCSRFToken())
+        body: 'nonce=' + encodeURIComponent(nonce)
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            if (data.data && data.data.nonce) {
+                updateInvitationsWrapperMeta('community', communityId, data.data.nonce);
+            }
             if (data.data && data.data.html) {
                 refreshMemberTable(communityId, data.data.html);
             } else {
@@ -331,7 +418,17 @@ function initInvitationForm() {
         if (message) {
             formData.append('message', message);
         }
-        formData.append('nonce', getCSRFToken());
+
+        let nonce;
+        try {
+            nonce = ensureActionNonce(entityType);
+        } catch (error) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
+        }
+
+        formData.append('nonce', nonce);
 
         const entityTypePlural = entityType === 'community' ? 'communities' : 'events';
 
@@ -350,6 +447,9 @@ function initInvitationForm() {
 
             if (data.success) {
                 const payload = data.data || {};
+                if (payload.nonce) {
+                    updateInvitationsWrapperMeta(entityType, entityId, payload.nonce);
+                }
                 alert(payload.message || 'Invitation sent successfully!');
 
                 // Reload pending invitations if applicable
@@ -371,6 +471,12 @@ function initInvitationForm() {
  * Initialize pending invitations loading
  */
 function initPendingInvitations() {
+    const wrapper = getInvitationsWrapper();
+    if (wrapper && wrapper.dataset.entityType && wrapper.dataset.entityId) {
+        loadPendingInvitations(wrapper.dataset.entityType, wrapper.dataset.entityId);
+        return;
+    }
+
     const form = document.getElementById('send-invitation-form');
     if (!form) return;
 
@@ -387,27 +493,46 @@ function initPendingInvitations() {
  */
 function loadPendingInvitations(entityType, entityId) {
     const invitationsList = document.getElementById('invitations-list');
+    const wrapper = getInvitationsWrapper();
     if (!invitationsList) return;
 
-    const entityTypePlural = entityType === 'community' ? 'communities' : 'events';
+    const resolvedEntityType = wrapper?.dataset.entityType || entityType;
+    const resolvedEntityId = wrapper?.dataset.entityId || entityId;
+    if (!resolvedEntityType || !resolvedEntityId) return;
 
-    const nonce = getCSRFToken();
-    fetch(`/api/${entityTypePlural}/${entityId}/invitations?nonce=${encodeURIComponent(nonce)}`, {
+    const entityTypePlural = resolvedEntityType === 'community' ? 'communities' : 'events';
+
+    let actionNonce;
+    try {
+        actionNonce = ensureActionNonce(resolvedEntityType);
+    } catch (error) {
+        invitationsList.innerHTML = '<div class="app-alert app-alert-error">Security token missing. Refresh the page and try again.</div>';
+        return;
+    }
+
+    updateInvitationsWrapperMeta(resolvedEntityType, resolvedEntityId, actionNonce);
+
+    fetch(`/api/${entityTypePlural}/${resolvedEntityId}/invitations?nonce=${encodeURIComponent(actionNonce)}`, {
         method: 'GET'
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             const payload = data.data || {};
+            const nextNonce = payload.nonce || actionNonce;
+            updateInvitationsWrapperMeta(resolvedEntityType, resolvedEntityId, nextNonce);
+
             if (payload.html) {
                 invitationsList.innerHTML = payload.html;
             } else if (payload.invitations && payload.invitations.length > 0) {
-                invitationsList.innerHTML = renderInvitationsList(payload.invitations, entityType);
+                invitationsList.innerHTML = renderInvitationsList(payload.invitations, resolvedEntityType);
             } else {
                 invitationsList.innerHTML = '<div class="app-text-center app-text-muted">No pending invitations.</div>';
             }
 
-            if (entityType === 'event') {
+            attachInvitationActionHandlers(resolvedEntityType, resolvedEntityId, nextNonce);
+
+            if (resolvedEntityType === 'event') {
                 updateEventGuestUI(payload.invitations || []);
             }
         } else {
@@ -457,22 +582,28 @@ function renderInvitationsList(invitations, entityType) {
 
     html += '</div>';
 
-    // Re-attach action handlers after rendering
-    setTimeout(() => {
-        attachInvitationActionHandlers(entityType, invitations[0]?.community_id || invitations[0]?.event_id);
-    }, 0);
-
     return html;
 }
 
 /**
  * Attach invitation action handlers (cancel/resend)
  */
-function attachInvitationActionHandlers(entityType, entityId) {
+function attachInvitationActionHandlers(entityType, entityId, cancelNonce = '') {
     const containers = document.querySelectorAll('.app-invitations-list');
     if (!containers.length) {
         return;
     }
+
+    let effectiveNonce = cancelNonce || getInvitationActionNonce(entityType);
+    if (!effectiveNonce) {
+        try {
+            effectiveNonce = ensureActionNonce(entityType);
+        } catch (error) {
+            return;
+        }
+    }
+
+    updateInvitationsWrapperMeta(entityType, entityId, effectiveNonce);
 
     containers.forEach(container => {
         container.querySelectorAll('[data-action="copy"]').forEach(button => {
@@ -522,10 +653,14 @@ function attachInvitationActionHandlers(entityType, entityId) {
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: 'nonce=' + encodeURIComponent(getCSRFToken())
+                    body: 'nonce=' + encodeURIComponent(effectiveNonce)
                 })
                 .then(response => response.json())
                 .then(data => {
+                    if (data.success && data.data && data.data.nonce) {
+                        effectiveNonce = data.data.nonce;
+                        updateInvitationsWrapperMeta(entityType, entityId, data.data.nonce);
+                    }
                     if (data.success) {
                         loadPendingInvitations(entityType, entityId);
                     } else {
@@ -582,13 +717,22 @@ function loadEventGuests(eventId) {
         return;
     }
 
-    const nonce = getCSRFToken();
+    let nonce;
+    try {
+        nonce = ensureActionNonce('event');
+    } catch (error) {
+        showEventGuestError();
+        return;
+    }
     fetch(`/api/events/${eventId}/guests?nonce=${encodeURIComponent(nonce)}`, {
         method: 'GET'
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            if (data.data && data.data.nonce) {
+                updateInvitationsWrapperMeta('event', eventId, data.data.nonce);
+            }
             updateEventGuestUI(data.data.invitations || data.data.guests || []);
         } else {
             showEventGuestError();
@@ -706,7 +850,12 @@ function attachEventGuestActionHandlers(eventId) {
 }
 
 function resendEventInvitation(eventId, invitationId, refreshPending = false) {
-    const nonce = getCSRFToken();
+    let nonce;
+    try {
+        nonce = ensureActionNonce('event');
+    } catch (error) {
+        return;
+    }
     fetch(`/api/events/${eventId}/invitations/${invitationId}/resend`, {
         method: 'POST',
         headers: {
@@ -716,6 +865,10 @@ function resendEventInvitation(eventId, invitationId, refreshPending = false) {
     })
     .then(response => response.json())
     .then(data => {
+        if (data.success && data.data && data.data.nonce) {
+            updateInvitationsWrapperMeta('event', eventId, data.data.nonce);
+            nonce = data.data.nonce;
+        }
         if (data.success) {
             if (refreshPending) {
                 loadPendingInvitations('event', eventId);
@@ -733,7 +886,12 @@ function resendEventInvitation(eventId, invitationId, refreshPending = false) {
 }
 
 function resendCommunityInvitation(communityId, invitationId) {
-    const nonce = getCSRFToken();
+    let nonce;
+    try {
+        nonce = ensureActionNonce('community');
+    } catch (error) {
+        return;
+    }
     fetch(`/api/communities/${communityId}/invitations/${invitationId}/resend`, {
         method: 'POST',
         headers: {
@@ -743,6 +901,10 @@ function resendCommunityInvitation(communityId, invitationId) {
     })
     .then(response => response.json())
     .then(data => {
+        if (data.success && data.data && data.data.nonce) {
+            updateInvitationsWrapperMeta('community', communityId, data.data.nonce);
+            nonce = data.data.nonce;
+        }
         if (data.success) {
             loadPendingInvitations('community', communityId);
         } else {
@@ -756,7 +918,12 @@ function resendCommunityInvitation(communityId, invitationId) {
 }
 
 function cancelEventInvitation(eventId, invitationId) {
-    const nonce = getCSRFToken();
+    let nonce;
+    try {
+        nonce = ensureActionNonce('event');
+    } catch (error) {
+        return;
+    }
     fetch(`/api/events/${eventId}/invitations/${invitationId}`, {
         method: 'DELETE',
         headers: {
@@ -766,6 +933,10 @@ function cancelEventInvitation(eventId, invitationId) {
     })
     .then(response => response.json())
     .then(data => {
+        if (data.success && data.data && data.data.nonce) {
+            updateInvitationsWrapperMeta('event', eventId, data.data.nonce);
+            nonce = data.data.nonce;
+        }
         if (data.success) {
             loadEventGuests(eventId);
         } else {

@@ -20,7 +20,7 @@ final class MailService
         array $replyTo = []
     ) {
         $this->fromEmail = $fromEmail ?? (string)app_config('noreply_email', 'noreply@example.com');
-        $this->fromName = $fromName ?? (string)app_config('app_name', 'Our Team');
+        $this->fromName = $fromName ?? (string)app_config('app.name', 'Our Team');
         $this->replyTo = $replyTo;
 
         $this->mailer->clearReplyTos();
@@ -79,7 +79,7 @@ final class MailService
         include $templatePath;
         $htmlBody = (string)ob_get_clean();
 
-        $subject = $variables['subject'] ?? sprintf('Message from %s', (string)app_config('app_name', 'Our Team'));
+        $subject = $variables['subject'] ?? sprintf('Message from %s', (string)app_config('app.name', 'Our Team'));
 
         return $this->send($to, $subject, $htmlBody);
     }

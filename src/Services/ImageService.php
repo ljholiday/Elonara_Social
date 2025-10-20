@@ -35,15 +35,23 @@ final class ImageService
      * Generates multiple size variants for responsive delivery
      *
      * @param array $file Uploaded file array from $_FILES
-     * @param int $uploaderId User ID who is uploading the image
      * @param string $altText Required alt-text for accessibility
      * @param string $imageType Type: profile, cover, post, featured, reply
      * @param string $entityType Entity: user, event, conversation, community
      * @param int $entityId Entity ID
+     * @param int $uploaderId User ID who is uploading the image (optional)
      * @param array $context Optional context allocation (community_id, event_id, conversation_id, reply_id)
      * @return array{success: bool, image_id?: int, urls?: string, paths?: array, error?: string}
      */
-    public function upload(array $file, int $uploaderId, string $altText, string $imageType, string $entityType, int $entityId, array $context = []): array
+    public function upload(
+        array $file,
+        string $altText,
+        string $imageType,
+        string $entityType,
+        int $entityId,
+        int $uploaderId = 0,
+        array $context = []
+    ): array
     {
         try {
             if (trim($altText) === '') {

@@ -331,142 +331,32 @@ return static function (Router $router): void {
 
     // Bluesky Connection
     $router->post('/connect/bluesky', static function (Request $request) {
-        $authService = app_service('auth.service');
-        $blueskyService = app_service('bluesky.service');
-        $securityService = app_service('security.service');
-
-        $currentUser = $authService->getCurrentUser();
-        if ($currentUser === null) {
-            $_SESSION['flash_error'] = 'You must be logged in to connect Bluesky';
-            header('Location: /auth');
-            exit;
-        }
-
-        $nonce = (string)$request->input('nonce', '');
-        if (!$securityService->verifyNonce($nonce, 'app_nonce',(int)$currentUser->id)) {
-            $_SESSION['flash_error'] = 'Security verification failed';
-            header('Location: /profile/edit');
-            exit;
-        }
-
-        $identifier = trim((string)$request->input('identifier', ''));
-        $password = trim((string)$request->input('password', ''));
-
-        if ($identifier === '' || $password === '') {
-            $_SESSION['flash_error'] = 'Bluesky handle and app password are required';
-            header('Location: /profile/edit');
-            exit;
-        }
-
-        $sessionResult = $blueskyService->createSession($identifier, $password);
-
-        if (!$sessionResult['success']) {
-            $_SESSION['flash_error'] = $sessionResult['message'];
-            header('Location: /profile/edit');
-            exit;
-        }
-
-        $stored = $blueskyService->storeCredentials(
-            (int)(int)$currentUser->id,
-            $sessionResult['did'],
-            $sessionResult['handle'],
-            $sessionResult['accessJwt'],
-            $sessionResult['refreshJwt']
-        );
-
-        if (!$stored) {
-            $_SESSION['flash_error'] = 'Failed to store Bluesky credentials';
-            header('Location: /profile/edit');
-            exit;
-        }
-
-        // Sync followers in background
-        $blueskyService->syncFollowers((int)$currentUser->id);
-
-        $_SESSION['flash_success'] = 'Bluesky account connected successfully!';
-        $logFile = dirname(__DIR__, 2) . '/debug.log';
-        file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "Bluesky connected - Setting flash_success in session\n", FILE_APPEND);
-        header('Location: /profile/edit');
+        $result = app_service('controller.bluesky')->connect();
+        header('Location: ' . ($result['redirect'] ?? '/profile/edit'));
         exit;
     });
 
     $router->post('/disconnect/bluesky', static function (Request $request) {
-        $authService = app_service('auth.service');
-        $blueskyService = app_service('bluesky.service');
-        $securityService = app_service('security.service');
-
-        $currentUser = $authService->getCurrentUser();
-        if ($currentUser === null) {
-            $_SESSION['flash_error'] = 'You must be logged in';
-            header('Location: /auth');
-            exit;
-        }
-
-        $nonce = (string)$request->input('nonce', '');
-        if (!$securityService->verifyNonce($nonce, 'app_nonce', (int)$currentUser->id)) {
-            $_SESSION['flash_error'] = 'Security verification failed';
-            header('Location: /profile/edit');
-            exit;
-        }
-
-        $blueskyService->disconnectAccount((int)$currentUser->id);
-
-        $_SESSION['flash_success'] = 'Bluesky account disconnected';
-        header('Location: /profile/edit');
+        $result = app_service('controller.bluesky')->disconnect();
+        header('Location: ' . ($result['redirect'] ?? '/profile/edit'));
         exit;
     });
 
     // API: Bluesky
     $router->post('/api/bluesky/sync', static function (Request $request) {
-        $authService = app_service('auth.service');
-        $blueskyService = app_service('bluesky.service');
-        $securityService = app_service('security.service');
-
+        $response = app_service('controller.bluesky')->syncFollowers();
+        http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
-
-        $currentUser = $authService->getCurrentUser();
-        if ($currentUser === null) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Not authenticated']);
-            return null;
-        }
-
-        $nonce = (string)$request->input('nonce', '');
-        if ($nonce === '') {
-            $body = json_decode((string)file_get_contents('php://input'), true);
-            if (is_array($body)) {
-                $nonce = (string)($body['nonce'] ?? '');
-            }
-        }
-        if (!$securityService->verifyNonce($nonce, 'app_nonce', (int)$currentUser->id)) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Security verification failed']);
-            return null;
-        }
-
-        $result = $blueskyService->syncFollowers((int)$currentUser->id);
-        http_response_code($result['success'] ? 200 : 400);
-        echo json_encode($result);
-        return null;
+        echo json_encode($response['body']);
+        return true;
     });
 
     $router->get('/api/bluesky/followers', static function (Request $request) {
-        $authService = app_service('auth.service');
-        $blueskyService = app_service('bluesky.service');
-
+        $response = app_service('controller.bluesky')->followers();
+        http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
-
-        $currentUser = $authService->getCurrentUser();
-        if ($currentUser === null) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Not authenticated']);
-            return null;
-        }
-
-        $result = $blueskyService->getCachedFollowers((int)$currentUser->id);
-        http_response_code($result['success'] ? 200 : 404);
-        echo json_encode($result);
-        return null;
+        echo json_encode($response['body']);
+        return true;
     });
 
     // API: Conversations
@@ -668,100 +558,18 @@ return static function (Router $router): void {
 // API: Bluesky Invitations
     
     $router->post('/api/invitations/bluesky/event/{id}', static function (Request $request, string $id) {
-        $authService = app_service('auth.service');
-        $invitationService = app_service('invitation.manager');
-        $securityService = app_service('security.service');
-
+        $response = app_service('controller.bluesky.invitation')->inviteEvent((int)$id);
+        http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
-
-        $currentUser = $authService->getCurrentUser();
-        if ($currentUser === null) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Not authenticated']);
-            return true;
-        }
-
-        $body = json_decode(file_get_contents('php://input'), true);
-        $nonce = (string)($body['nonce'] ?? '');
-        $followerDids = $body['follower_dids'] ?? [];
-
-        if (!$securityService->verifyNonce($nonce, 'app_nonce', (int)$currentUser->id)) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Security verification failed']);
-            return true;
-        }
-
-        if (!is_array($followerDids)) {
-            http_response_code(422);
-            echo json_encode(['success' => false, 'message' => 'Invalid follower_dids format']);
-            return true;
-        }
-
-        try {
-            $result = $invitationService->inviteBlueskyFollowersToEvent((int)$id, (int)$currentUser->id, $followerDids);
-            http_response_code($result['status']);
-            echo json_encode([
-                'success' => $result['success'],
-                'message' => $result['message'] ?? '',
-                'data' => $result['data'] ?? []
-            ]);
-        } catch (\Throwable $e) {
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Server error: ' . $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-        }
+        echo json_encode($response['body']);
         return true;
     });
 
     $router->post('/api/invitations/bluesky/community/{id}', static function (Request $request, string $id) {
-        $authService = app_service('auth.service');
-        $invitationService = app_service('invitation.manager');
-        $securityService = app_service('security.service');
-
+        $response = app_service('controller.bluesky.invitation')->inviteCommunity((int)$id);
+        http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
-
-        $currentUser = $authService->getCurrentUser();
-        if ($currentUser === null) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Not authenticated']);
-            return true;
-        }
-
-        $body = json_decode(file_get_contents('php://input'), true);
-        $nonce = (string)($body['nonce'] ?? '');
-        $followerDids = $body['follower_dids'] ?? [];
-
-        if (!$securityService->verifyNonce($nonce, 'app_nonce', (int)$currentUser->id)) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Security verification failed']);
-            return true;
-        }
-
-        if (!is_array($followerDids)) {
-            http_response_code(422);
-            echo json_encode(['success' => false, 'message' => 'Invalid follower_dids format']);
-            return true;
-        }
-
-        try {
-            $result = $invitationService->inviteBlueskyFollowersToCommunity((int)$id, (int)$currentUser->id, $followerDids);
-            http_response_code($result['status']);
-            echo json_encode([
-                'success' => $result['success'],
-                'message' => $result['message'] ?? '',
-                'data' => $result['data'] ?? []
-            ]);
-        } catch (\Throwable $e) {
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Server error: ' . $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-        }
+        echo json_encode($response['body']);
         return true;
     });
 
@@ -778,7 +586,7 @@ return static function (Router $router): void {
         http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
         echo json_encode($response['body']);
-        return null;
+        return true;
     });
 
     $router->delete('/api/communities/{communityId}/members/{memberId}', static function (Request $request, string $communityId, string $memberId) {
@@ -786,7 +594,7 @@ return static function (Router $router): void {
         http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
         echo json_encode($response['body']);
-        return null;
+        return true;
     });
 
 // Events
@@ -1400,33 +1208,49 @@ return static function (Router $router): void {
     });
 
 $router->get('/invitation/accept', static function (Request $request) {
-    $token = $request->query('token');
+    $token = (string)$request->query('token', '');
 
-    if (!$token) {
+    if ($token === '') {
         http_response_code(400);
-        echo 'Missing invitation token.';
+        app_render('invitation-accept.php', [
+            'page_title' => 'Join Invitation',
+            'success' => false,
+            'message' => 'Missing invitation token.',
+            'status' => 400,
+            'data' => [],
+        ], 'guest');
         return null;
     }
 
     $controller = app_service('controller.invitations');
-    $response = $controller->acceptToken((string)$token);
+    $response = $controller->acceptToken($token);
 
     if (isset($response['redirect'])) {
         header('Location: ' . $response['redirect']);
         exit;
     }
 
-    $status = $response['status'] ?? 200;
+    $status = (int)($response['status'] ?? 200);
     $body = $response['body'] ?? [];
+    $success = (bool)($body['success'] ?? false);
+    $data = $body['data'] ?? [];
 
-    if (($body['success'] ?? false) && isset($body['data']['redirect_url'])) {
-        header('Location: ' . $body['data']['redirect_url']);
+    if ($success && isset($data['redirect_url'])) {
+        header('Location: ' . $data['redirect_url']);
         exit;
     }
 
     http_response_code($status);
-    $message = $body['message'] ?? (($body['success'] ?? false) ? 'Invitation accepted successfully.' : 'Unable to accept invitation.');
-    echo $message;
+    $message = (string)($body['message'] ?? ($success ? 'Invitation accepted successfully.' : 'Unable to accept invitation.'));
+
+    app_render('invitation-accept.php', [
+        'page_title' => $success ? 'Invitation Accepted' : 'Join Invitation',
+        'success' => $success,
+        'message' => $message,
+        'status' => $status,
+        'data' => $data,
+    ], 'guest');
+
     return null;
 });
 

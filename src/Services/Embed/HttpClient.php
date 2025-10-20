@@ -128,7 +128,7 @@ final class HttpClient
 
     private function userAgent(): string
     {
-        $appName = (string)app_config('app_name', 'App');
+        $appName = (string)app_config('app.name', 'App');
         return sprintf('%s/1.0', $appName);
     }
 

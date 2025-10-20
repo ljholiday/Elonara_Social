@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-$appName = (string)app_config('app_name', 'Elonara Social');
+$appName = (string)app_config('app.name', 'Elonara Social');
 $assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
 $page_title = $page_title ?? $appName;
 $content = $content ?? '';

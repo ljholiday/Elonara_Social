@@ -111,7 +111,7 @@ function app_render(string $template_path, array $data = [], string $layout = 'p
     $content = ob_get_clean();
 
     // Set layout variables
-    $page_title = $data['page_title'] ?? (string)app_config('app_name', 'Elonara Social');
+    $page_title = $data['page_title'] ?? (string)app_config('app.name', 'Elonara Social');
     $page_description = $data['page_description'] ?? '';
     $current_path = $_SERVER['REQUEST_URI'] ?? '/';
     $breadcrumbs = $data['breadcrumbs'] ?? [];

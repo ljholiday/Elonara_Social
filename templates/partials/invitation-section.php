@@ -14,6 +14,14 @@ $entity_type = $entity_type ?? 'community';
 $entity_id = (int)($entity_id ?? 0);
 $show_pending = $show_pending ?? true;
 $invite_url = $invite_url ?? '';
+$cancel_nonce = $cancel_nonce ?? '';
+
+if ($cancel_nonce === '') {
+    $security = app_service('security.service');
+    $viewerId = (int)(app_service('auth.service')->currentUserId() ?? 0);
+    $action = $entity_type === 'event' ? 'app_event_action' : 'app_community_action';
+    $cancel_nonce = $security->createNonce($action, $viewerId);
+}
 
 $entity_label = ucfirst($entity_type);
 $share_url = $invite_url !== '' ? $invite_url : '/' . $entity_type . 's';
@@ -85,9 +93,14 @@ $share_url = $invite_url !== '' ? $invite_url : '/' . $entity_type . 's';
 	<?php if ($show_pending) : ?>
     <div class="app-mt-6">
         <h4 class="app-heading app-heading-sm">Pending Invitations</h4>
-        <div id="invitations-list">
-            <div class="app-loading-placeholder">
-                <p>Loading pending invitations...</p>
+        <div class="app-invitations-wrapper"
+             data-entity-type="<?php echo htmlspecialchars($entity_type, ENT_QUOTES, 'UTF-8'); ?>"
+             data-entity-id="<?php echo (int)$entity_id; ?>"
+             data-cancel-nonce="<?php echo htmlspecialchars($cancel_nonce, ENT_QUOTES, 'UTF-8'); ?>">
+            <div id="invitations-list">
+                <div class="app-loading-placeholder">
+                    <p>Loading pending invitations...</p>
+                </div>
             </div>
         </div>
     </div>

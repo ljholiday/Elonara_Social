@@ -3,7 +3,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-APP_NAME="$(php -r "require '${PROJECT_DIR}/src/bootstrap.php'; echo app_config('app_name');" 2>/dev/null || echo 'Application')"
+APP_NAME="$(php -r "require '${PROJECT_DIR}/src/bootstrap.php'; echo app_config('app.name');" 2>/dev/null || echo 'Application')"
 echo "====================================="
 echo " ${APP_NAME} Installation"
 echo "====================================="

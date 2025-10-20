@@ -1,5 +1,5 @@
 <?php
-$appName = (string)app_config('app_name', 'Elonara Social');
+$appName = (string)app_config('app.name', 'Elonara Social');
 $login = $login ?? ($view['login'] ?? ['errors' => [], 'input' => []]);
 $register = $register ?? ($view['register'] ?? ['errors' => [], 'input' => []]);
 $active = $active ?? ($view['active'] ?? 'login');

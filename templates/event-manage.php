@@ -7,8 +7,17 @@ $guest_summary = $guest_summary ?? ['total' => 0, 'confirmed' => 0];
 $messages = $messages ?? [];
 
 $tab = in_array($tab, ['settings', 'guests', 'invites'], true) ? $tab : 'settings';
+
+$authService = app_service('auth.service');
+$currentUser = $authService ? $authService->getCurrentUser() : null;
+$viewerId = (int)($currentUser->id ?? 0);
+$securityService = app_service('security.service');
+$eventActionNonce = $securityService->createNonce('app_event_action', $viewerId);
+$blueskyActionNonce = $securityService->createNonce('app_bluesky_action', $viewerId);
 ?>
-<section class="app-section app-event-manage">
+<section class="app-section app-event-manage"
+  data-event-id="<?= e((string)($event['id'] ?? 0)) ?>"
+  data-event-action-nonce="<?= htmlspecialchars($eventActionNonce, ENT_QUOTES, 'UTF-8'); ?>">
   <?php if ($status === 404 || empty($event)): ?>
     <div class="app-text-center app-p-6">
       <h1 class="app-heading">Event not found</h1>
@@ -101,7 +110,9 @@ $tab = in_array($tab, ['settings', 'guests', 'invites'], true) ? $tab : 'setting
           </div>
         </div>
 
-        <div id="event-guests-section" class="app-table-responsive" data-event-id="<?= e((string)$eventId) ?>">
+        <div id="event-guests-section" class="app-table-responsive"
+          data-event-id="<?= e((string)$eventId) ?>"
+          data-event-action-nonce="<?= htmlspecialchars($eventActionNonce, ENT_QUOTES, 'UTF-8'); ?>">
           <table class="app-table">
             <thead>
               <tr>
@@ -133,6 +144,8 @@ $tab = in_array($tab, ['settings', 'guests', 'invites'], true) ? $tab : 'setting
       $entity_id = $eventId;
       $invite_url = $invitationLink;
       $show_pending = true;
+      $cancel_nonce = $eventActionNonce;
+      $bluesky_nonce = $blueskyActionNonce;
       include __DIR__ . '/partials/invitation-section.php';
       ?>
 

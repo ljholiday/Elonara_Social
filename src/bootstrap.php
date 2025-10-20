@@ -24,6 +24,8 @@ use App\Http\Controller\CommunityApiController;
 use App\Http\Controller\ConversationController;
 use App\Http\Controller\ConversationApiController;
 use App\Http\Controller\InvitationApiController;
+use App\Http\Controller\BlueskyController;
+use App\Http\Controller\BlueskyInvitationController;
 use App\Http\Controller\SearchController;
 use App\Http\Controller\ProfileController;
 use App\Http\Request;
@@ -46,6 +48,7 @@ use App\Services\SecurityService;
 use App\Services\UserService;
 use App\Services\SearchService;
 use App\Services\BlueskyService;
+use App\Services\BlueskyInvitationService;
 use App\Services\DefaultCommunityService;
 use PHPMailer\PHPMailer\PHPMailer;
 
@@ -438,6 +441,16 @@ if (!function_exists('app_container')) {
                 return new BlueskyService($c->get('database.connection'));
             });
 
+            $container->register('bluesky.invitation.service', static function (VTContainer $c): BlueskyInvitationService {
+                return new BlueskyInvitationService(
+                    $c->get('database.connection'),
+                    $c->get('auth.service'),
+                    $c->get('bluesky.service'),
+                    $c->get('event.guest.service'),
+                    $c->get('community.member.service')
+                );
+            });
+
             $container->register('invitation.manager', static function (VTContainer $c): InvitationService {
                 return new InvitationService(
                     $c->get('database.connection'),
@@ -452,6 +465,22 @@ if (!function_exists('app_container')) {
 
             $container->register('controller.auth', static function (VTContainer $c): AuthController {
                 return new AuthController($c->get('auth.service'), $c->get('validator.service'));
+            }, false);
+
+            $container->register('controller.bluesky', static function (VTContainer $c): BlueskyController {
+                return new BlueskyController(
+                    $c->get('auth.service'),
+                    $c->get('bluesky.service'),
+                    $c->get('security.service')
+                );
+            }, false);
+
+            $container->register('controller.bluesky.invitation', static function (VTContainer $c): BlueskyInvitationController {
+                return new BlueskyInvitationController(
+                    $c->get('auth.service'),
+                    $c->get('security.service'),
+                    $c->get('bluesky.invitation.service')
+                );
             }, false);
 
             $container->register('controller.events', static function (VTContainer $c): EventController {

@@ -8,8 +8,14 @@ $viewer_id = (int)($viewer_id ?? 0);
 $can_manage_members = $can_manage_members ?? false;
 $statusCode = $status ?? 200;
 
+$securityService = app_service('security.service');
+$communityActionNonce = $securityService->createNonce('app_community_action', $viewer_id);
+$blueskyActionNonce = $securityService->createNonce('app_bluesky_action', $viewer_id);
+
 ?>
-<section class="app-section app-community-manage">
+<section class="app-section app-community-manage"
+  data-community-id="<?= e((string)($community['id'] ?? 0)) ?>"
+  data-community-action-nonce="<?= htmlspecialchars($communityActionNonce, ENT_QUOTES, 'UTF-8'); ?>">
   <?php if ($statusCode === 404 || empty($community)): ?>
     <div class="app-text-center app-p-6">
       <h1 class="app-heading">Community not found</h1>
@@ -117,6 +123,8 @@ $statusCode = $status ?? 200;
         $entity_id = $communityId;
         $invite_url = $shareLink;
         $show_pending = true;
+        $cancel_nonce = $communityActionNonce;
+        $bluesky_nonce = $blueskyActionNonce;
         include __DIR__ . '/partials/invitation-section.php';
       ?>
 

@@ -267,7 +267,17 @@ final class InvitationService
 
             $credentials = $this->bluesky->getCredentials($viewerId);
             if ($credentials === null) {
-                return $this->failure('Connect your Bluesky account to accept this invitation.', 403);
+                $redirectBack = '/invitation/accept?token=' . rawurlencode($token);
+                $connectUrl = '/profile/edit?connect=bluesky&redirect=' . rawurlencode($redirectBack);
+
+                return $this->failure(
+                    'Connect your Bluesky account to accept this invitation.',
+                    403,
+                    [
+                        'requires_bluesky' => true,
+                        'connect_url' => $connectUrl,
+                    ]
+                );
             }
 
             $userDid = strtolower((string)($credentials['did'] ?? ''));
@@ -513,7 +523,7 @@ final class InvitationService
         array $options = []
     ): bool {
         $url = $this->buildInvitationUrl($type, $token);
-        $appName = (string)app_config('app_name', 'Our Community');
+        $appName = (string)app_config('app.name', 'Our Community');
         $siteUrl = (string)app_config('app.url', '/');
         $fromName = $options['from_name'] ?? ($inviterName !== '' ? $inviterName : $appName);
 
@@ -763,248 +773,6 @@ final class InvitationService
         return $normalized;
     }
 
-    /**
-     * Invite Bluesky followers to an event
-     *
-     * @param int $eventId
-     * @param int $viewerId
-     * @param array<string> $followerDids Array of Bluesky DIDs
-     * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
-     */
-    public function inviteBlueskyFollowersToEvent(int $eventId, int $viewerId, array $followerDids): array
-    {
-        $event = $this->fetchEvent($eventId, includeSlug: true, includeTitle: true);
-        if ($event === null) {
-            return $this->failure('Event not found.', 404);
-        }
-
-        if (!$this->canManageEvent($event, $viewerId)) {
-            return $this->failure('Only the event host can send invitations.', 403);
-        }
-
-        if (empty($followerDids)) {
-            return $this->failure('No followers selected.', 422);
-        }
-
-        // Get cached followers to map DIDs to handles
-        $cachedResult = $this->bluesky->getCachedFollowers($viewerId);
-        $followersMap = [];
-
-        if ($cachedResult['success'] && !empty($cachedResult['followers'])) {
-            foreach ($cachedResult['followers'] as $follower) {
-                $did = strtolower(trim((string)($follower['did'] ?? '')));
-                if ($did !== '') {
-                    $followersMap[$did] = $follower;
-                }
-            }
-        }
-
-        $invited = 0;
-        $skipped = 0;
-        $errors = [];
-        $posted = 0;
-
-        $eventName = $event['title'] ?? 'an event';
-
-        $processed = [];
-
-        foreach ($followerDids as $did) {
-            $did = strtolower(trim((string)$did));
-            if ($did === '') {
-                continue;
-            }
-
-            if (isset($processed[$did])) {
-                continue;
-            }
-            $processed[$did] = true;
-
-            // Use bsky: prefix to indicate DID-based invitation
-            $email = 'bsky:' . $did;
-
-            // Check if already invited
-            if ($this->eventGuests->guestExists($eventId, $email)) {
-                $skipped++;
-                continue;
-            }
-
-            try {
-                $token = $this->generateToken();
-                $this->eventGuests->createGuest($eventId, $email, $token, '', 'bluesky');
-                $invited++;
-
-                // Post to Bluesky with mention
-                $follower = $followersMap[$did] ?? null;
-                if ($follower !== null) {
-                    $handle = $follower['handle'] ?? '';
-                    $displayName = $follower['displayName'] ?? $handle;
-
-                    if ($handle !== '') {
-                        $inviteUrl = $this->buildInvitationUrl('event', $token);
-                        $postText = "@{$handle} You've been invited to {$eventName}! RSVP: {$inviteUrl}";
-
-                        $postResult = $this->bluesky->createPost($viewerId, $postText, [
-                            ['handle' => $handle, 'did' => $did]
-                        ]);
-
-                        if ($postResult['success']) {
-                            $posted++;
-                        }
-                    }
-                }
-
-            } catch (\Exception $e) {
-                $errors[] = 'Failed to invite ' . substr($did, 0, 20) . '...';
-            }
-        }
-
-        $message = "Invited {$invited} followers";
-        if ($posted > 0) {
-            $message .= ", posted {$posted} invitations to Bluesky";
-        }
-        if ($skipped > 0) {
-            $message .= ", skipped {$skipped} already invited";
-        }
-
-        return $this->success([
-            'message' => $message,
-            'invited' => $invited,
-            'posted' => $posted,
-            'skipped' => $skipped,
-            'errors' => $errors,
-        ]);
-    }
-
-    /**
-     * Invite Bluesky followers to a community
-     *
-     * @param int $communityId
-     * @param int $viewerId
-     * @param array<string> $followerDids Array of Bluesky DIDs
-     * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
-     */
-    public function inviteBlueskyFollowersToCommunity(int $communityId, int $viewerId, array $followerDids): array
-    {
-        $community = $this->fetchCommunity($communityId);
-        if ($community === null) {
-            return $this->failure('Community not found.', 404);
-        }
-
-        if (!$this->canManageCommunity($communityId, $viewerId, ['admin', 'moderator'])) {
-            return $this->failure('You do not have permission to send invitations.', 403);
-        }
-
-        if (empty($followerDids)) {
-            return $this->failure('No followers selected.', 422);
-        }
-
-        // Get cached followers to map DIDs to handles
-        $cachedResult = $this->bluesky->getCachedFollowers($viewerId);
-        $followersMap = [];
-
-        if ($cachedResult['success'] && !empty($cachedResult['followers'])) {
-            foreach ($cachedResult['followers'] as $follower) {
-                $did = strtolower(trim((string)($follower['did'] ?? '')));
-                if ($did !== '') {
-                    $followersMap[$did] = $follower;
-                }
-            }
-        }
-
-        $invited = 0;
-        $skipped = 0;
-        $errors = [];
-        $posted = 0;
-
-        $communityName = $community['name'] ?? 'a community';
-        $appName = (string)app_config('app.name', 'our community');
-
-        $processed = [];
-
-        foreach ($followerDids as $did) {
-            $did = strtolower(trim((string)$did));
-            if ($did === '') {
-                continue;
-            }
-
-            if (isset($processed[$did])) {
-                continue;
-            }
-            $processed[$did] = true;
-
-            // Use bsky: prefix to indicate DID-based invitation
-            $email = 'bsky:' . $did;
-
-            // Check if already invited
-            if ($this->isAlreadyInvited('community', $communityId, $email)) {
-                $skipped++;
-                continue;
-            }
-
-            try {
-                $token = $this->generateToken();
-                $expiresAt = date('Y-m-d H:i:s', strtotime('+' . self::EXPIRY_DAYS . ' days'));
-
-                $pdo = $this->database->pdo();
-                $stmt = $pdo->prepare('
-                    INSERT INTO community_invitations
-                    (community_id, invited_by_member_id, invited_email, invitation_token, message, status, expires_at, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-                ');
-
-                $stmt->execute([
-                    $communityId,
-                    $viewerId,
-                    $email,
-                    $token,
-                    '',
-                    'pending',
-                    $expiresAt
-                ]);
-
-                $invited++;
-
-                // Post to Bluesky with mention
-                $follower = $followersMap[$did] ?? null;
-                if ($follower !== null) {
-                    $handle = $follower['handle'] ?? '';
-                    $displayName = $follower['displayName'] ?? $handle;
-
-                    if ($handle !== '') {
-                        $inviteUrl = $this->buildInvitationUrl('community', $token);
-                        $postText = "@{$handle} You've been invited to join {$communityName} on {$appName}! {$inviteUrl}";
-
-                        $postResult = $this->bluesky->createPost($viewerId, $postText, [
-                            ['handle' => $handle, 'did' => $did]
-                        ]);
-
-                        if ($postResult['success']) {
-                            $posted++;
-                        }
-                    }
-                }
-
-            } catch (\Exception $e) {
-                $errors[] = 'Failed to invite ' . substr($did, 0, 20) . '...';
-            }
-        }
-
-        $message = "Invited {$invited} followers";
-        if ($posted > 0) {
-            $message .= ", posted {$posted} invitations to Bluesky";
-        }
-        if ($skipped > 0) {
-            $message .= ", skipped {$skipped} already invited";
-        }
-
-        return $this->success([
-            'message' => $message,
-            'invited' => $invited,
-            'posted' => $posted,
-            'skipped' => $skipped,
-            'errors' => $errors,
-        ]);
-    }
 
     /**
      * @param array<string,mixed> $data
@@ -1021,15 +789,16 @@ final class InvitationService
     }
 
     /**
+     * @param array<string,mixed> $data
      * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
      */
-    private function failure(string $message, int $status): array
+    private function failure(string $message, int $status, array $data = []): array
     {
         return [
             'success' => false,
             'status' => $status,
             'message' => $message,
-            'data' => [],
+            'data' => $data,
         ];
     }
 

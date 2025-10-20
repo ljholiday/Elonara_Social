@@ -33,7 +33,8 @@ final class InvitationApiController
         if ($nonce === '') {
             $nonce = (string)$request->query('nonce', '');
         }
-        if (!$this->verifyNonce($nonce, 'app_nonce')) {
+        if (!$this->verifyNonce($nonce, 'app_community_action')) {
+            $this->logNonceFailure('community-send', $communityId, 0, $nonce);
             return $this->error('Security verification failed.', 403);
         }
 
@@ -49,7 +50,10 @@ final class InvitationApiController
             return $this->error($result['message'], $result['status']);
         }
 
-        return $this->success($result['data'], $result['status']);
+        $data = $result['data'];
+        $data['nonce'] = $this->createActionNonce('app_community_action');
+
+        return $this->success($data, $result['status']);
     }
 
     /**
@@ -63,7 +67,8 @@ final class InvitationApiController
             $nonce = (string)$request->query('nonce', '');
         }
 
-        if (!$this->verifyNonce($nonce, 'app_nonce')) {
+        if (!$this->verifyNonce($nonce, 'app_community_action')) {
+            $this->logNonceFailure('community-list', $communityId, 0, $nonce);
             return $this->error('Security verification failed.', 403);
         }
 
@@ -78,7 +83,10 @@ final class InvitationApiController
             return $this->error($result['message'], $result['status']);
         }
 
-        return $this->success($result['data'], $result['status']);
+        $data = $result['data'];
+        $data['nonce'] = $this->createActionNonce('app_community_action');
+
+        return $this->success($data, $result['status']);
     }
 
     public function listCommunityMembers(int $communityId): array
@@ -90,6 +98,7 @@ final class InvitationApiController
         }
 
         if (!$this->verifyNonce($nonce, 'app_community_action')) {
+            $this->logNonceFailure('community-members', $communityId, 0, $nonce);
             return $this->error('Security verification failed.', 403);
         }
 
@@ -118,6 +127,7 @@ final class InvitationApiController
             $nonce = (string)$request->query('nonce', '');
         }
         if (!$this->verifyNonce($nonce, 'app_community_action')) {
+            $this->logNonceFailure('community-delete', $communityId, $invitationId, $nonce);
             return $this->error('Security verification failed.', 403);
         }
 
@@ -131,7 +141,10 @@ final class InvitationApiController
             return $this->error($result['message'], $result['status']);
         }
 
-        return $this->success($result['data'], $result['status']);
+        $data = $result['data'];
+        $data['nonce'] = $this->createActionNonce('app_community_action');
+
+        return $this->success($data, $result['status']);
     }
 
     /**
@@ -144,7 +157,8 @@ final class InvitationApiController
         if ($nonce === '') {
             $nonce = (string)$request->query('nonce', '');
         }
-        if (!$this->verifyNonce($nonce, 'app_nonce')) {
+        if (!$this->verifyNonce($nonce, 'app_community_action')) {
+            $this->logNonceFailure('community-resend', $communityId, $invitationId, $nonce);
             return $this->error('Security verification failed.', 403);
         }
 
@@ -158,7 +172,10 @@ final class InvitationApiController
             return $this->error($result['message'], $result['status']);
         }
 
-        return $this->success($result['data'], $result['status']);
+        $data = $result['data'];
+        $data['nonce'] = $this->createActionNonce('app_community_action');
+
+        return $this->success($data, $result['status']);
     }
 
     /**
@@ -171,7 +188,8 @@ final class InvitationApiController
         if ($nonce === '') {
             $nonce = (string)$request->query('nonce', '');
         }
-        if (!$this->verifyNonce($nonce, 'app_nonce')) {
+        if (!$this->verifyNonce($nonce, 'app_event_action')) {
+            $this->logNonceFailure('event-send', $eventId, 0, $nonce);
             return $this->error('Security verification failed.', 403);
         }
 
@@ -191,6 +209,7 @@ final class InvitationApiController
         $guestRecords = $data['guest_records'] ?? null;
         unset($data['guest_records']);
         $data['html'] = $this->renderEventGuests($eventId, is_array($guestRecords) ? $guestRecords : null);
+        $data['nonce'] = $this->createActionNonce('app_event_action');
 
         return $this->success($data, $result['status']);
     }
@@ -205,7 +224,8 @@ final class InvitationApiController
         if ($nonce === '') {
             $nonce = (string)$request->query('nonce', '');
         }
-        if (!$this->verifyNonce($nonce, 'app_nonce')) {
+        if (!$this->verifyNonce($nonce, 'app_event_action')) {
+            $this->logNonceFailure('event-list', $eventId, 0, $nonce);
             return $this->error('Security verification failed.', 403);
         }
 
@@ -224,6 +244,7 @@ final class InvitationApiController
         return $this->success([
             'invitations' => $result['data']['invitations'],
             'html' => $this->renderEventGuests($eventId, is_array($guestRecords) ? $guestRecords : null),
+            'nonce' => $this->createActionNonce('app_event_action'),
         ]);
     }
 
@@ -237,7 +258,8 @@ final class InvitationApiController
         if ($nonce === '') {
             $nonce = (string)$request->query('nonce', '');
         }
-        if (!$this->verifyNonce($nonce, 'app_nonce')) {
+        if (!$this->verifyNonce($nonce, 'app_event_action')) {
+            $this->logNonceFailure('event-delete', $eventId, $invitationId, $nonce);
             return $this->error('Security verification failed.', 403);
         }
 
@@ -255,6 +277,7 @@ final class InvitationApiController
         $guestRecords = $data['guest_records'] ?? null;
         unset($data['guest_records']);
         $data['html'] = $this->renderEventGuests($eventId, is_array($guestRecords) ? $guestRecords : null);
+        $data['nonce'] = $this->createActionNonce('app_event_action');
 
         return $this->success($data, $result['status']);
     }
@@ -270,7 +293,8 @@ final class InvitationApiController
             $nonce = (string)$request->query('nonce', '');
         }
 
-        if (!$this->verifyNonce($nonce, 'app_nonce')) {
+        if (!$this->verifyNonce($nonce, 'app_event_action')) {
+            $this->logNonceFailure('event-resend', $eventId, $invitationId, $nonce);
             return $this->error('Security verification failed.', 403);
         }
 
@@ -288,6 +312,7 @@ final class InvitationApiController
         $guestRecords = $data['guest_records'] ?? null;
         unset($data['guest_records']);
         $data['html'] = $this->renderEventGuests($eventId, is_array($guestRecords) ? $guestRecords : null);
+        $data['nonce'] = $this->createActionNonce('app_event_action');
 
         return $this->success($data, $result['status']);
     }
@@ -336,6 +361,7 @@ final class InvitationApiController
         $payload = $this->jsonBody();
         $nonce = (string)($payload['nonce'] ?? '');
         if (!$this->verifyNonce($nonce, 'app_community_action')) {
+            $this->logNonceFailure('community-role', $communityId, $memberId, $nonce);
             return $this->error('Security verification failed.', 403);
         }
 
@@ -362,6 +388,7 @@ final class InvitationApiController
         return $this->success([
             'message' => 'Member role updated successfully.',
             'html' => $this->renderCommunityMembers($communityId, $viewerId),
+            'nonce' => $this->createActionNonce('app_community_action'),
         ]);
     }
 
@@ -395,6 +422,7 @@ final class InvitationApiController
         return $this->success([
             'message' => 'Member removed successfully.',
             'html' => $this->renderCommunityMembers($communityId, $viewerId),
+            'nonce' => $this->createActionNonce('app_community_action'),
         ]);
     }
 
@@ -456,7 +484,10 @@ final class InvitationApiController
             return $this->error($result['message'], $result['status']);
         }
 
-        return $this->success($result['data'], $result['status']);
+        $data = $result['data'];
+        $data['nonce'] = $this->createActionNonce('app_community_action');
+
+        return $this->success($data, $result['status']);
     }
 
     private function jsonBody(): array
@@ -519,6 +550,27 @@ final class InvitationApiController
         }
 
         return (string)ob_get_clean();
+    }
+
+    private function createActionNonce(string $action): string
+    {
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
+        return $this->security->createNonce($action, $viewerId);
+    }
+
+    private function logNonceFailure(string $context, int $entityId, int $invitationId, string $nonce): void
+    {
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
+        $log = sprintf(
+            '[%s] nonce failure: context=%s entity=%d invitation=%d viewer=%d nonce=%s',
+            date('Y-m-d H:i:s'),
+            $context,
+            $entityId,
+            $invitationId,
+            $viewerId,
+            $nonce
+        );
+        file_put_contents(dirname(__DIR__, 3) . '/debug.log', $log . PHP_EOL, FILE_APPEND);
     }
 
     /**

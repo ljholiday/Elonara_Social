@@ -11,16 +11,26 @@
 
 $entity_type = $entity_type ?? 'event';
 $entity_id = (int)($entity_id ?? 0);
+$bluesky_nonce = $bluesky_nonce ?? '';
 
 // Check if Bluesky is connected
 $blueskyService = function_exists('app_service') ? app_service('bluesky.service') : null;
 $authService = function_exists('app_service') ? app_service('auth.service') : null;
 $currentUser = $authService ? $authService->getCurrentUser() : null;
 $isConnected = $blueskyService && $currentUser && $blueskyService->isConnected((int)$currentUser?->id);
+$assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
 ?>
 
 <!-- Bluesky Follower Selector Modal -->
-<div id="bluesky-follower-modal" class="app-modal app-bluesky-follower-modal" style="display: none;">
+<div
+    id="bluesky-follower-modal"
+    class="app-modal app-bluesky-follower-modal"
+    data-connected="<?= $isConnected ? '1' : '0'; ?>"
+    data-entity-type="<?= htmlspecialchars($entity_type, ENT_QUOTES, 'UTF-8'); ?>"
+    data-entity-id="<?= (int)$entity_id; ?>"
+    data-action-nonce="<?= htmlspecialchars($bluesky_nonce, ENT_QUOTES, 'UTF-8'); ?>"
+    style="display: none;"
+>
     <div class="app-modal-overlay" data-close-bluesky-modal></div>
     <div class="app-modal-content app-modal-lg">
         <div class="app-modal-header">
@@ -105,286 +115,4 @@ $isConnected = $blueskyService && $currentUser && $blueskyService->isConnected((
     </div>
 </div>
 
-<script>
-(function() {
-    'use strict';
-
-    const isConnected = <?= $isConnected ? 'true' : 'false' ?>;
-
-    const modal = document.getElementById('bluesky-follower-modal');
-    if (!modal) return;
-
-    const openButtons = document.querySelectorAll('[data-open-bluesky-modal]');
-    const closeBtns = modal.querySelectorAll('[data-close-bluesky-modal]');
-    const overlay = modal.querySelector('.app-modal-overlay');
-    const searchInput = document.getElementById('follower-search');
-    const syncBtn = document.getElementById('sync-followers-btn');
-    const inviteBtn = document.getElementById('invite-selected-btn');
-    const followerList = document.getElementById('follower-list');
-    const followerLoading = document.getElementById('follower-loading');
-    const followerError = document.getElementById('follower-error');
-    const followerEmpty = document.getElementById('follower-empty');
-    const selectedCountEl = document.getElementById('selected-count');
-    const lastSyncEl = document.getElementById('last-sync-time');
-    const connectButtons = document.querySelectorAll('[data-bluesky-connect-button]');
-    const manageButton = document.querySelector('[data-bluesky-manage-button]');
-
-    let followers = [];
-    let selectedFollowers = new Set();
-
-    // Open modal
-    openButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            modal.style.display = 'block';
-            document.body.classList.add('app-modal-open');
-            if (isConnected) {
-                loadFollowers();
-            } else {
-                followerLoading && (followerLoading.style.display = 'none');
-                followerEmpty && (followerEmpty.style.display = 'block');
-            }
-        });
-    });
-
-    // Close modal
-    function closeModal() {
-        modal.style.display = 'none';
-        document.body.classList.remove('app-modal-open');
-        selectedFollowers.clear();
-        updateSelectedCount();
-    }
-
-    closeBtns.forEach(btn => btn.addEventListener('click', closeModal));
-    if (overlay) overlay.addEventListener('click', closeModal);
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && modal.style.display === 'block') {
-            closeModal();
-        }
-    });
-
-    // Load followers from API
-    async function loadFollowers(force = false) {
-        if (!isConnected) {
-            if (followerLoading) followerLoading.style.display = 'none';
-            if (followerEmpty) followerEmpty.style.display = 'block';
-            return;
-        }
-
-        if (followerLoading) followerLoading.style.display = 'block';
-        if (followerError) followerError.style.display = 'none';
-        if (followerEmpty) followerEmpty.style.display = 'none';
-        if (followerList) followerList.innerHTML = '';
-
-        try {
-            const response = await fetch('/api/bluesky/followers');
-            const data = await response.json();
-
-            if (!data.success) {
-                throw new Error(data.message || 'Failed to load followers');
-            }
-
-            followers = data.followers || [];
-
-            if (data.synced_at && lastSyncEl) {
-                const syncDate = new Date(data.synced_at);
-                lastSyncEl.textContent = 'Last synced: ' + syncDate.toLocaleString();
-            }
-
-            if (followerLoading) followerLoading.style.display = 'none';
-
-            if (followers.length === 0) {
-                if (followerEmpty) followerEmpty.style.display = 'block';
-            } else {
-                renderFollowers(followers);
-            }
-        } catch (error) {
-            if (followerLoading) followerLoading.style.display = 'none';
-            if (followerError) {
-                followerError.style.display = 'block';
-                followerError.textContent = error.message;
-            }
-        }
-    }
-
-    // Render followers
-    function renderFollowers(followersToRender) {
-        followerList.innerHTML = '';
-
-        followersToRender.forEach(follower => {
-            const did = follower.did || '';
-            const handle = follower.handle || '';
-            const displayName = follower.displayName || handle;
-            const avatar = follower.avatar || '';
-            const description = follower.description || '';
-
-            const item = document.createElement('div');
-            item.className = 'app-follower-item';
-            item.innerHTML = `
-                <label class="app-follower-checkbox">
-                    <input type="checkbox" value="${escapeHtml(did)}" data-handle="${escapeHtml(handle)}">
-                    <div class="app-follower-info">
-                        ${avatar ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(displayName)}" class="app-follower-avatar">` : '<div class="app-follower-avatar app-follower-avatar-placeholder"></div>'}
-                        <div class="app-follower-details">
-                            <div class="app-follower-name">${escapeHtml(displayName)}</div>
-                            <div class="app-follower-handle">@${escapeHtml(handle)}</div>
-                            ${description ? `<div class="app-follower-description">${escapeHtml(description)}</div>` : ''}
-                        </div>
-                    </div>
-                </label>
-            `;
-
-            const checkbox = item.querySelector('input[type="checkbox"]');
-            checkbox.addEventListener('change', function() {
-                if (this.checked) {
-                    selectedFollowers.add(did);
-                } else {
-                    selectedFollowers.delete(did);
-                }
-                updateSelectedCount();
-            });
-
-            followerList.appendChild(item);
-        });
-    }
-
-    // Search followers
-    if (searchInput && isConnected) {
-        searchInput.addEventListener('input', function() {
-            const query = this.value.toLowerCase().trim();
-
-            if (query === '') {
-                renderFollowers(followers);
-            } else {
-                const filtered = followers.filter(f => {
-                    const handle = (f.handle || '').toLowerCase();
-                    const displayName = (f.displayName || '').toLowerCase();
-                    const description = (f.description || '').toLowerCase();
-                    return handle.includes(query) || displayName.includes(query) || description.includes(query);
-                });
-                renderFollowers(filtered);
-            }
-        });
-    }
-
-    // Sync followers
-    if (syncBtn && isConnected) {
-        syncBtn.addEventListener('click', async function() {
-            syncBtn.disabled = true;
-            syncBtn.textContent = 'Syncing...';
-
-            const nonce = document.querySelector('meta[name="csrf-token"]')?.content;
-
-            try {
-                const response = await fetch('/api/bluesky/sync', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ nonce })
-                });
-
-                const data = await response.json();
-
-                if (!data.success) {
-                    throw new Error(data.message || 'Failed to sync followers');
-                }
-
-                await loadFollowers();
-                alert('Followers synced successfully! Found ' + data.count + ' followers.');
-            } catch (error) {
-                alert('Error syncing followers: ' + error.message);
-            } finally {
-                syncBtn.disabled = false;
-                syncBtn.textContent = 'Sync';
-            }
-        });
-    } else if (syncBtn && !isConnected) {
-        syncBtn.addEventListener('click', function() {
-            window.open('/profile/edit#bluesky', '_blank');
-        });
-    }
-
-    if (!isConnected && connectButtons.length) {
-        connectButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                window.open('/profile/edit#bluesky', '_blank');
-                closeModal();
-            });
-        });
-    }
-
-    if (manageButton && isConnected) {
-        manageButton.addEventListener('click', function() {
-            window.open('/profile/edit#bluesky', '_blank');
-        });
-    }
-
-    // Invite selected followers
-    if (inviteBtn && isConnected) {
-        inviteBtn.addEventListener('click', async function() {
-            if (selectedFollowers.size === 0) {
-                return;
-            }
-
-            inviteBtn.disabled = true;
-            inviteBtn.textContent = 'Sending invitations...';
-
-            const nonce = document.querySelector('meta[name="csrf-token"]')?.content;
-            const entityType = '<?= $entity_type ?>';
-            const entityId = <?= (int)$entity_id ?>;
-
-            try {
-                const response = await fetch(`/api/invitations/bluesky/${entityType}/${entityId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        nonce,
-                        follower_dids: Array.from(selectedFollowers)
-                    })
-                });
-
-                const data = await response.json();
-
-                if (!data.success) {
-                    throw new Error(data.message || 'Failed to send invitations');
-                }
-
-                inviteBtn.disabled = false;
-                inviteBtn.textContent = 'Invite Selected';
-
-                alert('Invitations sent successfully to ' + selectedFollowers.size + ' followers!');
-                closeModal();
-
-                // Reload invitation list if exists
-                if (typeof refreshInvitations === 'function') {
-                    refreshInvitations();
-                }
-            } catch (error) {
-                alert('Error sending invitations: ' + error.message);
-                inviteBtn.disabled = false;
-                inviteBtn.textContent = 'Invite Selected';
-            }
-        });
-    }
-
-    // Update selected count
-    function updateSelectedCount() {
-        if (selectedCountEl) {
-            selectedCountEl.textContent = selectedFollowers.size;
-        }
-        if (inviteBtn) {
-            inviteBtn.disabled = !isConnected || selectedFollowers.size === 0;
-        }
-    }
-
-    // Helper function to escape HTML
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-})();
-</script>
+<script src="<?= htmlspecialchars($assetBase . '/js/bluesky-invitations.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
