@@ -460,7 +460,7 @@ final class InvitationApiController
 
         $viewerId = (int)($this->auth->currentUserId() ?? 0);
         if ($viewerId <= 0) {
-            $redirect = '/auth/login?redirect_to=' . rawurlencode('/invitation/accept?token=' . rawurlencode($token));
+            $redirect = '/auth?redirect_to=' . rawurlencode('/invitation/accept?token=' . rawurlencode($token));
             return [
                 'status' => 302,
                 'redirect' => $redirect,
