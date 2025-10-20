@@ -619,14 +619,15 @@ function renderInvitationsList(invitations, entityType) {
         const title = memberName !== '' ? memberName : emailRaw;
         const subtitle = memberName !== '' ? emailRaw : '';
         const statusValue = String(inv.status || 'pending').toLowerCase();
-        const statusLabel = statusValue.charAt(0).toUpperCase() + statusValue.slice(1);
+        const statusLabel = mapStatusLabel(statusValue);
+        const statusClass = mapStatusBadgeClass(statusValue);
         const createdAt = inv.created_at ? new Date(inv.created_at).toLocaleDateString() : '';
         const invitationId = String(inv.id ?? '');
         const tokenRaw = String(inv.invitation_token || '');
         const isBluesky = emailRaw.startsWith('bsky:') || String(inv.is_bluesky || '').toLowerCase() === 'true';
 
         const badges = [
-            { label: statusLabel, class: 'app-badge-' + statusValue },
+            { label: statusLabel, class: statusClass },
         ];
         if (isBluesky) {
             badges.push({ label: 'Bluesky', class: 'app-badge-secondary' });
@@ -868,13 +869,14 @@ function renderEventGuestRow(guest) {
     const emailRaw = String(guest.email || guest.guest_email || guest.user_email || '');
     const statusValue = String(guest.status || 'pending').toLowerCase();
     const statusLabel = mapGuestStatus(statusValue);
+    const statusClass = mapStatusBadgeClass(statusValue);
     const date = formatGuestDate(guest.rsvp_date || guest.created_at);
     const invitationId = String(guest.id || '');
     const rsvpToken = String(guest.rsvp_token || '');
     const isBluesky = emailRaw.startsWith('bsky:') || String(guest.source || '').toLowerCase() === 'bluesky';
 
     const badges = [
-        { label: statusLabel, class: 'app-badge-' + statusValue },
+        { label: statusLabel, class: statusClass },
     ];
     if (isBluesky) {
         badges.push({ label: 'Bluesky', class: 'app-badge-secondary' });
@@ -1050,9 +1052,31 @@ function mapGuestStatus(status) {
         'pending': 'Pending',
         'confirmed': 'Confirmed',
         'declined': 'Declined',
-        'cancelled': 'Cancelled'
+        'cancelled': 'Cancelled',
+        'accepted': 'Accepted',
+        'maybe': 'Maybe'
     };
     return statusMap[status] || status;
+}
+
+function mapStatusLabel(status) {
+    return mapGuestStatus(status);
+}
+
+function mapStatusBadgeClass(status) {
+    switch (status) {
+        case 'confirmed':
+        case 'accepted':
+            return 'app-badge-success';
+        case 'declined':
+        case 'cancelled':
+            return 'app-badge-danger';
+        case 'maybe':
+            return 'app-badge-warning';
+        case 'pending':
+        default:
+            return 'app-badge-secondary';
+    }
 }
 
 /**
