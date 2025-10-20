@@ -69,42 +69,51 @@ $blueskyActionNonce = $securityService->createNonce('app_bluesky_action', $viewe
                 $email = (string)($member['email'] ?? '');
                 $isViewer = $userId > 0 && $userId === $viewer_id;
                 $roleLabelClass = $role === 'admin' ? 'primary' : ($role === 'moderator' ? 'secondary' : 'secondary');
+
+                $badges = [
+                    ['label' => ucfirst($role), 'class' => 'app-badge-' . $roleLabelClass],
+                ];
+                if ($isViewer) {
+                    $badges[] = ['label' => 'You', 'class' => 'app-badge-secondary'];
+                }
+
+                $actions = [];
+                if ($can_manage_members) {
+                    if ($isViewer) {
+                        $actions[] = '<span class="app-text-muted app-text-sm">Account owner</span>';
+                    } else {
+                        ob_start();
+                        ?>
+                        <select class="app-form-input app-form-input-sm"
+                          onchange="changeMemberRole(<?= e((string)$memberId) ?>, this.value, <?= e((string)$communityId) ?>)">
+                          <option value="member"<?= $role === 'member' ? ' selected' : '' ?>>Member</option>
+                          <option value="moderator"<?= $role === 'moderator' ? ' selected' : '' ?>>Moderator</option>
+                          <option value="admin"<?= $role === 'admin' ? ' selected' : '' ?>>Admin</option>
+                        </select>
+                        <?php
+                        $actions[] = ob_get_clean();
+
+                        ob_start();
+                        ?>
+                        <button class="app-btn app-btn-sm app-btn-danger"
+                          onclick="removeMember(<?= e((string)$memberId) ?>, <?= htmlspecialchars(json_encode($displayName), ENT_QUOTES, 'UTF-8') ?>, <?= e((string)$communityId) ?>)">
+                          Remove
+                        </button>
+                        <?php
+                        $actions[] = ob_get_clean();
+                    }
+                }
+
+                $card = [
+                    'attributes' => ['id' => 'member-row-' . (int)$memberId],
+                    'badges' => $badges,
+                    'title' => $displayName,
+                    'subtitle' => $email !== '' ? $email : null,
+                    'meta' => $joinedAt ? 'Joined ' . date('M j, Y', strtotime((string)$joinedAt)) : null,
+                    'actions' => $actions,
+                ];
+                include __DIR__ . '/partials/invite-card.php';
               ?>
-              <div class="app-invitation-item" id="member-row-<?= e((string)$memberId) ?>">
-                <div class="app-invitation-badges">
-                  <span class="app-badge app-badge-<?= $roleLabelClass ?>"><?= e(ucfirst($role)) ?></span>
-                  <?php if ($isViewer): ?>
-                    <span class="app-badge app-badge-secondary">You</span>
-                  <?php endif; ?>
-                </div>
-                <div class="app-invitation-details">
-                  <strong><?= e($displayName) ?></strong>
-                  <?php if ($email !== ''): ?>
-                    <div class="app-text-muted app-text-sm"><?= e($email) ?></div>
-                  <?php endif; ?>
-                  <?php if ($joinedAt): ?>
-                    <small class="app-text-muted">Joined <?= e(date('M j, Y', strtotime((string)$joinedAt))) ?></small>
-                  <?php endif; ?>
-                </div>
-                <div class="app-invitation-actions">
-                  <?php if ($can_manage_members): ?>
-                    <?php if ($isViewer): ?>
-                      <span class="app-text-muted app-text-sm">Account owner</span>
-                    <?php else: ?>
-                      <select class="app-form-input app-form-input-sm"
-                        onchange="changeMemberRole(<?= e((string)$memberId) ?>, this.value, <?= e((string)$communityId) ?>)">
-                        <option value="member"<?= $role === 'member' ? ' selected' : '' ?>>Member</option>
-                        <option value="moderator"<?= $role === 'moderator' ? ' selected' : '' ?>>Moderator</option>
-                        <option value="admin"<?= $role === 'admin' ? ' selected' : '' ?>>Admin</option>
-                      </select>
-                      <button class="app-btn app-btn-sm app-btn-danger"
-                        onclick="removeMember(<?= e((string)$memberId) ?>, <?= htmlspecialchars(json_encode($displayName), ENT_QUOTES, 'UTF-8') ?>, <?= e((string)$communityId) ?>)">
-                        Remove
-                      </button>
-                    <?php endif; ?>
-                  <?php endif; ?>
-                </div>
-              </div>
             <?php endforeach; ?>
           <?php endif; ?>
         </div>

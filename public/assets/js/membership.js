@@ -258,6 +258,70 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function escapeAttr(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function renderInviteCard(options = {}) {
+    const {
+        title = '',
+        titleUrl = null,
+        subtitle = '',
+        meta = '',
+        bodyHtml = '',
+        badges = [],
+        actions = [],
+        attributes = {},
+        className = ''
+    } = options;
+
+    const attrString = Object.entries(attributes)
+        .filter(([key, val]) => val !== null && val !== undefined)
+        .map(([key, val]) => ` ${escapeAttr(key)}="${escapeAttr(val)}"`)
+        .join('');
+
+    const badgeHtml = badges
+        .map((badge) => {
+            if (!badge || !badge.label) {
+                return '';
+            }
+            const badgeLabel = escapeHtml(String(badge.label));
+            const badgeClass = badge.class ? escapeHtml(String(badge.class)) : 'app-badge-secondary';
+            return `<span class="${badgeClass}">${badgeLabel}</span>`;
+        })
+        .filter(Boolean)
+        .join('');
+
+    const titleHtml = title !== ''
+        ? (titleUrl ? `<a href="${escapeAttr(titleUrl)}" class="app-text-primary">${escapeHtml(title)}</a>` : escapeHtml(title))
+        : '';
+
+    const subtitleHtml = subtitle !== '' ? `<div class="app-text-muted app-text-sm">${escapeHtml(subtitle)}</div>` : '';
+    const metaHtml = meta !== '' ? `<small class="app-text-muted">${escapeHtml(meta)}</small>` : '';
+    const actionsHtml = actions.filter(Boolean).join('');
+    const cardClass = className ? ' ' + escapeHtml(className) : '';
+
+    return `
+        <div class="app-invitation-item${cardClass}"${attrString}>
+            <div class="app-invitation-main">
+                ${badgeHtml ? `<div class="app-invitation-badges">${badgeHtml}</div>` : ''}
+                <div class="app-invitation-details">
+                    ${titleHtml ? `<strong>${titleHtml}</strong>` : ''}
+                    ${subtitleHtml}
+                    ${metaHtml}
+                    ${bodyHtml || ''}
+                </div>
+            </div>
+            ${actionsHtml ? `<div class="app-invitation-actions">${actionsHtml}</div>` : ''}
+        </div>
+    `;
+}
+
 // ============================================================================
 // INVITATION URL COPYING
 // ============================================================================
@@ -549,45 +613,54 @@ function loadPendingInvitations(entityType, entityId) {
  * Render invitations list HTML (for communities without server-side HTML)
  */
 function renderInvitationsList(invitations, entityType) {
-    let html = '<div class="app-invitations-list">';
-
-    invitations.forEach(inv => {
-        const emailRaw = inv.invited_email || '';
-        const email = escapeHtml(emailRaw);
-        const memberName = inv.member_name ? escapeHtml(inv.member_name) : '';
-        const primaryLabel = memberName !== '' ? memberName : email;
-        const secondaryLabel = memberName !== '' ? email : '';
-        const tokenRaw = inv.invitation_token || '';
-        const tokenAttr = tokenRaw.replace(/"/g, '&quot;');
-        const status = (inv.status || 'pending').toLowerCase();
-        const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+    const cards = (invitations || []).map(inv => {
+        const emailRaw = String(inv.invited_email || '');
+        const memberName = inv.member_name ? String(inv.member_name) : '';
+        const title = memberName !== '' ? memberName : emailRaw;
+        const subtitle = memberName !== '' ? emailRaw : '';
+        const statusValue = String(inv.status || 'pending').toLowerCase();
+        const statusLabel = statusValue.charAt(0).toUpperCase() + statusValue.slice(1);
         const createdAt = inv.created_at ? new Date(inv.created_at).toLocaleDateString() : '';
-        const invitationId = inv.id || '';
+        const invitationId = String(inv.id ?? '');
+        const tokenRaw = String(inv.invitation_token || '');
+        const isBluesky = emailRaw.startsWith('bsky:') || String(inv.is_bluesky || '').toLowerCase() === 'true';
+
+        const badges = [
+            { label: statusLabel, class: 'app-badge-' + statusValue },
+        ];
+        if (isBluesky) {
+            badges.push({ label: 'Bluesky', class: 'app-badge-secondary' });
+        }
+
+        const actions = [
+            `<button type="button" class="app-btn app-btn-sm" data-action="copy" data-invitation-token="${escapeAttr(tokenRaw)}">Copy Link</button>`
+        ];
+
+        const resendLabel = isBluesky ? 'Resend Invite' : 'Resend Email';
         const canResend = entityType === 'event'
-            ? ['pending', 'maybe'].includes(status)
-            : status === 'pending';
-        const canCancel = status === 'pending';
+            ? ['pending', 'maybe'].includes(statusValue)
+            : statusValue === 'pending';
+        if (canResend) {
+            actions.push(`<button type="button" class="app-btn app-btn-sm app-btn-secondary" data-action="resend" data-invitation-id="${escapeAttr(invitationId)}">${resendLabel}</button>`);
+        }
 
-        html += `
-            <div class="app-invitation-item">
-                <div class="app-invitation-details">
-                    <strong>${primaryLabel}</strong>
-                    ${secondaryLabel !== '' ? `<div class="app-text-muted app-text-sm">${secondaryLabel}</div>` : ''}
-                    <span class="app-badge app-badge-${status}">${escapeHtml(statusLabel)}</span>
-                    <small class="app-text-muted">Sent ${createdAt}</small>
-                </div>
-                <div class="app-invitation-actions">
-                    <button type="button" class="app-btn app-btn-sm" data-action="copy" data-invitation-token="${tokenAttr}">Copy Link</button>
-                    ${canResend ? `<button type="button" class="app-btn app-btn-sm app-btn-secondary" data-action="resend" data-invitation-id="${invitationId}">Resend Email</button>` : ''}
-                    ${canCancel ? `<button type="button" class="app-btn app-btn-sm app-btn-danger" data-action="cancel" data-invitation-id="${invitationId}">Cancel</button>` : ''}
-                </div>
-            </div>
-        `;
-    });
+        if (statusValue === 'pending') {
+            actions.push(`<button type="button" class="app-btn app-btn-sm app-btn-danger" data-action="cancel" data-invitation-id="${escapeAttr(invitationId)}">Cancel</button>`);
+        }
 
-    html += '</div>';
+        return renderInviteCard({
+            attributes: {
+                'data-invitation-id': invitationId
+            },
+            badges,
+            title,
+            subtitle: subtitle !== '' ? subtitle : null,
+            meta: createdAt ? `Sent ${createdAt}` : '',
+            actions
+        });
+    }).join('');
 
-    return html;
+    return `<div class="app-invitations-list">${cards}</div>`;
 }
 
 /**
@@ -791,37 +864,42 @@ function updateEventGuestUI(guests) {
 }
 
 function renderEventGuestRow(guest) {
-    const name = escapeHtml(guest.name || guest.guest_name || guest.user_display_name || 'Guest');
-    const emailRaw = guest.email || guest.guest_email || guest.user_email || '';
-    const email = escapeHtml(emailRaw);
-    const statusValueRaw = guest.status || 'pending';
-    const statusValue = escapeHtml(String(statusValueRaw).toLowerCase());
-    const statusLabel = mapGuestStatus(statusValueRaw);
+    const name = String(guest.name || guest.guest_name || guest.user_display_name || 'Guest');
+    const emailRaw = String(guest.email || guest.guest_email || guest.user_email || '');
+    const statusValue = String(guest.status || 'pending').toLowerCase();
+    const statusLabel = mapGuestStatus(statusValue);
     const date = formatGuestDate(guest.rsvp_date || guest.created_at);
-    const invitationId = guest.id || '';
-    const rsvpToken = guest.rsvp_token || '';
+    const invitationId = String(guest.id || '');
+    const rsvpToken = String(guest.rsvp_token || '');
     const isBluesky = emailRaw.startsWith('bsky:') || String(guest.source || '').toLowerCase() === 'bluesky';
 
-    const secondary = email !== '' ? `<div class="app-text-muted app-text-sm">${email}</div>` : '';
+    const badges = [
+        { label: statusLabel, class: 'app-badge-' + statusValue },
+    ];
+    if (isBluesky) {
+        badges.push({ label: 'Bluesky', class: 'app-badge-secondary' });
+    }
 
-    return `
-        <div class="app-invitation-item" data-invitation-id="${escapeHtml(String(invitationId))}">
-            <div class="app-invitation-badges">
-                <span class="app-badge app-badge-${statusValue}">${statusLabel}</span>
-                ${isBluesky ? '<span class="app-badge app-badge-secondary">Bluesky</span>' : ''}
-            </div>
-            <div class="app-invitation-details">
-                <strong>${name}</strong>
-                ${secondary}
-                <small class="app-text-muted">Invited on ${date}</small>
-            </div>
-            <div class="app-invitation-actions">
-                <button type="button" class="app-btn app-btn-sm" data-guest-action="copy" data-rsvp-token="${escapeHtml(rsvpToken)}">Copy Link</button>
-                ${['pending', 'maybe'].includes(statusValueRaw) ? `<button type="button" class="app-btn app-btn-sm app-btn-secondary" data-guest-action="resend" data-invitation-id="${escapeHtml(String(invitationId))}">Resend Invite</button>` : ''}
-                ${statusValueRaw === 'pending' ? `<button type="button" class="app-btn app-btn-sm app-btn-danger" data-guest-action="cancel" data-invitation-id="${escapeHtml(String(invitationId))}">Remove</button>` : ''}
-            </div>
-        </div>
-    `;
+    const actions = [
+        `<button type=\"button\" class=\"app-btn app-btn-sm\" data-guest-action=\"copy\" data-rsvp-token=\"${escapeAttr(rsvpToken)}\">Copy Link</button>`
+    ];
+    if (['pending', 'maybe'].includes(statusValue)) {
+        actions.push(`<button type=\"button\" class=\"app-btn app-btn-sm app-btn-secondary\" data-guest-action=\"resend\" data-invitation-id=\"${escapeAttr(invitationId)}\">Resend Invite</button>`);
+    }
+    if (statusValue === 'pending') {
+        actions.push(`<button type=\"button\" class=\"app-btn app-btn-sm app-btn-danger\" data-guest-action=\"cancel\" data-invitation-id=\"${escapeAttr(invitationId)}\">Remove</button>`);
+    }
+
+    return renderInviteCard({
+        attributes: {
+            'data-invitation-id': invitationId
+        },
+        badges,
+        title: name,
+        subtitle: emailRaw !== '' ? emailRaw : null,
+        meta: date ? `Invited on ${date}` : '',
+        actions
+    });
 }
 
 function attachEventGuestActionHandlers(eventId) {

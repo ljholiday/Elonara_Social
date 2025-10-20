@@ -506,10 +506,11 @@ final class InvitationApiController
         $members = $this->communityMembers->listMembers($communityId);
         $viewerRole = $viewerId > 0 ? $this->communityMembers->getMemberRole($communityId, $viewerId) : null;
 
-        if (!$members) {
-            return '<tr><td colspan="4" class="app-text-center app-text-muted">No members yet.</td></tr>';
+        if ($members === []) {
+            return '<div class="app-text-center app-text-muted">No members yet.</div>';
         }
 
+        $cardsPath = dirname(__DIR__, 3) . '/templates/partials/invite-card.php';
         ob_start();
         foreach ($members as $member) {
             $memberId = (int)($member['id'] ?? 0);
@@ -521,42 +522,43 @@ final class InvitationApiController
             $isSelf = $userId === $viewerId;
             $roleClass = $role === 'admin' ? 'primary' : ($role === 'moderator' ? 'secondary' : 'secondary');
 
-            echo '<div class="app-invitation-item" id="member-row-' . htmlspecialchars((string)$memberId) . '">';
-            echo '<div class="app-invitation-badges">';
-            echo '<span class="app-badge app-badge-' . $roleClass . '">' . htmlspecialchars(ucfirst($role)) . '</span>';
+            $badges = [
+                ['label' => ucfirst($role), 'class' => 'app-badge-' . $roleClass],
+            ];
             if ($isSelf) {
-                echo '<span class="app-badge app-badge-secondary">You</span>';
+                $badges[] = ['label' => 'You', 'class' => 'app-badge-secondary'];
             }
-            echo '</div>';
 
-            echo '<div class="app-invitation-details">';
-            echo '<strong>' . htmlspecialchars($displayName) . '</strong>';
-            if ($email !== '') {
-                echo '<div class="app-text-muted app-text-sm">' . htmlspecialchars($email) . '</div>';
-            }
-            if ($joinedAt !== '') {
-                echo '<small class="app-text-muted">Joined ' . htmlspecialchars(date('M j, Y', strtotime($joinedAt))) . '</small>';
-            }
-            echo '</div>';
-
-            echo '<div class="app-invitation-actions">';
-            if ($isSelf) {
-                echo '<span class="app-text-muted app-text-sm">Account owner</span>';
-            } else {
-                if ($viewerRole === 'admin' || $this->auth->currentUserCan('manage_options')) {
-                    echo '<select class="app-form-input app-form-input-sm" onchange="changeMemberRole(' . htmlspecialchars((string)$memberId) . ', this.value, ' . htmlspecialchars((string)$communityId) . ')">';
-                    echo '<option value="member"' . ($role === 'member' ? ' selected' : '') . '>Member</option>';
-                    echo '<option value="moderator"' . ($role === 'moderator' ? ' selected' : '') . '>Moderator</option>';
-                    echo '<option value="admin"' . ($role === 'admin' ? ' selected' : '') . '>Admin</option>';
-                    echo '</select>';
-                    $jsName = json_encode($displayName);
-                    echo '<button class="app-btn app-btn-sm app-btn-danger" onclick="removeMember(' . htmlspecialchars((string)$memberId) . ', ' . $jsName . ', ' . htmlspecialchars((string)$communityId) . ')">Remove</button>';
+            $actions = [];
+            if ($viewerRole === 'admin' || $this->auth->currentUserCan('manage_options')) {
+                if ($isSelf) {
+                    $actions[] = '<span class="app-text-muted app-text-sm">Account owner</span>';
                 } else {
-                    echo '<span class="app-badge app-badge-' . ($role === 'admin' ? 'primary' : 'secondary') . '">' . htmlspecialchars(ucfirst($role)) . '</span>';
+                    ob_start();
+                    ?>
+                    <select class="app-form-input app-form-input-sm"
+                      onchange="changeMemberRole(<?= htmlspecialchars((string)$memberId) ?>, this.value, <?= htmlspecialchars((string)$communityId) ?>)">
+                      <option value="member"<?= $role === 'member' ? ' selected' : '' ?>>Member</option>
+                      <option value="moderator"<?= $role === 'moderator' ? ' selected' : '' ?>>Moderator</option>
+                      <option value="admin"<?= $role === 'admin' ? ' selected' : '' ?>>Admin</option>
+                    </select>
+                    <?php
+                    $actions[] = ob_get_clean();
+
+                    $jsName = json_encode($displayName);
+                    $actions[] = '<button class="app-btn app-btn-sm app-btn-danger" onclick="removeMember(' . htmlspecialchars((string)$memberId) . ', ' . $jsName . ', ' . htmlspecialchars((string)$communityId) . ')">Remove</button>';
                 }
             }
-            echo '</div>';
-            echo '</div>';
+
+            $card = [
+                'attributes' => ['id' => 'member-row-' . $memberId],
+                'badges' => $badges,
+                'title' => $displayName,
+                'subtitle' => $email !== '' ? $email : null,
+                'meta' => $joinedAt !== '' ? 'Joined ' . date('M j, Y', strtotime($joinedAt)) : null,
+                'actions' => $actions,
+            ];
+            include $cardsPath;
         }
 
         return (string)ob_get_clean();
