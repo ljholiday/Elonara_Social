@@ -62,34 +62,33 @@ $conversations = $recent_conversations ?? [];
           </div>
         </div>
       <?php else: ?>
-        <div class="app-grid app-grid-3 app-gap-4">
+        <div class="app-invitations-list">
           <?php foreach ($events as $event): ?>
-            <div class="app-card">
-              <div class="app-card-body app-stack app-gap-2">
-                <h3 class="app-heading app-heading-sm">
-                  <a href="/events/<?= e($event['slug'] ?? (string)($event['id'] ?? '')); ?>" class="app-text-primary">
-                    <?= e($event['context_label'] ?? $event['title'] ?? 'Untitled event'); ?>
-                  </a>
-                  <?php
-                    $badge = app_visibility_badge($event['privacy'] ?? null, $event['community_privacy'] ?? null);
-                    if (!empty($badge['label'])):
-                  ?>
-                    <span class="<?= e($badge['class']) ?>" style="margin-left:0.5rem;">
-                      <?= e($badge['label']); ?>
-                    </span>
-                  <?php endif; ?>
-                </h3>
-                <?php if (!empty($event['event_date'])): ?>
-                  <p class="app-text-muted">
-                    <?= e(date_fmt($event['event_date'], 'M j, Y • g:i A')); ?>
-                  </p>
+            <?php
+              $eventSlug = $event['slug'] ?? (string)($event['id'] ?? '');
+              $eventUrl = '/events/' . $eventSlug;
+              $eventTitle = $event['context_label'] ?? $event['title'] ?? 'Untitled event';
+              $eventDate = !empty($event['event_date']) ? date_fmt($event['event_date'], 'M j, Y • g:i A') : '';
+              $eventDescription = !empty($event['description']) ? app_truncate_words($event['description'], 24) : '';
+              $badge = app_visibility_badge($event['privacy'] ?? null, $event['community_privacy'] ?? null);
+            ?>
+            <div class="app-invitation-item">
+              <div class="app-invitation-badges">
+                <?php if (!empty($badge['label'])): ?>
+                  <span class="<?= e($badge['class']) ?>"><?= e($badge['label']); ?></span>
                 <?php endif; ?>
-                <?php if (!empty($event['description'])): ?>
-                  <p class="app-text-muted app-text-sm">
-                    <?= e(app_truncate_words($event['description'], 24)); ?>
-                  </p>
+              </div>
+              <div class="app-invitation-details">
+                <strong><a href="<?= e($eventUrl); ?>" class="app-text-primary"><?= e($eventTitle); ?></a></strong>
+                <?php if ($eventDate !== ''): ?>
+                  <div class="app-text-muted app-text-sm"><?= e($eventDate); ?></div>
                 <?php endif; ?>
-                <a class="app-btn app-btn-outline app-btn-sm" href="/events/<?= e($event['slug'] ?? (string)($event['id'] ?? '')); ?>">View details</a>
+                <?php if ($eventDescription !== ''): ?>
+                  <small class="app-text-muted"><?= e($eventDescription); ?></small>
+                <?php endif; ?>
+              </div>
+              <div class="app-invitation-actions">
+                <a class="app-btn app-btn-sm app-btn-outline" href="<?= e($eventUrl); ?>">View details</a>
               </div>
             </div>
           <?php endforeach; ?>
@@ -110,37 +109,37 @@ $conversations = $recent_conversations ?? [];
           </div>
         </div>
       <?php else: ?>
-        <div class="app-grid app-grid-3 app-gap-4">
+        <div class="app-invitations-list">
           <?php foreach ($communities as $community): ?>
-            <div class="app-card">
-              <div class="app-card-body app-stack app-gap-2">
-                <h3 class="app-heading app-heading-sm">
-                  <a href="/communities/<?= e($community['slug'] ?? (string)($community['id'] ?? '')); ?>" class="app-text-primary">
-                    <?= e($community['title'] ?? $community['name'] ?? 'Community'); ?>
-                  </a>
-                  <?php
-                    $badge = app_visibility_badge($community['privacy'] ?? null);
-                    if (!empty($badge['label'])):
-                  ?>
-                    <span class="<?= e($badge['class']) ?>" style="margin-left:0.5rem;">
-                      <?= e($badge['label']); ?>
-                    </span>
-                  <?php endif; ?>
-                </h3>
-                <?php if (!empty($community['description'])): ?>
-                  <p class="app-text-muted app-text-sm">
-                    <?= e(app_truncate_words($community['description'], 24)); ?>
-                  </p>
+            <?php
+              $communitySlug = $community['slug'] ?? (string)($community['id'] ?? '');
+              $communityUrl = '/communities/' . $communitySlug;
+              $communityName = $community['title'] ?? $community['name'] ?? 'Community';
+              $communityDescription = !empty($community['description']) ? app_truncate_words($community['description'], 24) : '';
+              $badge = app_visibility_badge($community['privacy'] ?? null);
+            ?>
+            <div class="app-invitation-item">
+              <div class="app-invitation-badges">
+                <?php if (!empty($badge['label'])): ?>
+                  <span class="<?= e($badge['class']) ?>"><?= e($badge['label']); ?></span>
                 <?php endif; ?>
-                <div class="app-flex app-gap-3 app-text-muted app-text-sm">
+              </div>
+              <div class="app-invitation-details">
+                <strong><a href="<?= e($communityUrl); ?>" class="app-text-primary"><?= e($communityName); ?></a></strong>
+                <?php if ($communityDescription !== ''): ?>
+                  <div class="app-text-muted app-text-sm"><?= e($communityDescription); ?></div>
+                <?php endif; ?>
+                <small class="app-text-muted">
                   <?php if (isset($community['member_count'])): ?>
-                    <span><?= e((string)$community['member_count']); ?> members</span>
+                    <?= e((string)$community['member_count']); ?> members
                   <?php endif; ?>
                   <?php if (isset($community['event_count'])): ?>
-                    <span><?= e((string)$community['event_count']); ?> events</span>
+                    • <?= e((string)$community['event_count']); ?> events
                   <?php endif; ?>
-                </div>
-                <a class="app-btn app-btn-outline app-btn-sm" href="/communities/<?= e($community['slug'] ?? (string)($community['id'] ?? '')); ?>">View community</a>
+                </small>
+              </div>
+              <div class="app-invitation-actions">
+                <a class="app-btn app-btn-sm app-btn-outline" href="<?= e($communityUrl); ?>">View community</a>
               </div>
             </div>
           <?php endforeach; ?>
@@ -161,37 +160,35 @@ $conversations = $recent_conversations ?? [];
           </div>
         </div>
       <?php else: ?>
-        <div class="app-stack app-gap-3">
+        <div class="app-invitations-list">
           <?php foreach ($conversations as $conversation): ?>
-            <div class="app-card">
-              <div class="app-card-body app-stack app-gap-2">
-                <h3 class="app-heading app-heading-sm">
-                  <a href="/conversations/<?= e($conversation['slug'] ?? (string)($conversation['id'] ?? '')); ?>" class="app-text-primary">
-                    <?= e($conversation['context_label'] ?? $conversation['title'] ?? 'Conversation'); ?>
-                  </a>
-                  <?php
-                    $badge = app_visibility_badge($conversation['privacy'] ?? $conversation['community_privacy'] ?? null);
-                    if (!empty($badge['label'])):
-                  ?>
-                    <span class="<?= e($badge['class']) ?>" style="margin-left:0.5rem;">
-                      <?= e($badge['label']); ?>
-                    </span>
-                  <?php endif; ?>
-                </h3>
-                <?php if (!empty($conversation['created_at'])): ?>
-                  <p class="app-text-muted app-text-sm">
-                    Started <?= e(app_time_ago($conversation['created_at'])); ?>
-                  </p>
+            <?php
+              $conversationSlug = $conversation['slug'] ?? (string)($conversation['id'] ?? '');
+              $conversationUrl = '/conversations/' . $conversationSlug;
+              $conversationTitle = $conversation['context_label'] ?? $conversation['title'] ?? 'Conversation';
+              $conversationBadge = app_visibility_badge($conversation['privacy'] ?? $conversation['community_privacy'] ?? null);
+              $conversationExcerpt = !empty($conversation['excerpt'])
+                ? app_truncate_words($conversation['excerpt'], 28)
+                : (!empty($conversation['content']) ? app_truncate_words($conversation['content'], 28) : '');
+              $startedAt = !empty($conversation['created_at']) ? app_time_ago($conversation['created_at']) : '';
+            ?>
+            <div class="app-invitation-item">
+              <div class="app-invitation-badges">
+                <?php if (!empty($conversationBadge['label'])): ?>
+                  <span class="<?= e($conversationBadge['class']) ?>"><?= e($conversationBadge['label']); ?></span>
                 <?php endif; ?>
-                <?php if (!empty($conversation['excerpt'])): ?>
-                  <p class="app-text-muted app-text-sm">
-                    <?= e(app_truncate_words($conversation['excerpt'], 28)); ?>
-                  </p>
-                <?php elseif (!empty($conversation['content'])): ?>
-                  <p class="app-text-muted app-text-sm">
-                    <?= e(app_truncate_words($conversation['content'], 28)); ?>
-                  </p>
+              </div>
+              <div class="app-invitation-details">
+                <strong><a href="<?= e($conversationUrl); ?>" class="app-text-primary"><?= e($conversationTitle); ?></a></strong>
+                <?php if ($startedAt !== ''): ?>
+                  <div class="app-text-muted app-text-sm">Started <?= e($startedAt); ?></div>
                 <?php endif; ?>
+                <?php if ($conversationExcerpt !== ''): ?>
+                  <small class="app-text-muted"><?= e($conversationExcerpt); ?></small>
+                <?php endif; ?>
+              </div>
+              <div class="app-invitation-actions">
+                <a class="app-btn app-btn-sm app-btn-outline" href="<?= e($conversationUrl); ?>">Open conversation</a>
               </div>
             </div>
           <?php endforeach; ?>

@@ -519,19 +519,29 @@ final class InvitationApiController
             $email = (string)($member['email'] ?? '');
             $joinedAt = (string)($member['joined_at'] ?? '');
             $isSelf = $userId === $viewerId;
+            $roleClass = $role === 'admin' ? 'primary' : ($role === 'moderator' ? 'secondary' : 'secondary');
 
-            echo '<tr id="member-row-' . htmlspecialchars((string)$memberId) . '">';
-            echo '<td>';
-            echo '<div class="app-flex app-gap-2"><div class="app-avatar"></div>';
-            echo '<div><strong>' . htmlspecialchars($displayName) . '</strong></div></div>';
-            echo '</td>';
-
-            echo '<td>' . htmlspecialchars($email) . '</td>';
-            echo '<td>' . ($joinedAt !== '' ? htmlspecialchars(date('M j, Y', strtotime($joinedAt))) : '-') . '</td>';
-
-            echo '<td><div class="app-flex app-gap-2">';
+            echo '<div class="app-invitation-item" id="member-row-' . htmlspecialchars((string)$memberId) . '">';
+            echo '<div class="app-invitation-badges">';
+            echo '<span class="app-badge app-badge-' . $roleClass . '">' . htmlspecialchars(ucfirst($role)) . '</span>';
             if ($isSelf) {
-                echo '<span class="app-text-muted app-text-sm">You</span>';
+                echo '<span class="app-badge app-badge-secondary">You</span>';
+            }
+            echo '</div>';
+
+            echo '<div class="app-invitation-details">';
+            echo '<strong>' . htmlspecialchars($displayName) . '</strong>';
+            if ($email !== '') {
+                echo '<div class="app-text-muted app-text-sm">' . htmlspecialchars($email) . '</div>';
+            }
+            if ($joinedAt !== '') {
+                echo '<small class="app-text-muted">Joined ' . htmlspecialchars(date('M j, Y', strtotime($joinedAt))) . '</small>';
+            }
+            echo '</div>';
+
+            echo '<div class="app-invitation-actions">';
+            if ($isSelf) {
+                echo '<span class="app-text-muted app-text-sm">Account owner</span>';
             } else {
                 if ($viewerRole === 'admin' || $this->auth->currentUserCan('manage_options')) {
                     echo '<select class="app-form-input app-form-input-sm" onchange="changeMemberRole(' . htmlspecialchars((string)$memberId) . ', this.value, ' . htmlspecialchars((string)$communityId) . ')">';
@@ -545,8 +555,8 @@ final class InvitationApiController
                     echo '<span class="app-badge app-badge-' . ($role === 'admin' ? 'primary' : 'secondary') . '">' . htmlspecialchars(ucfirst($role)) . '</span>';
                 }
             }
-            echo '</div></td>';
-            echo '</tr>';
+            echo '</div>';
+            echo '</div>';
         }
 
         return (string)ob_get_clean();

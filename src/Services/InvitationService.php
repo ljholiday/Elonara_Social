@@ -150,7 +150,7 @@ final class InvitationService
         }
 
         $invitedEmail = strtolower((string)($invitation['invited_email'] ?? ''));
-        if (str_starts_with($invitedEmail, 'bsky:')) {
+        if (\str_starts_with($invitedEmail, 'bsky:')) {
             return $this->resendBlueskyCommunityInvitation($communityId, $invitationId, $viewerId, $community, $invitation);
         }
 

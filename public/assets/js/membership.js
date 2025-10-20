@@ -762,7 +762,7 @@ function updateEventGuestUI(guests) {
     }
 
     if (!Array.isArray(guests) || guests.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="5" class="app-text-center app-text-muted">No guests yet.</td></tr>';
+        tableBody.innerHTML = '<div class="app-text-center app-text-muted">No guests yet.</div>';
         if (emptyState) {
             emptyState.style.display = 'block';
         }
@@ -794,8 +794,9 @@ function renderEventGuestRow(guest) {
     const name = escapeHtml(guest.name || guest.guest_name || guest.user_display_name || 'Guest');
     const emailRaw = guest.email || guest.guest_email || guest.user_email || '';
     const email = escapeHtml(emailRaw);
-    const statusValue = guest.status || 'pending';
-    const statusLabel = mapGuestStatus(statusValue);
+    const statusValueRaw = guest.status || 'pending';
+    const statusValue = escapeHtml(String(statusValueRaw).toLowerCase());
+    const statusLabel = mapGuestStatus(statusValueRaw);
     const date = formatGuestDate(guest.rsvp_date || guest.created_at);
     const invitationId = guest.id || '';
     const rsvpToken = guest.rsvp_token || '';
@@ -804,7 +805,7 @@ function renderEventGuestRow(guest) {
     const secondary = email !== '' ? `<div class="app-text-muted app-text-sm">${email}</div>` : '';
 
     return `
-        <div class="app-invitation-item" data-invitation-id="${invitationId}">
+        <div class="app-invitation-item" data-invitation-id="${escapeHtml(String(invitationId))}">
             <div class="app-invitation-badges">
                 <span class="app-badge app-badge-${statusValue}">${statusLabel}</span>
                 ${isBluesky ? '<span class="app-badge app-badge-secondary">Bluesky</span>' : ''}
@@ -816,8 +817,8 @@ function renderEventGuestRow(guest) {
             </div>
             <div class="app-invitation-actions">
                 <button type="button" class="app-btn app-btn-sm" data-guest-action="copy" data-rsvp-token="${escapeHtml(rsvpToken)}">Copy Link</button>
-                ${['pending', 'maybe'].includes(statusValue) ? `<button type="button" class="app-btn app-btn-sm app-btn-secondary" data-guest-action="resend" data-invitation-id="${invitationId}">Resend Invite</button>` : ''}
-                ${statusValue === 'pending' ? `<button type="button" class="app-btn app-btn-sm app-btn-danger" data-guest-action="cancel" data-invitation-id="${invitationId}">Remove</button>` : ''}
+                ${['pending', 'maybe'].includes(statusValueRaw) ? `<button type="button" class="app-btn app-btn-sm app-btn-secondary" data-guest-action="resend" data-invitation-id="${escapeHtml(String(invitationId))}">Resend Invite</button>` : ''}
+                ${statusValueRaw === 'pending' ? `<button type="button" class="app-btn app-btn-sm app-btn-danger" data-guest-action="cancel" data-invitation-id="${escapeHtml(String(invitationId))}">Remove</button>` : ''}
             </div>
         </div>
     `;
