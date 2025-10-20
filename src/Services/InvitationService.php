@@ -92,10 +92,18 @@ final class InvitationService
         }
 
         $stmt = $this->database->pdo()->prepare(
-            "SELECT id, invited_email, invitation_token, status, created_at
-             FROM community_invitations
-             WHERE community_id = :community_id
-             ORDER BY created_at DESC"
+            "SELECT ci.id,
+                    ci.invited_email,
+                    ci.invitation_token,
+                    ci.status,
+                    ci.created_at,
+                    ci.invited_user_id,
+                    u.display_name AS member_name,
+                    u.username AS member_username
+             FROM community_invitations ci
+             LEFT JOIN users u ON u.id = ci.invited_user_id
+             WHERE ci.community_id = :community_id
+             ORDER BY ci.created_at DESC"
         );
         $stmt->execute([':community_id' => $communityId]);
         $invitations = $stmt->fetchAll(\PDO::FETCH_ASSOC);

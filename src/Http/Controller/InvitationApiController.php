@@ -636,10 +636,15 @@ final class InvitationApiController
             echo '<span class="app-badge app-badge-secondary">' . htmlspecialchars($sourceLabel) . '</span>';
             echo '</div>';
 
+            $guestName = trim((string)($guest['name'] ?? ''));
+            $guestEmail = (string)($guest['email'] ?? '');
+            $primaryLabel = $guestName !== '' ? $guestName : $guestEmail;
+            $secondaryLabel = $guestName !== '' ? $guestEmail : '';
+
             echo '<div class="app-invitation-details">';
-            echo '<h4>' . htmlspecialchars((string)($guest['email'] ?? '')) . '</h4>';
-            if (!empty($guest['name'])) {
-                echo '<div class="app-text-muted">' . htmlspecialchars((string)$guest['name']) . '</div>';
+            echo '<h4>' . htmlspecialchars($primaryLabel) . '</h4>';
+            if ($secondaryLabel !== '') {
+                echo '<div class="app-text-muted">' . htmlspecialchars($secondaryLabel) . '</div>';
             }
             if (!empty($guest['rsvp_date'])) {
                 echo '<div class="app-text-muted">Invited on ' . htmlspecialchars(date('M j, Y', strtotime((string)$guest['rsvp_date']))) . '</div>';

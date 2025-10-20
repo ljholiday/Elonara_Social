@@ -552,7 +552,11 @@ function renderInvitationsList(invitations, entityType) {
     let html = '<div class="app-invitations-list">';
 
     invitations.forEach(inv => {
-        const email = escapeHtml(inv.invited_email || '');
+        const emailRaw = inv.invited_email || '';
+        const email = escapeHtml(emailRaw);
+        const memberName = inv.member_name ? escapeHtml(inv.member_name) : '';
+        const primaryLabel = memberName !== '' ? memberName : email;
+        const secondaryLabel = memberName !== '' ? email : '';
         const tokenRaw = inv.invitation_token || '';
         const tokenAttr = tokenRaw.replace(/"/g, '&quot;');
         const status = (inv.status || 'pending').toLowerCase();
@@ -567,7 +571,8 @@ function renderInvitationsList(invitations, entityType) {
         html += `
             <div class="app-invitation-item">
                 <div class="app-invitation-details">
-                    <strong>${email}</strong>
+                    <strong>${primaryLabel}</strong>
+                    ${secondaryLabel !== '' ? `<div class="app-text-muted app-text-sm">${secondaryLabel}</div>` : ''}
                     <span class="app-badge app-badge-${status}">${escapeHtml(statusLabel)}</span>
                     <small class="app-text-muted">Sent ${createdAt}</small>
                 </div>
