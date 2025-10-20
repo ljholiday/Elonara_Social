@@ -149,6 +149,11 @@ final class InvitationService
             return $this->failure('Community not found.', 404);
         }
 
+        $invitedEmail = strtolower((string)($invitation['invited_email'] ?? ''));
+        if (str_starts_with($invitedEmail, 'bsky:')) {
+            return $this->resendBlueskyCommunityInvitation($communityId, $invitationId, $viewerId, $community, $invitation);
+        }
+
         $newToken = $this->generateToken();
         $expiresAt = date('Y-m-d H:i:s', strtotime('+' . self::EXPIRY_DAYS . ' days'));
 
@@ -192,6 +197,82 @@ final class InvitationService
         $data['message'] = 'Invitation email resent successfully.';
 
         return $this->success($data);
+    }
+
+    /**
+     * @param array<string,mixed> $community
+     * @param array<string,mixed> $invitation
+     * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
+     */
+    private function resendBlueskyCommunityInvitation(int $communityId, int $invitationId, int $viewerId, array $community, array $invitation): array
+    {
+        $did = substr((string)$invitation['invited_email'], 5);
+        $did = strtolower(trim($did));
+        if ($did === '') {
+            return $this->failure('Invalid Bluesky invitation.', 400);
+        }
+
+        $token = $this->generateToken();
+        $inviteUrl = $this->buildInvitationUrl('community', $token);
+
+        $handle = $this->resolveBlueskyHandle($did);
+        $appName = (string)app_config('app.name', 'Elonara Social');
+        $communityName = (string)($community['name'] ?? 'a community');
+
+        $message = $handle !== null
+            ? '@' . $handle . ' You\'ve been invited to join ' . $communityName . ' on ' . $appName . '! ' . $inviteUrl
+            : 'You\'ve been invited to join ' . $communityName . ' on ' . $appName . '! ' . $inviteUrl;
+
+        $mentions = [];
+        if ($handle !== null) {
+            $mentions[] = ['handle' => $handle, 'did' => $did];
+        }
+
+        $postResult = $this->bluesky->createPost($viewerId, $message, $mentions);
+        if (!$postResult['success']) {
+            return $this->failure($postResult['message'] ?? 'Unable to resend invitation via Bluesky.', 400);
+        }
+
+        $pdo = $this->database->pdo();
+        $expiresAt = date('Y-m-d H:i:s', strtotime('+' . self::EXPIRY_DAYS . ' days'));
+        $update = $pdo->prepare(
+            "UPDATE community_invitations
+             SET invitation_token = :token,
+                 expires_at = :expires_at,
+                 responded_at = NULL,
+                 status = 'pending'
+             WHERE id = :id AND community_id = :community_id
+             LIMIT 1"
+        );
+        $update->execute([
+            ':token' => $token,
+            ':expires_at' => $expiresAt,
+            ':id' => $invitationId,
+            ':community_id' => $communityId,
+        ]);
+
+        $list = $this->listCommunityInvitations($communityId, $viewerId);
+        if (!$list['success']) {
+            return $list;
+        }
+
+        $data = $list['data'] ?? [];
+        $data['message'] = 'Bluesky invitation resent successfully.';
+
+        return $this->success($data);
+    }
+
+    private function resolveBlueskyHandle(string $did): ?string
+    {
+        $profile = $this->bluesky->getProfile($did);
+        if (!is_array($profile)) {
+            return null;
+        }
+
+        $handle = (string)($profile['handle'] ?? '');
+        $handle = ltrim($handle, '@');
+
+        return $handle !== '' ? $handle : null;
     }
 
     /**

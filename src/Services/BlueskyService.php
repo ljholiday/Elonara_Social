@@ -427,6 +427,25 @@ final class BlueskyService
     }
 
     /**
+     * Fetch a public profile by handle or DID.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function getProfile(string $actor): ?array
+    {
+        try {
+            $response = $this->client->get(self::PUBLIC_API_BASE . '/xrpc/app.bsky.actor.getProfile', [
+                'query' => ['actor' => $actor],
+            ]);
+
+            $data = json_decode((string)$response->getBody(), true);
+            return is_array($data) ? $data : null;
+        } catch (GuzzleException $e) {
+            return null;
+        }
+    }
+
+    /**
      * Create a post on Bluesky with mentions
      *
      * @param int $userId User ID to post as
