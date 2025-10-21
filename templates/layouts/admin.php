@@ -1,4 +1,15 @@
 <?php
+/**
+ * Admin Layout - Sidebar navigation with main content area
+ * Used for: Admin dashboard and administrative pages
+ *
+ * Expected variables:
+ * @var string $page_title - Page title for the admin section
+ * @var string $page_description - Optional description for the admin page
+ * @var string $content - Main admin content HTML
+ * @var string $nav_active - Current active navigation item key
+ */
+
 declare(strict_types=1);
 
 $appName = (string)app_config('app.name', 'Elonara Social');
@@ -19,14 +30,7 @@ $csrfToken = $security->createNonce('app_admin');
     <meta name="csrf-token" content="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
     <title><?= htmlspecialchars($fullTitle); ?></title>
     <link rel="stylesheet" href="<?= htmlspecialchars($assetBase . '/css/app.css', ENT_QUOTES, 'UTF-8'); ?>">
-    <style>
-        .admin-sidebar { width: 220px; padding: 1.5rem; background: #10162f; color: #fff; min-height: 100vh; }
-        .admin-sidebar a { color: rgba(255,255,255,0.85); display: block; margin-bottom: 0.75rem; text-decoration: none; }
-        .admin-sidebar a.is-active, .admin-sidebar a:hover { color: #fff; font-weight: 600; }
-        .admin-main { flex: 1; padding: 2rem; background: #f5f7fb; min-height: 100vh; }
-        .admin-header { margin-bottom: 2rem; }
-        .admin-card { background: #fff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 8px 24px rgba(15,23,42,0.08); margin-bottom: 1.5rem; }
-    </style>
+    <link rel="stylesheet" href="<?= htmlspecialchars($assetBase . '/css/admin.css', ENT_QUOTES, 'UTF-8'); ?>">
 </head>
 <body>
 <div style="display:flex; align-items:flex-start;">

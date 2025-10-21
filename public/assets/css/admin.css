@@ -1,0 +1,41 @@
+/* Admin Layout Styles */
+
+.admin-sidebar {
+    width: 220px;
+    padding: 1.5rem;
+    background: #10162f;
+    color: #fff;
+    min-height: 100vh;
+}
+
+.admin-sidebar a {
+    color: rgba(255, 255, 255, 0.85);
+    display: block;
+    margin-bottom: 0.75rem;
+    text-decoration: none;
+}
+
+.admin-sidebar a.is-active,
+.admin-sidebar a:hover {
+    color: #fff;
+    font-weight: 600;
+}
+
+.admin-main {
+    flex: 1;
+    padding: 2rem;
+    background: #f5f7fb;
+    min-height: 100vh;
+}
+
+.admin-header {
+    margin-bottom: 2rem;
+}
+
+.admin-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    margin-bottom: 1.5rem;
+}

@@ -58,24 +58,7 @@ $csrf_token = $security->createNonce('app_nonce', $userId);
 
 <div class="app-page-two-column">
     <div class="app-main">
-        <div class="app-main-nav app-has-mobile-menu">
-            <a href="/events" class="app-main-nav-item<?= str_contains($current_path, '/events') ? ' active' : ''; ?>">
-                Events
-            </a>
-            <a href="/conversations" class="app-main-nav-item<?= str_contains($current_path, '/conversations') ? ' active' : ''; ?>">
-                Conversations
-            </a>
-            <a href="/communities" class="app-main-nav-item<?= str_contains($current_path, '/communities') ? ' active' : ''; ?>">
-                Communities
-            </a>
-            <button type="button" class="app-mobile-menu-toggle app-main-nav-item" id="mobile-menu-toggle" aria-label="Open menu">
-                <span class="app-hamburger-icon">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </span>
-            </button>
-        </div>
+        <?php include __DIR__ . '/../partials/main-nav.php'; ?>
 
         <?php if ($nav_items): ?>
         <div class="app-nav">

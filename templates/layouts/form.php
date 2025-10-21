@@ -34,17 +34,7 @@ $csrf_token = $security->createNonce('app_nonce');
 <body>
 
 <div class="app-page-form-centered">
-    <div class="app-main-nav">
-        <a href="/events" class="app-main-nav-item<?= (str_contains($current_path, '/events') || str_contains($current_path, '/create-event')) ? ' active' : ''; ?>">
-            Events
-        </a>
-        <a href="/conversations" class="app-main-nav-item<?= (str_contains($current_path, '/conversations') || str_contains($current_path, '/create-conversation')) ? ' active' : ''; ?>">
-            Conversations
-        </a>
-        <a href="/communities" class="app-main-nav-item<?= (str_contains($current_path, '/communities') || str_contains($current_path, '/create-community')) ? ' active' : ''; ?>">
-            Communities
-        </a>
-    </div>
+    <?php include __DIR__ . '/../partials/main-nav.php'; ?>
 
     <div class="app-header">
         <h1 class="app-heading app-heading-lg app-text-primary"><?= htmlspecialchars($page_title); ?></h1>
@@ -57,6 +47,8 @@ $csrf_token = $security->createNonce('app_nonce');
         <?= $content; ?>
     </div>
 </div>
+
+<?php include __DIR__ . '/../partials/mobile-menu-modal.php'; ?>
 
 <script src="<?= htmlspecialchars($assetBase . '/js/modal.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?= htmlspecialchars($assetBase . '/js/app.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
