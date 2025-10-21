@@ -49,14 +49,14 @@ return static function (Router $router): void {
             'nav_items' => [],
             'sidebar_content' => $sidebar,
         ], 'two-column');
-        return null;
+        return true;
     });
 
     // Admin
     $router->get('/admin', static function (Request $request) {
         $view = app_service('controller.admin')->dashboard();
         app_render('admin/dashboard.php', $view + ['page_title' => 'Admin Overview'], 'admin');
-        return null;
+        return true;
     });
 
     $router->get('/admin/settings', static function (Request $request) {
@@ -66,7 +66,7 @@ return static function (Router $router): void {
             unset($_SESSION['admin_flash']);
         }
         app_render('admin/settings.php', $view, 'admin');
-        return null;
+        return true;
     });
 
     $router->get('/admin/users', static function (Request $request) {
@@ -76,7 +76,7 @@ return static function (Router $router): void {
             unset($_SESSION['admin_flash']);
         }
         app_render('admin/users.php', $view, 'admin');
-        return null;
+        return true;
     });
 
     $router->post('/admin/users/{userId}/{action}', static function (Request $request, string $userId, string $action) {
@@ -111,7 +111,7 @@ return static function (Router $router): void {
     $router->get('/auth', static function (Request $request) {
         $view = app_service('controller.auth')->landing();
         app_render('auth-landing.php', array_merge($view, ['page_title' => 'Sign In or Register']), 'guest');
-        return null;
+        return true;
     });
 
     $router->post('/auth/login', static function (Request $request) {
@@ -121,7 +121,7 @@ return static function (Router $router): void {
             exit;
         }
         app_render('auth-landing.php', array_merge($view, ['page_title' => 'Sign In']), 'guest');
-        return null;
+        return true;
     });
 
     $router->post('/auth/register', static function (Request $request) {
@@ -131,7 +131,7 @@ return static function (Router $router): void {
             exit;
         }
         app_render('auth-landing.php', array_merge($view, ['page_title' => 'Register']), 'guest');
-        return null;
+        return true;
     });
 
     $router->post('/auth/logout', static function (Request $request) {
@@ -151,7 +151,7 @@ return static function (Router $router): void {
     $router->get('/reset-password', static function (Request $request) {
         $view = app_service('controller.auth')->requestReset();
         app_render('password-reset-request.php', array_merge($view, ['page_title' => 'Reset Password']), 'guest');
-        return null;
+        return true;
     });
 
     $router->post('/reset-password', static function (Request $request) {
@@ -172,7 +172,7 @@ return static function (Router $router): void {
             ];
         }
         app_render('password-reset-request.php', $data, 'guest');
-        return null;
+        return true;
     });
 
     $router->get('/reset-password/{token}', static function (Request $request, string $token) {
@@ -183,14 +183,14 @@ return static function (Router $router): void {
                 'page_title' => 'Reset Password Error',
                 'error' => $view['error'] ?? 'Invalid or expired token.'
             ], 'guest');
-            return null;
+            return true;
         }
         app_render('password-reset-form.php', [
             'page_title' => 'Reset Password',
             'token' => $view['token'],
             'errors' => []
         ], 'guest');
-        return null;
+        return true;
     });
 
     $router->post('/reset-password/{token}', static function (Request $request, string $token) {
@@ -205,7 +205,7 @@ return static function (Router $router): void {
             'errors' => $result['errors'] ?? [],
             'token' => $result['token'] ?? $token
         ], 'guest');
-        return null;
+        return true;
     });
 
     // Email Verification
@@ -220,7 +220,7 @@ return static function (Router $router): void {
             'page_title' => 'Email Verification Error',
             'errors' => $result['errors'] ?? ['token' => 'Verification failed.']
         ], 'guest');
-        return null;
+        return true;
     });
 
     // Profile Routes
@@ -234,7 +234,7 @@ return static function (Router $router): void {
             header('Location: /auth');
             exit;
         }
-        return null;
+        return true;
     });
 
     // IMPORTANT: /profile/edit must come BEFORE /profile/{username} to avoid treating "edit" as a username
@@ -261,7 +261,7 @@ return static function (Router $router): void {
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar
         ], 'two-column');
-        return null;
+        return true;
     });
 
     $router->get('/profile/{username}', static function (Request $request, string $username) {
@@ -288,7 +288,7 @@ return static function (Router $router): void {
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar
         ], 'two-column');
-        return null;
+        return true;
     });
 
     $router->post('/profile/update', static function (Request $request) {
@@ -320,7 +320,7 @@ return static function (Router $router): void {
                 'nav_items' => $tabs,
                 'sidebar_content' => $sidebar
             ], 'two-column');
-            return null;
+            return true;
         } catch (\Throwable $e) {
             file_put_contents(__DIR__ . '/../../debug.log', date('[Y-m-d H:i:s] ') . "Profile update route error: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
             http_response_code(500);
@@ -365,7 +365,7 @@ return static function (Router $router): void {
         http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
         echo json_encode($response['body']);
-        return null;
+        return true;
     });
 
     $router->post('/api/conversations/{slug}/replies', static function (Request $request, string $slug) {
@@ -373,7 +373,7 @@ return static function (Router $router): void {
         http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
         echo json_encode($response['body']);
-        return null;
+        return true;
     });
 
     $router->post('/api/replies/{id}/edit', static function (Request $request, string $id) {
@@ -474,7 +474,7 @@ return static function (Router $router): void {
         http_response_code($response['status'] ?? 200);
         header('Content-Type: application/json');
         echo json_encode($response['body']);
-        return null;
+        return true;
     });
 
     // API: Invitations
@@ -615,13 +615,13 @@ return static function (Router $router): void {
             ],
             'sidebar_content' => $sidebar,
         ]), 'two-column');
-        return null;
+        return true;
     });
 
     $router->get('/events/create', static function (Request $request) {
         $view = app_service('controller.events')->create();
         app_render('event-create.php', array_merge($view, ['page_title' => 'Create Event']), 'form');
-        return null;
+        return true;
     });
 
     $router->post('/events/create', static function (Request $request) {
@@ -631,7 +631,7 @@ return static function (Router $router): void {
             exit;
         }
         app_render('event-create.php', array_merge($result, ['page_title' => 'Create Event']), 'form');
-        return null;
+        return true;
     });
 
     $router->get('/events/{slug}/edit', static function (Request $request, string $slug) {
@@ -639,10 +639,10 @@ return static function (Router $router): void {
         if ($view['event'] === null) {
             http_response_code(404);
             echo 'Not Found';
-            return null;
+            return true;
         }
         app_render('event-edit.php', array_merge($view, ['page_title' => 'Edit Event']), 'form');
-        return null;
+        return true;
     });
 
     $router->get('/events/{slug}/manage', static function (Request $request, string $slug) {
@@ -675,7 +675,7 @@ return static function (Router $router): void {
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
         ]), 'two-column');
-        return null;
+        return true;
     });
 
     $router->post('/events/{slug}/edit', static function (Request $request, string $slug) {
@@ -687,10 +687,10 @@ return static function (Router $router): void {
         if (!isset($result['event']) || $result['event'] === null) {
             http_response_code(404);
             echo 'Not Found';
-            return null;
+            return true;
         }
         app_render('event-edit.php', array_merge($result, ['page_title' => 'Edit Event']), 'form');
-        return null;
+        return true;
     });
 
     $router->post('/events/{slug}/delete', static function (Request $request, string $slug) {
@@ -716,7 +716,7 @@ return static function (Router $router): void {
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
         ]), 'two-column');
-        return null;
+        return true;
     });
 
     $router->get('/events/{slug}/conversations', static function (Request $request, string $slug) {
@@ -736,7 +736,7 @@ return static function (Router $router): void {
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
         ]), 'two-column');
-        return null;
+        return true;
     });
 
     // Communities
@@ -759,13 +759,13 @@ return static function (Router $router): void {
             ],
             'sidebar_content' => $sidebar,
         ]), 'two-column');
-        return null;
+        return true;
     });
 
     $router->get('/communities/create', static function (Request $request) {
         $view = app_service('controller.communities')->create();
         app_render('community-create.php', array_merge($view, ['page_title' => 'Create Community']), 'form');
-        return null;
+        return true;
     });
 
     $router->post('/communities/create', static function (Request $request) {
@@ -775,7 +775,7 @@ return static function (Router $router): void {
             exit;
         }
         app_render('community-create.php', array_merge($result, ['page_title' => 'Create Community']), 'form');
-        return null;
+        return true;
     });
 
     $router->get('/communities/{slug}/edit', static function (Request $request, string $slug) {
@@ -783,10 +783,10 @@ return static function (Router $router): void {
         if ($view['community'] === null) {
             http_response_code(404);
             echo 'Not Found';
-            return null;
+            return true;
         }
         app_render('community-edit.php', array_merge($view, ['page_title' => 'Edit Community']), 'form');
-        return null;
+        return true;
     });
 
     $router->get('/communities/{slug}/manage', static function (Request $request, string $slug) {
@@ -819,7 +819,7 @@ return static function (Router $router): void {
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
         ]), 'two-column');
-        return null;
+        return true;
     });
 
     $router->post('/communities/{slug}/edit', static function (Request $request, string $slug) {
@@ -831,10 +831,10 @@ return static function (Router $router): void {
         if (!isset($result['community']) || $result['community'] === null) {
             http_response_code(404);
             echo 'Not Found';
-            return null;
+            return true;
         }
         app_render('community-edit.php', array_merge($result, ['page_title' => 'Edit Community']), 'form');
-        return null;
+        return true;
     });
 
     $router->post('/communities/{slug}/delete', static function (Request $request, string $slug) {
@@ -864,7 +864,7 @@ return static function (Router $router): void {
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
         ]), 'two-column');
-        return null;
+        return true;
     });
 
     $router->get('/communities/{slug}/events', static function (Request $request, string $slug) {
@@ -884,7 +884,7 @@ return static function (Router $router): void {
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
         ]), 'two-column');
-        return null;
+        return true;
     });
 
     $router->get('/communities/{slug}/conversations', static function (Request $request, string $slug) {
@@ -904,7 +904,7 @@ return static function (Router $router): void {
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
         ]), 'two-column');
-        return null;
+        return true;
     });
 
     $router->get('/communities/{slug}/members', static function (Request $request, string $slug) {
@@ -924,7 +924,7 @@ return static function (Router $router): void {
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
         ]), 'two-column');
-        return null;
+        return true;
     });
 
     // Conversations
@@ -947,13 +947,13 @@ return static function (Router $router): void {
             ],
             'sidebar_content' => $sidebar,
         ]), 'two-column');
-        return null;
+        return true;
     });
 
     $router->get('/conversations/create', static function (Request $request) {
         $view = app_service('controller.conversations')->create();
         app_render('conversation-create.php', array_merge($view, ['page_title' => 'New Conversation']), 'form');
-        return null;
+        return true;
     });
 
     $router->post('/conversations/create', static function (Request $request) {
@@ -963,7 +963,7 @@ return static function (Router $router): void {
             exit;
         }
         app_render('conversation-create.php', array_merge($result, ['page_title' => 'New Conversation']), 'form');
-        return null;
+        return true;
     });
 
     $router->get('/conversations/{slug}/edit', static function (Request $request, string $slug) {
@@ -971,7 +971,7 @@ return static function (Router $router): void {
         if ($view['conversation'] === null) {
             http_response_code(404);
             echo 'Not Found';
-            return null;
+            return true;
         }
 
         ob_start();
@@ -987,7 +987,7 @@ return static function (Router $router): void {
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
         ]), 'two-column');
-        return null;
+        return true;
     });
 
     $router->post('/conversations/{slug}/edit', static function (Request $request, string $slug) {
@@ -999,10 +999,10 @@ return static function (Router $router): void {
         if (!isset($result['conversation']) || $result['conversation'] === null) {
             http_response_code(404);
             echo 'Not Found';
-            return null;
+            return true;
         }
         app_render('conversation-edit.php', array_merge($result, ['page_title' => 'Edit Conversation']), 'form');
-        return null;
+        return true;
     });
 
     $router->post('/conversations/{slug}/delete', static function (Request $request, string $slug) {
@@ -1033,7 +1033,7 @@ return static function (Router $router): void {
                 'nav_items' => $tabs,
                 'sidebar_content' => $sidebar,
             ]), 'two-column');
-            return null;
+            return true;
         } catch (\Throwable $e) {
             file_put_contents(__DIR__ . '/../../debug.log', date('[Y-m-d H:i:s] ') . "Reply route error: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
             http_response_code(500);
@@ -1059,7 +1059,7 @@ return static function (Router $router): void {
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
         ]), 'two-column');
-        return null;
+        return true;
     });
 
     $router->get('/rsvp/{token}', static function (Request $request, string $token) {
@@ -1076,7 +1076,7 @@ return static function (Router $router): void {
                 'token' => $token,
                 'nonce' => $security->createNonce('guest_rsvp'),
             ], 'form');
-            return null;
+            return true;
         }
 
         $data = $result['data'];
@@ -1112,7 +1112,7 @@ return static function (Router $router): void {
             'success_message' => '',
             'nonce' => $security->createNonce('guest_rsvp'),
         ], 'form');
-        return null;
+        return true;
     });
 
     $router->post('/rsvp/{token}', static function (Request $request, string $token) {
@@ -1128,7 +1128,7 @@ return static function (Router $router): void {
                 'token' => $token,
                 'nonce' => $security->createNonce('guest_rsvp'),
             ], 'form');
-            return null;
+            return true;
         }
 
         $data = $initial['data'];
@@ -1204,7 +1204,7 @@ return static function (Router $router): void {
             'success_message' => $successMessage,
             'nonce' => $security->createNonce('guest_rsvp'),
         ], 'form');
-        return null;
+        return true;
     });
 
 $router->get('/invitation/accept', static function (Request $request) {
@@ -1219,7 +1219,7 @@ $router->get('/invitation/accept', static function (Request $request) {
             'status' => 400,
             'data' => [],
         ], 'guest');
-        return null;
+        return true;
     }
 
     $controller = app_service('controller.invitations');
@@ -1251,7 +1251,7 @@ $router->get('/invitation/accept', static function (Request $request) {
         'data' => $data,
     ], 'guest');
 
-    return null;
+    return true;
 });
 
 };
