@@ -285,7 +285,7 @@ function renderInviteCard(options = {}) {
         .map(([key, val]) => ` ${escapeAttr(key)}="${escapeAttr(val)}"`)
         .join('');
 
-    const badgeHtml = badges
+    const badgesHtml = badges
         .map((badge) => {
             if (!badge || !badge.label) {
                 return '';
@@ -306,18 +306,27 @@ function renderInviteCard(options = {}) {
     const actionsHtml = actions.filter(Boolean).join('');
     const cardClass = className ? ' ' + escapeHtml(className) : '';
 
+    const asideBlocks = [];
+    if (badgesHtml) {
+        asideBlocks.push(`<div class="app-invitation-badges">${badgesHtml}</div>`);
+    }
+    if (actionsHtml) {
+        asideBlocks.push(`<div class="app-invitation-actions">${actionsHtml}</div>`);
+    }
+
+    const asideHtml = asideBlocks.length > 0
+        ? `<div class="app-invitation-aside">${asideBlocks.join('')}</div>`
+        : '';
+
     return `
         <div class="app-invitation-item${cardClass}"${attrString}>
-            <div class="app-invitation-main">
-                ${badgeHtml ? `<div class="app-invitation-badges">${badgeHtml}</div>` : ''}
-                <div class="app-invitation-details">
-                    ${titleHtml ? `<strong>${titleHtml}</strong>` : ''}
-                    ${subtitleHtml}
-                    ${metaHtml}
-                    ${bodyHtml || ''}
-                </div>
+            <div class="app-invitation-content">
+                ${titleHtml ? `<strong class="app-invitation-title">${titleHtml}</strong>` : ''}
+                ${subtitleHtml}
+                ${metaHtml}
+                ${bodyHtml || ''}
             </div>
-            ${actionsHtml ? `<div class="app-invitation-actions">${actionsHtml}</div>` : ''}
+            ${asideHtml}
         </div>
     `;
 }
