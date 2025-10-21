@@ -128,23 +128,5 @@ $csrf_token = $security->createNonce('app_nonce', $userId);
 <?php if (str_contains($current_path, '/communities') || str_contains($current_path, '/events')): ?>
 <script src="<?= htmlspecialchars($assetBase . '/js/membership.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 <?php endif; ?>
-    
-<!--
-<script>
-  fetch(<?= json_encode($assetBase . '/css/dev.css'); ?>, { method: 'HEAD' })
-    .then(response => {
-      if (response.ok) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = '/assets/css/dev.css';
-        document.head.appendChild(link);
-      }
-    })
-    .catch(() => {
-      // dev.css doesn't exist - silently ignore
-    });
-</script>
--->
-
 </body>
 </html>

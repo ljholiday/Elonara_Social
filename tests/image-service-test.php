@@ -28,7 +28,7 @@ echo "=== Image Service Tests ===\n";
 
 // Test 1: Service is registered
 test("ImageService is registered in container", function() {
-    $image = vt_service('image.service');
+    $image = app_service('image.service');
     if (!$image instanceof App\Services\ImageService) {
         return "Expected App\\Services\\ImageService, got " . get_class($image);
     }
@@ -37,7 +37,7 @@ test("ImageService is registered in container", function() {
 
 // Test 2: Validate rejects missing file
 test("Validation rejects missing uploaded file", function() {
-    $image = vt_service('image.service');
+    $image = app_service('image.service');
     $result = $image->validate(['tmp_name' => '', 'size' => 0]);
 
     if ($result['is_valid'] !== false) {
@@ -53,7 +53,7 @@ test("Validation rejects missing uploaded file", function() {
 
 // Test 3: Upload enforces alt-text
 test("Upload method enforces alt-text requirement", function() {
-    $image = vt_service('image.service');
+    $image = app_service('image.service');
 
     // Create a fake file array (won't actually upload)
     $fakeFile = [

@@ -136,7 +136,7 @@ function app_field_value(array $source, string $key): string
         <p class="app-text-muted">Use the form below to update your RSVP. You can revisit this link any time to make changes.</p>
     </div>
 
-    <form method="post" class="app-form app-stack-md">
+    <form method="post" class="app-form app-stack-md" data-guest-rsvp-form="1">
         <input type="hidden" name="token" value="<?= htmlspecialchars($token); ?>">
         <input type="hidden" name="nonce" value="<?= htmlspecialchars($nonce); ?>">
 
@@ -248,42 +248,7 @@ function app_field_value(array $source, string $key): string
     </form>
 </div>
 
-<script>
-(function () {
-    const statusRadios = document.querySelectorAll('input[name="rsvp_status"]');
-    const detailsSection = document.querySelector('[data-rsvp-details]');
-    const plusOneRadios = document.querySelectorAll('input[name="plus_one"]');
-    const plusOneContainers = document.querySelectorAll('[data-plus-one-name]');
-    const nameInput = document.getElementById('guest_name');
-
-    function toggleDetails() {
-        const selected = document.querySelector('input[name="rsvp_status"]:checked');
-        if (!selected || selected.value === 'no') {
-            detailsSection?.classList.add('app-hidden');
-            nameInput?.removeAttribute('required');
-        } else {
-            detailsSection?.classList.remove('app-hidden');
-            if (nameInput) {
-                nameInput.setAttribute('required', 'required');
-            }
-        }
-    }
-
-    function togglePlusOne() {
-        const selected = document.querySelector('input[name="plus_one"]:checked');
-        plusOneContainers.forEach(function (container) {
-            if (selected && selected.value === '1') {
-                container.classList.remove('app-hidden');
-            } else {
-                container.classList.add('app-hidden');
-            }
-        });
-    }
-
-    statusRadios.forEach(radio => radio.addEventListener('change', toggleDetails));
-    plusOneRadios.forEach(radio => radio.addEventListener('change', togglePlusOne));
-
-    toggleDetails();
-    togglePlusOne();
-})();
-</script>
+<?php
+$assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
+?>
+<script src="<?= htmlspecialchars($assetBase . '/js/guest-rsvp.js', ENT_QUOTES, 'UTF-8'); ?>"></script>

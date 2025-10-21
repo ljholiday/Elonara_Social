@@ -28,7 +28,7 @@ echo "=== Invitation Service Tests ===\n";
 
 // Test 1: Service is registered
 test("InvitationService is registered in container", function() {
-    $invitation = vt_service('invitation.manager');
+    $invitation = app_service('invitation.manager');
     if (!$invitation instanceof App\Services\InvitationService) {
         return "Expected App\\Services\\InvitationService, got " . get_class($invitation);
     }
@@ -38,7 +38,7 @@ test("InvitationService is registered in container", function() {
 // Test 2: Service has modern dependencies
 test("InvitationService uses modern dependencies (DI check)", function() {
     // Just verify it can be instantiated without errors
-    $invitation = vt_service('invitation.manager');
+    $invitation = app_service('invitation.manager');
     if ($invitation === null) {
         return "Service failed to instantiate";
     }

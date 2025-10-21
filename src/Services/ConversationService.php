@@ -28,7 +28,7 @@ final class ConversationService
                     conv.content,
                     conv.author_name,
                     conv.created_at,
-                    conv.reply_count,
+                    COALESCE(replies.reply_total, conv.reply_count) AS reply_count,
                     conv.last_reply_date,
                     conv.privacy,
                     conv.community_id,
@@ -38,6 +38,11 @@ final class ConversationService
                     evt.title AS event_title,
                     evt.slug AS event_slug
                 FROM conversations conv
+                LEFT JOIN (
+                    SELECT conversation_id, COUNT(*) AS reply_total
+                    FROM conversation_replies
+                    GROUP BY conversation_id
+                ) replies ON replies.conversation_id = conv.id
                 LEFT JOIN communities com ON conv.community_id = com.id
                 LEFT JOIN events evt ON conv.event_id = evt.id
                 ORDER BY COALESCE(conv.updated_at, conv.created_at) DESC
@@ -59,11 +64,18 @@ final class ConversationService
 
         if (ctype_digit($slugOrId)) {
             $stmt = $pdo->prepare(
-                "SELECT conv.id, conv.title, conv.slug, conv.content, conv.author_id, conv.author_name, conv.created_at, conv.reply_count, conv.last_reply_date, conv.community_id, conv.event_id, conv.privacy, com.privacy AS community_privacy,
+                "SELECT conv.id, conv.title, conv.slug, conv.content, conv.author_id, conv.author_name, conv.created_at,
+                        COALESCE(replies.reply_total, conv.reply_count) AS reply_count,
+                        conv.last_reply_date, conv.community_id, conv.event_id, conv.privacy, com.privacy AS community_privacy,
                         u.username AS author_username, u.display_name AS author_display_name, u.email AS author_email, u.avatar_url AS author_avatar_url,
                         com.name AS community_name, com.slug AS community_slug,
                         evt.title AS event_title, evt.slug AS event_slug
                  FROM conversations conv
+                 LEFT JOIN (
+                     SELECT conversation_id, COUNT(*) AS reply_total
+                     FROM conversation_replies
+                     GROUP BY conversation_id
+                 ) replies ON replies.conversation_id = conv.id
                  LEFT JOIN communities com ON conv.community_id = com.id
                  LEFT JOIN events evt ON conv.event_id = evt.id
                  LEFT JOIN users u ON conv.author_id = u.id
@@ -73,11 +85,18 @@ final class ConversationService
             $stmt->execute([':id' => (int)$slugOrId]);
         } else {
             $stmt = $pdo->prepare(
-                "SELECT conv.id, conv.title, conv.slug, conv.content, conv.author_id, conv.author_name, conv.created_at, conv.reply_count, conv.last_reply_date, conv.community_id, conv.event_id, conv.privacy, com.privacy AS community_privacy,
+                "SELECT conv.id, conv.title, conv.slug, conv.content, conv.author_id, conv.author_name, conv.created_at,
+                        COALESCE(replies.reply_total, conv.reply_count) AS reply_count,
+                        conv.last_reply_date, conv.community_id, conv.event_id, conv.privacy, com.privacy AS community_privacy,
                         u.username AS author_username, u.display_name AS author_display_name, u.email AS author_email, u.avatar_url AS author_avatar_url,
                         com.name AS community_name, com.slug AS community_slug,
                         evt.title AS event_title, evt.slug AS event_slug
                  FROM conversations conv
+                 LEFT JOIN (
+                     SELECT conversation_id, COUNT(*) AS reply_total
+                     FROM conversation_replies
+                     GROUP BY conversation_id
+                 ) replies ON replies.conversation_id = conv.id
                  LEFT JOIN communities com ON conv.community_id = com.id
                  LEFT JOIN events evt ON conv.event_id = evt.id
                  LEFT JOIN users u ON conv.author_id = u.id
@@ -289,7 +308,7 @@ final class ConversationService
                 conv.content,
                 conv.author_name,
                 conv.created_at,
-                conv.reply_count,
+                COALESCE(replies.reply_total, conv.reply_count) AS reply_count,
                 conv.last_reply_date,
                 conv.privacy,
                 conv.community_id,
@@ -300,6 +319,11 @@ final class ConversationService
                 evt.title AS event_title,
                 evt.slug AS event_slug
             FROM conversations conv
+            LEFT JOIN (
+                SELECT conversation_id, COUNT(*) AS reply_total
+                FROM conversation_replies
+                GROUP BY conversation_id
+            ) replies ON replies.conversation_id = conv.id
             LEFT JOIN communities com ON conv.community_id = com.id
             LEFT JOIN events evt ON conv.event_id = evt.id
             $where

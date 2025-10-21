@@ -3,11 +3,11 @@
 
 require_once dirname(__DIR__) . '/src/bootstrap.php';
 
-$pdo = vt_service('database.connection')->pdo();
-$auth = vt_service('auth.service');
-$invitations = vt_service('invitation.manager');
-$communityMembers = vt_service('community.member.service');
-$bluesky = vt_service('bluesky.service');
+$pdo = app_service('database.connection')->pdo();
+$auth = app_service('auth.service');
+$invitations = app_service('invitation.manager');
+$communityMembers = app_service('community.member.service');
+$bluesky = app_service('bluesky.service');
 
 $hostId = null;
 $inviteeId = null;

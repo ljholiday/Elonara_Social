@@ -14,7 +14,7 @@ final class DatabaseTest
 
     public function __construct()
     {
-        $service = vt_service('database.connection');
+        $service = app_service('database.connection');
         if (!$service instanceof Database) {
             throw new RuntimeException('database.connection did not return an App\Database\Database instance.');
         }
@@ -149,7 +149,7 @@ final class DatabaseTest
     {
         echo "Testing EventService::listRecent... ";
         try {
-            $service = vt_service('event.service');
+            $service = app_service('event.service');
             if (!$service instanceof EventService) {
                 $this->fail('event.service did not resolve to EventService.');
                 return;

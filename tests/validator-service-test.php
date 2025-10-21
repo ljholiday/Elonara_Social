@@ -28,7 +28,7 @@ echo "=== Validator Service Tests ===\n";
 
 // Test 1: Services are registered
 test("SanitizerService is registered in container", function() {
-    $sanitizer = vt_service('sanitizer.service');
+    $sanitizer = app_service('sanitizer.service');
     if (!$sanitizer instanceof App\Services\SanitizerService) {
         return "Expected App\\Services\\SanitizerService, got " . get_class($sanitizer);
     }
@@ -36,7 +36,7 @@ test("SanitizerService is registered in container", function() {
 });
 
 test("ValidatorService is registered in container", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     if (!$validator instanceof App\Services\ValidatorService) {
         return "Expected App\\Services\\ValidatorService, got " . get_class($validator);
     }
@@ -45,7 +45,7 @@ test("ValidatorService is registered in container", function() {
 
 // Test 2: Email validation
 test("Email validator accepts valid email", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->email('test@example.com');
 
     if (!$result['is_valid']) {
@@ -61,7 +61,7 @@ test("Email validator accepts valid email", function() {
 });
 
 test("Email validator rejects invalid email", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->email('invalid-email');
 
     if ($result['is_valid']) {
@@ -75,7 +75,7 @@ test("Email validator rejects invalid email", function() {
 
 // Test 3: Text field validation
 test("Text field validator enforces min length", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->textField('ab', 3, 100);
 
     if ($result['is_valid']) {
@@ -88,7 +88,7 @@ test("Text field validator enforces min length", function() {
 });
 
 test("Text field validator enforces max length", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->textField(str_repeat('a', 300), 0, 100);
 
     if ($result['is_valid']) {
@@ -101,7 +101,7 @@ test("Text field validator enforces max length", function() {
 });
 
 test("Text field validator accepts valid text", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->textField('Valid text', 1, 100);
 
     if (!$result['is_valid']) {
@@ -115,7 +115,7 @@ test("Text field validator accepts valid text", function() {
 
 // Test 4: Username validation
 test("Username validator accepts valid username", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->username('john_doe123');
 
     if (!$result['is_valid']) {
@@ -125,7 +125,7 @@ test("Username validator accepts valid username", function() {
 });
 
 test("Username validator rejects invalid characters", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->username('john@doe');
 
     if ($result['is_valid']) {
@@ -135,7 +135,7 @@ test("Username validator rejects invalid characters", function() {
 });
 
 test("Username validator enforces length", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->username('ab');
 
     if ($result['is_valid']) {
@@ -146,7 +146,7 @@ test("Username validator enforces length", function() {
 
 // Test 5: Password validation
 test("Password validator accepts valid password", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->password('password123');
 
     if (!$result['is_valid']) {
@@ -159,7 +159,7 @@ test("Password validator accepts valid password", function() {
 });
 
 test("Password validator rejects short password", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->password('pass');
 
     if ($result['is_valid']) {
@@ -170,7 +170,7 @@ test("Password validator rejects short password", function() {
 
 // Test 6: Integer validation
 test("Integer validator accepts valid integer", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->integer('42', 0, 100);
 
     if (!$result['is_valid']) {
@@ -183,7 +183,7 @@ test("Integer validator accepts valid integer", function() {
 });
 
 test("Integer validator enforces range", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->integer('150', 0, 100);
 
     if ($result['is_valid']) {
@@ -194,7 +194,7 @@ test("Integer validator enforces range", function() {
 
 // Test 7: Required field validation
 test("Required validator rejects empty string", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->required('', 'Test field');
 
     if ($result['is_valid']) {
@@ -207,7 +207,7 @@ test("Required validator rejects empty string", function() {
 });
 
 test("Required validator accepts non-empty string", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->required('value', 'Test field');
 
     if (!$result['is_valid']) {
@@ -218,7 +218,7 @@ test("Required validator accepts non-empty string", function() {
 
 // Test 8: Sanitizer methods
 test("SanitizerService escapes HTML properly", function() {
-    $sanitizer = vt_service('sanitizer.service');
+    $sanitizer = app_service('sanitizer.service');
     $result = $sanitizer->escapeHtml('<script>alert("xss")</script>');
 
     if (strpos($result, '<script>') !== false) {
@@ -228,7 +228,7 @@ test("SanitizerService escapes HTML properly", function() {
 });
 
 test("SanitizerService sanitizes text field", function() {
-    $sanitizer = vt_service('sanitizer.service');
+    $sanitizer = app_service('sanitizer.service');
     $result = $sanitizer->textField('  <b>Text</b>  with   spaces  ');
 
     if (strpos($result, '<b>') !== false) {
@@ -241,7 +241,7 @@ test("SanitizerService sanitizes text field", function() {
 });
 
 test("SanitizerService creates slug", function() {
-    $sanitizer = vt_service('sanitizer.service');
+    $sanitizer = app_service('sanitizer.service');
     $result = $sanitizer->slug('Hello World 123!');
 
     if ($result !== 'hello-world-123') {
@@ -252,7 +252,7 @@ test("SanitizerService creates slug", function() {
 
 // Test 9: Escape methods accessible via validator
 test("Validator exposes escape methods", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->escHtml('<b>test</b>');
 
     if (strpos($result, '<b>') !== false) {
@@ -263,7 +263,7 @@ test("Validator exposes escape methods", function() {
 
 // Test 10: URL validation
 test("URL validator accepts valid URL", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->url('https://example.com');
 
     if (!$result['is_valid']) {
@@ -273,7 +273,7 @@ test("URL validator accepts valid URL", function() {
 });
 
 test("URL validator rejects invalid URL", function() {
-    $validator = vt_service('validator.service');
+    $validator = app_service('validator.service');
     $result = $validator->url('not a url');
 
     if ($result['is_valid']) {

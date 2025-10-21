@@ -101,7 +101,7 @@ try {
         foreach ($imageColumns as $columnName => $imageConfig) {
             logMessage("  Processing column: {$columnName}");
 
-            // Find rows with non-JSON image URLs (backward compatibility check)
+            // Find rows with non-JSON image URLs from earlier versions
             $sql = "SELECT {$idColumn}";
             if (isset($config['entity_id_column'])) {
                 $sql .= ", {$config['entity_id_column']}";
@@ -193,5 +193,5 @@ logMessage('Full implementation requires extending ImageService to support');
 logMessage('generating variants from existing files instead of new uploads.');
 logMessage('');
 logMessage('For now, existing images will continue to work with backward');
-logMessage('compatibility - they will display as single-size images until');
+logMessage('older data detected - they will display as single-size images until');
 logMessage('users re-upload them through the normal upload flow.');

@@ -29,7 +29,7 @@ echo "=== Role Management Tests ===\n";
 // Test 1: Create test user
 $testUserId = null;
 test("Create test user for role management", function() use (&$testUserId) {
-    $auth = vt_service('auth.service');
+    $auth = app_service('auth.service');
     $timestamp = time();
     $result = $auth->register([
         'username' => 'roletest_' . $timestamp,
@@ -53,7 +53,7 @@ test("Create test user for role management", function() use (&$testUserId) {
 
 // Test 2: Default role is 'member'
 test("New users have default 'member' role", function() use ($testUserId) {
-    $auth = vt_service('auth.service');
+    $auth = app_service('auth.service');
     $role = $auth->getUserRole($testUserId);
 
     if ($role !== 'member') {
@@ -65,7 +65,7 @@ test("New users have default 'member' role", function() use ($testUserId) {
 
 // Test 3: Set user role to 'admin'
 test("Can set user role to 'admin'", function() use ($testUserId) {
-    $auth = vt_service('auth.service');
+    $auth = app_service('auth.service');
     $result = $auth->setUserRole($testUserId, 'admin');
 
     if (!$result) {
@@ -82,7 +82,7 @@ test("Can set user role to 'admin'", function() use ($testUserId) {
 
 // Test 4: isAdmin() returns true for admin role
 test("isAdmin() returns true for admin role", function() use ($testUserId) {
-    $auth = vt_service('auth.service');
+    $auth = app_service('auth.service');
 
     if (!$auth->isAdmin($testUserId)) {
         return "isAdmin() returned false for admin user";
@@ -93,7 +93,7 @@ test("isAdmin() returns true for admin role", function() use ($testUserId) {
 
 // Test 5: isSuperAdmin() returns false for admin role
 test("isSuperAdmin() returns false for admin role", function() use ($testUserId) {
-    $auth = vt_service('auth.service');
+    $auth = app_service('auth.service');
 
     if ($auth->isSuperAdmin($testUserId)) {
         return "isSuperAdmin() returned true for admin user";
@@ -104,7 +104,7 @@ test("isSuperAdmin() returns false for admin role", function() use ($testUserId)
 
 // Test 6: Set user role to 'super_admin'
 test("Can set user role to 'super_admin'", function() use ($testUserId) {
-    $auth = vt_service('auth.service');
+    $auth = app_service('auth.service');
     $result = $auth->setUserRole($testUserId, 'super_admin');
 
     if (!$result) {
@@ -121,7 +121,7 @@ test("Can set user role to 'super_admin'", function() use ($testUserId) {
 
 // Test 7: isSuperAdmin() returns true for super_admin role
 test("isSuperAdmin() returns true for super_admin role", function() use ($testUserId) {
-    $auth = vt_service('auth.service');
+    $auth = app_service('auth.service');
 
     if (!$auth->isSuperAdmin($testUserId)) {
         return "isSuperAdmin() returned false for super_admin user";
@@ -132,7 +132,7 @@ test("isSuperAdmin() returns true for super_admin role", function() use ($testUs
 
 // Test 8: isAdmin() returns true for super_admin role
 test("isAdmin() returns true for super_admin role", function() use ($testUserId) {
-    $auth = vt_service('auth.service');
+    $auth = app_service('auth.service');
 
     if (!$auth->isAdmin($testUserId)) {
         return "isAdmin() returned false for super_admin user";
@@ -143,7 +143,7 @@ test("isAdmin() returns true for super_admin role", function() use ($testUserId)
 
 // Test 9: Set user role back to 'member'
 test("Can set user role back to 'member'", function() use ($testUserId) {
-    $auth = vt_service('auth.service');
+    $auth = app_service('auth.service');
     $result = $auth->setUserRole($testUserId, 'member');
 
     if (!$result) {
@@ -160,7 +160,7 @@ test("Can set user role back to 'member'", function() use ($testUserId) {
 
 // Test 10: isAdmin() returns false for member role
 test("isAdmin() returns false for member role", function() use ($testUserId) {
-    $auth = vt_service('auth.service');
+    $auth = app_service('auth.service');
 
     if ($auth->isAdmin($testUserId)) {
         return "isAdmin() returned true for member user";
@@ -171,7 +171,7 @@ test("isAdmin() returns false for member role", function() use ($testUserId) {
 
 // Test 11: Reject invalid role
 test("Reject invalid role value", function() use ($testUserId) {
-    $auth = vt_service('auth.service');
+    $auth = app_service('auth.service');
     $result = $auth->setUserRole($testUserId, 'invalid_role');
 
     if ($result !== false) {
@@ -189,7 +189,7 @@ test("Reject invalid role value", function() use ($testUserId) {
 
 // Test 12: getUserRole() returns null for invalid user ID
 test("getUserRole() returns null for invalid user ID", function() {
-    $auth = vt_service('auth.service');
+    $auth = app_service('auth.service');
     $role = $auth->getUserRole(999999);
 
     if ($role !== null) {
@@ -201,8 +201,8 @@ test("getUserRole() returns null for invalid user ID", function() {
 
 // Test 13: AuthorizationService isSiteAdmin() works with role column
 test("AuthorizationService isSiteAdmin() works with role column", function() use ($testUserId) {
-    $auth = vt_service('auth.service');
-    $authz = vt_service('authorization.service');
+    $auth = app_service('auth.service');
+    $authz = app_service('authorization.service');
 
     // Set to admin
     $auth->setUserRole($testUserId, 'admin');
@@ -223,7 +223,7 @@ test("AuthorizationService isSiteAdmin() works with role column", function() use
 
 // Cleanup: Delete test user
 test("Cleanup test user", function() use ($testUserId) {
-    $pdo = vt_service('database.connection')->pdo();
+    $pdo = app_service('database.connection')->pdo();
 
     $pdo->prepare('DELETE FROM community_members WHERE user_id = ?')
         ->execute([$testUserId]);

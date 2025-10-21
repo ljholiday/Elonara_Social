@@ -37,7 +37,7 @@ docs/                  Project documentation (this file lives here)
 Key entry points:
 
 - `public/index.php` boots the container and dispatches via `src/Http/routes.php`.
-- `src/bootstrap.php` registers services with the minimal `VTContainer`.
+- `src/bootstrap.php` registers services with the minimal `AppContainer`.
 - `templates/layouts/*.php` wrap template content (two-column, form, page, etc.).
 
 ---
@@ -94,10 +94,10 @@ Use short-lived branches and keep PRs focused — the repo favors reviewable, in
 
 ### Service Container
 
-`VTContainer` provides a simple dependency injection layer. Register new services in `src/bootstrap.php`:
+`AppContainer` provides a simple dependency injection layer. Register new services in `src/bootstrap.php`:
 
 ```php
-$container->register('my.service', static fn (VTContainer $c): MyService => new MyService(
+$container->register('my.service', static fn (AppContainer $c): MyService => new MyService(
     $c->get('database.connection'),
 ));
 ```

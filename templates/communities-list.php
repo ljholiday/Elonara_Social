@@ -8,9 +8,9 @@ $circle = $circle ?? 'all';
   <h1 class="app-heading">Communities</h1>
 
   <?php
-  $card_path = __DIR__ . '/partials/card.php';
+  $card_path = __DIR__ . '/partials/entity-card.php';
   if (!is_file($card_path)) {
-      echo '<p class="app-text-muted">Card partial not found at templates/partials/card.php</p>';
+      echo '<p class="app-text-muted">Entity card partial not found at templates/partials/entity-card.php</p>';
       return;
   }
   ?>
@@ -18,15 +18,54 @@ $circle = $circle ?? 'all';
   <?php if (!empty($communities)) : ?>
     <div class="app-grid app-communities-grid">
       <?php foreach ($communities as $row):
+        $slug = $row['slug'] ?? (string)($row['id'] ?? '');
+        $privacy = strtolower((string)($row['privacy'] ?? 'public'));
+        $memberCount = isset($row['member_count']) ? (int)$row['member_count'] : null;
+        $eventCount = isset($row['event_count']) ? (int)$row['event_count'] : null;
+
         $entity = (object)[
-          'id'          => $row['id'] ?? null,
-          'title'       => $row['title'] ?? '',
+          'id' => (int)($row['id'] ?? 0),
+          'name' => (string)($row['title'] ?? ''),
+          'title' => (string)($row['title'] ?? ''),
+          'slug' => $slug,
           'description' => $row['description'] ?? '',
-          'slug'        => $row['slug'] ?? (string)($row['id'] ?? ''),
-          'url'         => '/communities/' . ($row['slug'] ?? (string)($row['id'] ?? '')),
-          'privacy'     => $row['privacy'] ?? null,
+          'created_at' => $row['created_at'] ?? null,
+          'privacy' => $privacy,
         ];
-        include __DIR__ . '/partials/card.php';
+
+        $entity_type = 'community';
+
+        $badges = [
+            [
+                'label' => ucfirst($privacy),
+                'class' => $privacy === 'private' ? 'app-badge-secondary' : 'app-badge-success',
+            ],
+        ];
+
+        $stats = [];
+        if ($memberCount !== null) {
+            $stats[] = [
+                'value' => $memberCount,
+                'label' => 'Members',
+            ];
+        }
+        if ($eventCount !== null) {
+            $stats[] = [
+                'value' => $eventCount,
+                'label' => 'Events',
+            ];
+        }
+
+        $actions = [
+            [
+                'label' => 'View',
+                'url' => '/communities/' . $slug,
+            ],
+        ];
+
+        $description = $row['description'] ?? '';
+
+        include __DIR__ . '/partials/entity-card.php';
       endforeach; ?>
     </div>
   <?php else: ?>

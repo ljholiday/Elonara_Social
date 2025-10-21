@@ -12,10 +12,16 @@
 
 $reply_errors = $reply_errors ?? [];
 $reply_input = $reply_input ?? [];
+$shouldAutoOpen = $reply_errors !== [];
 ?>
 
 <!-- Reply Modal -->
-<div id="reply-modal" class="app-modal app-reply-modal" style="display: none;">
+<div
+    id="reply-modal"
+    class="app-modal app-reply-modal"
+    style="display: none;"
+    data-auto-open="<?= $shouldAutoOpen ? '1' : '0'; ?>"
+>
   <div class="app-modal-overlay"></div>
   <div class="app-modal-content">
     <div class="app-modal-header">
@@ -64,56 +70,11 @@ $reply_input = $reply_input ?? [];
   </div>
 </div>
 
-<script src="/assets/js/modal.js"></script>
-<script>
-(function() {
-  'use strict';
-
-  const modal = document.getElementById('reply-modal');
-  const openBtn = document.querySelector('[data-open-reply-modal]');
-  const closeBtns = modal.querySelectorAll('[data-dismiss-modal]');
-  const overlay = modal.querySelector('.app-modal-overlay');
-  const form = modal.querySelector('form');
-
-  // Open modal
-  if (openBtn) {
-    openBtn.addEventListener('click', function() {
-      modal.style.display = 'block';
-      document.body.classList.add('app-modal-open');
-    });
-  }
-
-  // Close modal function
-  function closeModal() {
-    modal.style.display = 'none';
-    document.body.classList.remove('app-modal-open');
-    // Clear the form when closing
-    if (form) {
-      form.reset();
-    }
-  }
-
-  // Close button handlers
-  closeBtns.forEach(btn => {
-    btn.addEventListener('click', closeModal);
-  });
-
-  // Overlay click
-  if (overlay) {
-    overlay.addEventListener('click', closeModal);
-  }
-
-  // ESC key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && modal.style.display === 'block') {
-      closeModal();
-    }
-  });
-
-  // Auto-show modal if there are errors
-  <?php if (!empty($reply_errors)): ?>
-  modal.style.display = 'block';
-  document.body.classList.add('app-modal-open');
-  <?php endif; ?>
-})();
-</script>
+<?php
+static $replyModalScriptsLoaded = false;
+if (!$replyModalScriptsLoaded) :
+    $replyModalScriptsLoaded = true;
+    $assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
+?>
+    <script src="<?= htmlspecialchars($assetBase . '/js/reply-modal.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+<?php endif; ?>

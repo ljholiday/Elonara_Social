@@ -28,7 +28,7 @@ echo "=== Authorization Service Tests ===\n";
 
 // Test 1: Service is registered
 test("AuthorizationService is registered in container", function() {
-    $authz = vt_service('authorization.service');
+    $authz = app_service('authorization.service');
     if (!$authz instanceof App\Services\AuthorizationService) {
         return "Expected App\\Services\\AuthorizationService, got " . get_class($authz);
     }
@@ -37,7 +37,7 @@ test("AuthorizationService is registered in container", function() {
 
 // Test 2: Public conversation visibility
 test("Public conversations are visible to anyone", function() {
-    $authz = vt_service('authorization.service');
+    $authz = app_service('authorization.service');
     $conversation = ['privacy' => 'public'];
 
     // Guest (viewerId = 0) can view public conversations
@@ -55,7 +55,7 @@ test("Public conversations are visible to anyone", function() {
 
 // Test 3: Private conversation visibility
 test("Private conversations require membership", function() {
-    $authz = vt_service('authorization.service');
+    $authz = app_service('authorization.service');
     $conversation = [
         'privacy' => 'private',
         'community_id' => 5,
@@ -87,7 +87,7 @@ test("Private conversations require membership", function() {
 
 // Test 4: Edit permissions - Author
 test("Author can edit their own conversation", function() {
-    $authz = vt_service('authorization.service');
+    $authz = app_service('authorization.service');
     $conversation = ['author_id' => 5];
 
     if (!$authz->canEditConversation($conversation, 5)) {
@@ -103,7 +103,7 @@ test("Author can edit their own conversation", function() {
 
 // Test 5: Delete permissions - Reply count matters
 test("Cannot delete conversation with replies (non-admin)", function() {
-    $authz = vt_service('authorization.service');
+    $authz = app_service('authorization.service');
     $conversation = [
         'author_id' => 5,
         'reply_count' => 3,
@@ -119,7 +119,7 @@ test("Cannot delete conversation with replies (non-admin)", function() {
 
 // Test 6: Delete permissions - No replies
 test("Can delete conversation without replies", function() {
-    $authz = vt_service('authorization.service');
+    $authz = app_service('authorization.service');
     $conversation = [
         'author_id' => 5,
         'reply_count' => 0,
@@ -134,7 +134,7 @@ test("Can delete conversation without replies", function() {
 
 // Test 7: Reply permissions require login
 test("Must be logged in to reply", function() {
-    $authz = vt_service('authorization.service');
+    $authz = app_service('authorization.service');
     $conversation = ['privacy' => 'public'];
 
     if ($authz->canReplyToConversation($conversation, 0, [])) {
@@ -150,7 +150,7 @@ test("Must be logged in to reply", function() {
 
 // Test 8: Reply permissions respect locked status
 test("Cannot reply to locked conversation", function() {
-    $authz = vt_service('authorization.service');
+    $authz = app_service('authorization.service');
     $conversation = [
         'privacy' => 'public',
         'status' => 'locked',
@@ -165,7 +165,7 @@ test("Cannot reply to locked conversation", function() {
 
 // Test 9: Public community visibility
 test("Public communities are visible to anyone", function() {
-    $authz = vt_service('authorization.service');
+    $authz = app_service('authorization.service');
     $community = ['privacy' => 'public'];
 
     if (!$authz->canViewCommunity($community, 0, [])) {
@@ -181,7 +181,7 @@ test("Public communities are visible to anyone", function() {
 
 // Test 10: Private community visibility
 test("Private communities require membership", function() {
-    $authz = vt_service('authorization.service');
+    $authz = app_service('authorization.service');
     $community = [
         'privacy' => 'private',
         'id' => 5,
@@ -209,7 +209,7 @@ test("Private communities require membership", function() {
 
 // Test 11: Join public community
 test("Can join public community", function() {
-    $authz = vt_service('authorization.service');
+    $authz = app_service('authorization.service');
     $community = ['privacy' => 'public'];
 
     if ($authz->canJoinCommunity($community, 0)) {
@@ -225,7 +225,7 @@ test("Can join public community", function() {
 
 // Test 12: Cannot join private community
 test("Cannot instant-join private community", function() {
-    $authz = vt_service('authorization.service');
+    $authz = app_service('authorization.service');
     $community = ['privacy' => 'private'];
 
     if ($authz->canJoinCommunity($community, 1)) {

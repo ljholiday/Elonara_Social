@@ -12,7 +12,7 @@ final class AuthServiceTest
 
     public function __construct()
     {
-        $service = vt_service('auth.service');
+        $service = app_service('auth.service');
         if (!$service instanceof AuthService) {
             throw new RuntimeException('auth.service did not resolve to App\Services\AuthService.');
         }

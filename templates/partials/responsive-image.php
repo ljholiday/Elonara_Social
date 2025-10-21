@@ -3,7 +3,7 @@
  * Responsive Image Partial
  *
  * Displays a responsive image with srcset and multiple size variants.
- * Supports both new multi-variant JSON format and legacy single-URL format.
+ * Supports both the modern multi-variant JSON format and single-URL inputs.
  *
  * Required variables:
  * - $url_data: string|array Image URL(s) - JSON string, array, or single URL

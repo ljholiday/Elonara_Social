@@ -126,24 +126,3 @@ function app_render(string $template_path, array $data = [], string $layout = 'p
     // Render layout with content
     require __DIR__ . '/layouts/' . $layout . '.php';
 }
-
-if (!function_exists('app_time_ago')) {
-    function app_time_ago(?string $iso): string
-    {
-        return app_time_ago($iso);
-    }
-}
-
-if (!function_exists('app_truncate_words')) {
-    function app_truncate_words(?string $text, int $limit = 25, string $ellipsis = '…'): string
-    {
-        return app_truncate_words($text, $limit, $ellipsis);
-    }
-}
-
-if (!function_exists('app_render')) {
-    function app_render(string $template_path, array $data = [], string $layout = 'page'): void
-    {
-        app_render($template_path, $data, $layout);
-    }
-}

@@ -26,7 +26,7 @@ final class Database
                 }
                 $cfg = $fullConfig['database'];
             } else {
-                // Fall back to old database.php for backwards compatibility during migration
+                // Fall back to database.php if present during migration
                 $configPath = __DIR__ . '/../../config/database.php';
                 if (!file_exists($configPath)) {
                     throw new RuntimeException(
@@ -103,4 +103,3 @@ final class Database
         return '';
     }
 }
-

@@ -3,7 +3,7 @@
 /**
  * Mail Service Integration Test
  *
- * Tests modern MailService, AuthService integration, and VT_Mail backward compatibility
+ * Verifies MailService wiring and integration points.
  */
 
 declare(strict_types=1);
@@ -27,30 +27,28 @@ echo "=== Mail Service Integration Tests ===\n";
 
 // Test 1: MailService exists and is registered
 test("MailService is registered in container", function() {
-    $mailService = vt_service('mail.service');
+    $mailService = app_service('mail.service');
     if (!$mailService instanceof App\Services\MailService) {
         return "Expected App\\Services\\MailService, got " . get_class($mailService);
     }
     return true;
 });
 
-// Test 2: VT_Mail wrapper delegates to MailService
-test("VT_Mail wrapper exists and can be called", function() {
-    if (!class_exists('VT_Mail')) {
-        return "VT_Mail class not found";
+// Test 2: MailService exposes send/sendTemplate helpers
+test("MailService exposes send helpers", function() {
+    $mailService = app_service('mail.service');
+    if (!method_exists($mailService, 'send')) {
+        return "MailService::send() method not found";
     }
-    if (!method_exists('VT_Mail', 'send')) {
-        return "VT_Mail::send() method not found";
-    }
-    if (!method_exists('VT_Mail', 'sendTemplate')) {
-        return "VT_Mail::sendTemplate() method not found";
+    if (!method_exists($mailService, 'sendTemplate')) {
+        return "MailService::sendTemplate() method not found";
     }
     return true;
 });
 
 // Test 3: AuthService has MailService injected
 test("AuthService has MailService dependency", function() {
-    $authService = vt_service('auth.service');
+    $authService = app_service('auth.service');
     if (!$authService instanceof App\Services\AuthService) {
         return "Expected App\\Services\\AuthService, got " . get_class($authService);
     }
@@ -89,7 +87,7 @@ test("MailService uses debug.log for errors", function() {
     }
 
     // Create instance and trigger error log
-    $mailService = vt_service('mail.service');
+    $mailService = app_service('mail.service');
     $method->invoke($mailService, 'Test error message');
 
     // Check debug.log was written
@@ -105,15 +103,16 @@ test("MailService uses debug.log for errors", function() {
     return true;
 });
 
-// Test 7: VT_Mail uses debug.log (not error_log)
-test("VT_Mail wrapper uses debug.log for errors", function() {
+// Test 7: MailService logs template errors
+test("MailService logs template errors", function() {
     $logFile = __DIR__ . '/../debug.log';
     if (file_exists($logFile)) {
         file_put_contents($logFile, '');
     }
 
     // Trigger an error by sending to invalid template
-    VT_Mail::sendTemplate('test@example.com', 'nonexistent_template', []);
+    $mailService = app_service('mail.service');
+    $mailService->sendTemplate('test@example.com', 'nonexistent_template', []);
 
     // Check debug.log was written
     if (!file_exists($logFile)) {
@@ -121,8 +120,7 @@ test("VT_Mail wrapper uses debug.log for errors", function() {
     }
 
     $contents = file_get_contents($logFile);
-    if (strpos($contents, 'Template mail send failed') === false &&
-        strpos($contents, 'Email template not found') === false) {
+    if (strpos($contents, 'Email template not found') === false) {
         return "Error not logged to debug.log: " . $contents;
     }
 

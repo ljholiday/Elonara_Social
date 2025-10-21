@@ -44,7 +44,13 @@ if (empty($entity_type) || empty($entity_id)) {
     </p>
 
     <?php if ($can_delete && $blocker_count == 0) : ?>
-        <form method="post" class="app-danger-zone-form" onsubmit="return confirmDeletion(this, '<?php echo htmlspecialchars($entity_name); ?>', '<?php echo $confirmation_type; ?>');">
+        <form
+            method="post"
+            class="app-danger-zone-form"
+            data-danger-zone-form="1"
+            data-entity-name="<?php echo htmlspecialchars($entity_name, ENT_QUOTES, 'UTF-8'); ?>"
+            data-confirmation-type="<?php echo htmlspecialchars($confirmation_type, ENT_QUOTES, 'UTF-8'); ?>"
+        >
             <?php echo app_service('security.service')->nonceField($nonce_action, 'delete_nonce'); ?>
             <input type="hidden" name="<?php echo $entity_type; ?>_id" value="<?php echo intval($entity_id); ?>">
             <input type="hidden" name="action" value="delete_<?php echo $entity_type; ?>">
@@ -59,7 +65,8 @@ if (empty($entity_type) || empty($entity_id)) {
                            name="confirm_name"
                            class="app-form-input"
                            placeholder="<?php echo htmlspecialchars($entity_name); ?>"
-                           required>
+                           required
+                           data-confirm-name-input="1">
                 </div>
             <?php endif; ?>
 
@@ -72,16 +79,11 @@ if (empty($entity_type) || empty($entity_id)) {
     <?php endif; ?>
 </div>
 
-<script>
-function confirmDeletion(form, entityName, confirmationType) {
-    if (confirmationType === 'type_name') {
-        const confirmInput = form.querySelector('#confirm_name');
-        if (confirmInput && confirmInput.value !== entityName) {
-            alert('The name you entered does not match. Deletion cancelled.');
-            return false;
-        }
-    }
-
-    return confirm('Are you sure you want to delete "' + entityName + '"? This action cannot be undone.');
-}
-</script>
+<?php
+static $dangerZoneScriptLoaded = false;
+if (!$dangerZoneScriptLoaded) :
+    $dangerZoneScriptLoaded = true;
+    $assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
+?>
+    <script src="<?= htmlspecialchars($assetBase . '/js/danger-zone.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+<?php endif; ?>

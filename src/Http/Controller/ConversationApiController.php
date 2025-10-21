@@ -164,42 +164,75 @@ final class ConversationApiController
         }
 
         $partial = dirname(__DIR__, 3) . '/templates/partials/entity-card.php';
+        if (!is_file($partial)) {
+            return '<div class="app-text-center app-p-4"><p class="app-text-muted">Conversation card template missing.</p></div>';
+        }
 
         ob_start();
         foreach ($rows as $row) {
-            $entity = (object)$row;
+            $slug = (string)($row['slug'] ?? '');
+            if ($slug === '') {
+                continue;
+            }
+
+            $privacy = strtolower((string)($row['privacy'] ?? 'public'));
+            if ($privacy === '') {
+                $privacy = 'public';
+            }
+
+            $entity = (object)[
+                'id' => (int)($row['id'] ?? 0),
+                'title' => (string)($row['title'] ?? ''),
+                'slug' => $slug,
+                'created_at' => $row['created_at'] ?? null,
+                'privacy' => $privacy,
+            ];
+
             $entity_type = 'conversation';
 
-            $conversationType = 'General Discussion';
-            if (!empty($entity->event_id)) {
-                $conversationType = 'Event Discussion';
-            } elseif (!empty($entity->community_id)) {
-                $conversationType = 'Community Discussion';
+            $badges = [];
+            if (!empty($row['event_title'])) {
+                $badges[] = [
+                    'label' => 'Event: ' . (string)$row['event_title'],
+                    'class' => 'app-badge-secondary',
+                ];
+            } elseif (!empty($row['community_name'])) {
+                $badges[] = [
+                    'label' => 'Community: ' . (string)$row['community_name'],
+                    'class' => 'app-badge-secondary',
+                ];
+            } else {
+                $badges[] = [
+                    'label' => 'General Discussion',
+                    'class' => 'app-badge-secondary',
+                ];
             }
 
-            $badges = [
-                ['label' => $conversationType, 'class' => 'app-badge-secondary'],
-                ['label' => ucfirst((string)($entity->privacy ?? 'public')), 'class' => (($entity->privacy ?? 'public') === 'private') ? 'app-badge-secondary' : 'app-badge-success'],
+            $badges[] = [
+                'label' => ucfirst($privacy),
+                'class' => $privacy === 'private' ? 'app-badge-secondary' : 'app-badge-success',
             ];
 
-            $stats = [
-                ['value' => (int)($entity->reply_count ?? 0), 'label' => 'Replies'],
-            ];
+            $replyCount = (int)($row['reply_count'] ?? 0);
+            $stats = $replyCount >= 0 ? [
+                [
+                    'value' => $replyCount,
+                    'label' => 'Replies',
+                ],
+            ] : [];
 
             $actions = [
-                ['label' => 'View', 'url' => '/conversations/' . ($entity->slug ?? '')],
+                [
+                    'label' => 'View',
+                    'url' => '/conversations/' . $slug,
+                    'class' => 'app-btn-secondary',
+                ],
             ];
 
-            $description = $entity->content ?? '';
+            $description = $row['content'] ?? '';
+            $truncate_length = 35;
 
-            if (is_file($partial)) {
-                include $partial;
-            } else {
-                echo '<article class="app-card">';
-                echo '<h3 class="app-card-title"><a class="app-link" href="/conversations/' . htmlspecialchars($entity->slug ?? '') . '">' . htmlspecialchars($entity->title ?? '') . '</a></h3>';
-                echo '<p class="app-text-muted">' . htmlspecialchars(substr(strip_tags($description), 0, 160)) . '</p>';
-                echo '</article>';
-            }
+            include $partial;
         }
 
         return (string)ob_get_clean();

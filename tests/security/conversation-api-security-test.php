@@ -6,11 +6,11 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-$pdo = vt_service('database.connection')->pdo();
-$auth = vt_service('auth.service');
-$security = vt_service('security.service');
-$conversationService = vt_service('conversation.service');
-$communityService = vt_service('community.service');
+$pdo = app_service('database.connection')->pdo();
+$auth = app_service('auth.service');
+$security = app_service('security.service');
+$conversationService = app_service('conversation.service');
+$communityService = app_service('community.service');
 
 $pdo->beginTransaction();
 
@@ -82,7 +82,7 @@ try {
         'circle' => 'inner',
     ];
     $_SERVER['REQUEST_URI'] = '/api/conversations';
-    $response = vt_service('controller.conversations.api')->list();
+    $response = app_service('controller.conversations.api')->list();
     if (($response['status'] ?? 0) !== 403) {
         throw new RuntimeException('Conversation list did not reject invalid nonce.');
     }
@@ -94,7 +94,7 @@ try {
         'circle' => 'inner',
     ];
     $_SERVER['REQUEST_URI'] = '/api/conversations';
-    $response = vt_service('controller.conversations.api')->list();
+    $response = app_service('controller.conversations.api')->list();
     if (($response['status'] ?? 0) !== 200) {
         throw new RuntimeException('Conversation list failed with valid nonce: ' . json_encode($response));
     }
@@ -105,7 +105,7 @@ try {
         'content' => 'Attempted reply',
     ];
     $_SERVER['REQUEST_URI'] = '/api/conversations/' . $conversationId . '/replies';
-    $response = vt_service('controller.conversations.api')->reply((string)$conversationId);
+    $response = app_service('controller.conversations.api')->reply((string)$conversationId);
     if (($response['status'] ?? 0) !== 403) {
         throw new RuntimeException('Conversation reply did not reject invalid nonce.');
     }
@@ -117,7 +117,7 @@ try {
         'content' => 'Circle security reply test.',
     ];
     $_SERVER['REQUEST_URI'] = '/api/conversations/' . $conversationId . '/replies';
-    $response = vt_service('controller.conversations.api')->reply((string)$conversationId);
+    $response = app_service('controller.conversations.api')->reply((string)$conversationId);
     if (($response['status'] ?? 0) !== 201) {
         throw new RuntimeException('Conversation reply failed with valid nonce: ' . json_encode($response));
     }
@@ -127,7 +127,7 @@ try {
         'nonce' => 'invalid-nonce',
     ];
     $_SERVER['REQUEST_URI'] = '/api/communities/' . $communityId . '/join';
-    $response = vt_service('controller.communities.api')->join($communityId);
+    $response = app_service('controller.communities.api')->join($communityId);
     if (($response['status'] ?? 0) !== 403) {
         throw new RuntimeException('Community join did not reject invalid nonce.');
     }
@@ -138,7 +138,7 @@ try {
         'nonce' => $validJoinNonce,
     ];
     $_SERVER['REQUEST_URI'] = '/api/communities/' . $communityId . '/join';
-    $response = vt_service('controller.communities.api')->join($communityId);
+    $response = app_service('controller.communities.api')->join($communityId);
     if (($response['status'] ?? 0) !== 200) {
         throw new RuntimeException('Community join failed with valid nonce: ' . json_encode($response));
     }

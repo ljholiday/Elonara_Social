@@ -9,7 +9,7 @@
 	/**
 	 * Show error modal with copyable text
 	 */
-	window.vtShowError = function(message, title) {
+	window.appShowError = function(message, title) {
 		title = title || 'Error';
 
 		const modal = document.createElement('div');
@@ -60,9 +60,9 @@
 	/**
 	 * Show success modal
 	 */
-	window.vtShowSuccess = function(message, title) {
+	window.appShowSuccess = function(message, title) {
 		title = title || 'Success';
-		vtShowError(message, title);
+		appShowError(message, title);
 	};
 
 	/**

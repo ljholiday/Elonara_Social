@@ -32,7 +32,7 @@ final class SimpleSmokeTest
     {
         echo "Resolving service '{$id}'... ";
         try {
-            $instance = vt_service($id);
+            $instance = app_service($id);
             if ($instance instanceof $expectedClass) {
                 echo "PASS\n";
                 $this->messages[] = "PASS: Service '{$id}' resolved to {$expectedClass}.";
@@ -51,7 +51,7 @@ final class SimpleSmokeTest
     {
         echo "Resolving controller '{$id}'... ";
         try {
-            $resolved = vt_service($id);
+            $resolved = app_service($id);
             if ($resolved instanceof $expectedClass) {
                 echo "PASS\n";
                 $this->messages[] = "PASS: Controller '{$id}' resolved to {$expectedClass}.";

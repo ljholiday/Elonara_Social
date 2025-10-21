@@ -28,7 +28,7 @@ echo "=== Security Service Tests ===\n";
 
 // Test 1: Service is registered
 test("SecurityService is registered in container", function() {
-    $security = vt_service('security.service');
+    $security = app_service('security.service');
     if (!$security instanceof App\Services\SecurityService) {
         return "Expected App\\Services\\SecurityService, got " . get_class($security);
     }
@@ -37,7 +37,7 @@ test("SecurityService is registered in container", function() {
 
 // Test 2: Nonce creation
 test("Can create nonce", function() {
-    $security = vt_service('security.service');
+    $security = app_service('security.service');
     $nonce = $security->createNonce('test_action', 123);
 
     if (empty($nonce)) {
@@ -53,7 +53,7 @@ test("Can create nonce", function() {
 
 // Test 3: Nonce verification
 test("Can verify valid nonce", function() {
-    $security = vt_service('security.service');
+    $security = app_service('security.service');
     $nonce = $security->createNonce('test_action', 123);
 
     $isValid = $security->verifyNonce($nonce, 'test_action', 123);
@@ -67,7 +67,7 @@ test("Can verify valid nonce", function() {
 
 // Test 4: Invalid nonce rejected
 test("Rejects invalid nonce", function() {
-    $security = vt_service('security.service');
+    $security = app_service('security.service');
 
     $isValid = $security->verifyNonce('invalid_nonce', 'test_action', 123);
 
@@ -80,7 +80,7 @@ test("Rejects invalid nonce", function() {
 
 // Test 5: Wrong action rejected
 test("Rejects nonce with wrong action", function() {
-    $security = vt_service('security.service');
+    $security = app_service('security.service');
     $nonce = $security->createNonce('test_action', 123);
 
     $isValid = $security->verifyNonce($nonce, 'different_action', 123);
@@ -94,7 +94,7 @@ test("Rejects nonce with wrong action", function() {
 
 // Test 6: Wrong user ID rejected
 test("Rejects nonce with wrong user ID", function() {
-    $security = vt_service('security.service');
+    $security = app_service('security.service');
     $nonce = $security->createNonce('test_action', 123);
 
     $isValid = $security->verifyNonce($nonce, 'test_action', 456);
@@ -108,7 +108,7 @@ test("Rejects nonce with wrong user ID", function() {
 
 // Test 7: Token generation
 test("Can generate secure tokens", function() {
-    $security = vt_service('security.service');
+    $security = app_service('security.service');
     $token = $security->generateToken(32);
 
     if (strlen($token) !== 64) { // 32 bytes = 64 hex chars
@@ -124,7 +124,7 @@ test("Can generate secure tokens", function() {
 
 // Test 8: Password generation
 test("Can generate secure passwords", function() {
-    $security = vt_service('security.service');
+    $security = app_service('security.service');
     $password = $security->generatePassword(16);
 
     if (strlen($password) !== 16) {
@@ -136,7 +136,7 @@ test("Can generate secure passwords", function() {
 
 // Test 9: Password hashing
 test("Can hash passwords", function() {
-    $security = vt_service('security.service');
+    $security = app_service('security.service');
     $password = 'TestPassword123!';
     $hash = $security->hashPassword($password);
 
@@ -153,7 +153,7 @@ test("Can hash passwords", function() {
 
 // Test 10: Password verification
 test("Can verify passwords", function() {
-    $security = vt_service('security.service');
+    $security = app_service('security.service');
     $password = 'TestPassword123!';
     $hash = $security->hashPassword($password);
 

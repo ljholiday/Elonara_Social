@@ -10,8 +10,8 @@ use RuntimeException;
 /**
  * EventGuestService
  *
- * Encapsulates guests CRUD operations so modern controllers avoid the legacy
- * VT_Guest_Manager dependency.
+ * Encapsulates guests CRUD operations so modern controllers remain decoupled
+ * from the static manager layer.
  */
 final class EventGuestService
 {

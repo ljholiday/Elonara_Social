@@ -1,13 +1,13 @@
 Controller Pattern Template
 ===========================
 
-This template describes the shape of modern HTTP controllers in the PSR-4 `src/Http` namespace. Follow it when migrating features from the legacy stack.
+This template describes the shape of modern HTTP controllers in the PSR-4 `src/Http` namespace. Use it as the baseline whenever building or refactoring controllers in Elonara Social.
 
 Controller Goals
 ----------------
 - Thin orchestration layer: pull request data, invoke services, return view models.
 - Pure methods where possible; no direct database access or session superglobals.
-- Deterministic outputs that progress parity tests between modern and legacy routes.
+- Deterministic outputs that keep parity tests between modern routes green.
 
 Checklist Before Creating a Controller
 --------------------------------------
@@ -163,7 +163,7 @@ Registration Steps
 1. Add the controller class under `src/Http/Controller/`.
 2. Register it in `src/bootstrap.php`:
    ```php
-   $container->register('controller.features', static function (VTContainer $c): FeatureController {
+   $container->register('controller.features', static function (AppContainer $c): FeatureController {
        return new FeatureController(
            $c->get('feature.service'),
            $c->get('auth.service'),

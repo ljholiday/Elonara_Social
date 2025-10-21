@@ -4,8 +4,8 @@ declare(strict_types=1);
 /**
  * Image Helper Functions
  *
- * Provides utilities for responsive image delivery with backward compatibility.
- * Handles both legacy single-URL format and new multi-variant JSON format.
+ * Provides utilities for responsive image delivery.
+ * Handles both single-URL inputs and the newer multi-variant JSON format.
  */
 
 /**

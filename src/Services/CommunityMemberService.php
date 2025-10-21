@@ -11,7 +11,7 @@ use RuntimeException;
  * CommunityMemberService
  *
  * Provides read/write operations for community membership rolls without
- * depending on legacy WP-style managers.
+ * depending on the old WP-style manager layer.
  */
 final class CommunityMemberService
 {

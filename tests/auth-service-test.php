@@ -2,8 +2,8 @@
 
 require_once dirname(__DIR__) . '/src/bootstrap.php';
 
-$service = vt_service('auth.service');
-$pdo = vt_service('database.connection')->pdo();
+$service = app_service('auth.service');
+$pdo = app_service('database.connection')->pdo();
 
 $pdo->beginTransaction();
 

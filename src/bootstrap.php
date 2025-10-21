@@ -93,7 +93,7 @@ if (!function_exists('app_config')) {
                 empty($loaded['security']['salts']['nonce']) ||
                 empty($loaded['security']['salts']['session'])) {
 
-                // Try loading from separate security_salts.php file (backwards compatibility)
+                // Try loading from separate security_salts.php file used in older installs
                 $saltsPath = __DIR__ . '/../config/security_salts.php';
                 if (file_exists($saltsPath)) {
                     $loadedSalts = require $saltsPath;
@@ -143,6 +143,18 @@ if (!function_exists('app_config')) {
         }
 
         return $config[$key] ?? $default;
+    }
+}
+
+if (!function_exists('app_service')) {
+    /**
+     * Resolve a service from the shared container.
+     *
+     * @return mixed
+     */
+    function app_service(string $id)
+    {
+        return app_container()->get($id);
     }
 }
 
@@ -208,11 +220,11 @@ if (!function_exists('user_config')) {
 /**
  * Very small service container for modern code paths.
  *
- * This intentionally mirrors the legacy helper functions (`app_service`,
- * `app_container`) so templates and controllers can stay agnostic while the
- * migration to namespaced classes progresses.
+ * This preserves the familiar `app_service`/`app_container` helpers so
+ * templates and controllers can stay agnostic while everything runs on the
+ * namespaced services.
  */
-final class VTContainer
+final class AppContainer
 {
     /** @var array<string, callable(self):mixed> */
     private array $factories = [];
@@ -267,12 +279,12 @@ if (!function_exists('app_container')) {
     /**
      * Retrieve the global container instance, creating it on first use.
      */
-    function app_container(): VTContainer
+    function app_container(): AppContainer
     {
         static $container = null;
 
         if ($container === null) {
-            $container = new VTContainer();
+            $container = new AppContainer();
             // Load application configuration so it's available inside service closures
             $appConfig = app_config();
             $mailConfig = app_config('mail', []);
@@ -282,37 +294,37 @@ if (!function_exists('app_container')) {
                 return $dbConfig;
             });
 
-            $container->register('database.connection', static function (VTContainer $c): Database {
+            $container->register('database.connection', static function (AppContainer $c): Database {
                 return new Database($c->get('config.database'));
             });
 
-            $container->register('event.service', static function (VTContainer $c): EventService {
+            $container->register('event.service', static function (AppContainer $c): EventService {
                 return new EventService(
                     $c->get('database.connection'),
                     $c->get('search.service')
                 );
             });
 
-            $container->register('community.service', static function (VTContainer $c): CommunityService {
+            $container->register('community.service', static function (AppContainer $c): CommunityService {
                 return new CommunityService(
                     $c->get('database.connection'),
                     $c->get('search.service')
                 );
             });
 
-            $container->register('community.member.service', static function (VTContainer $c): CommunityMemberService {
+            $container->register('community.member.service', static function (AppContainer $c): CommunityMemberService {
                 return new CommunityMemberService($c->get('database.connection'));
             });
 
-            $container->register('event.guest.service', static function (VTContainer $c): EventGuestService {
+            $container->register('event.guest.service', static function (AppContainer $c): EventGuestService {
                 return new EventGuestService($c->get('database.connection'));
             });
 
-            $container->register('default.community.service', static function (VTContainer $c): DefaultCommunityService {
+            $container->register('default.community.service', static function (AppContainer $c): DefaultCommunityService {
                 return new DefaultCommunityService($c->get('community.service'));
             });
 
-            $container->register('conversation.service', static function (VTContainer $c): ConversationService {
+            $container->register('conversation.service', static function (AppContainer $c): ConversationService {
                 return new ConversationService(
                     $c->get('database.connection'),
                     $c->get('image.service'),
@@ -321,7 +333,7 @@ if (!function_exists('app_container')) {
                 );
             });
 
-            $container->register('circle.service', static function (VTContainer $c): CircleService {
+            $container->register('circle.service', static function (AppContainer $c): CircleService {
                 return new CircleService($c->get('database.connection'));
             });
 
@@ -329,19 +341,19 @@ if (!function_exists('app_container')) {
                 return new SanitizerService();
             });
 
-            $container->register('validator.service', static function (VTContainer $c): ValidatorService {
+            $container->register('validator.service', static function (AppContainer $c): ValidatorService {
                 return new ValidatorService($c->get('sanitizer.service'));
             });
 
-            $container->register('authorization.service', static function (VTContainer $c): AuthorizationService {
+            $container->register('authorization.service', static function (AppContainer $c): AuthorizationService {
                 return new AuthorizationService($c->get('database.connection'));
             });
 
-            $container->register('navigation.service', static function (VTContainer $c): NavigationService {
+            $container->register('navigation.service', static function (AppContainer $c): NavigationService {
                 return new NavigationService($c->get('authorization.service'));
             });
 
-            $container->register('auth.service', static function (VTContainer $c): AuthService {
+            $container->register('auth.service', static function (AppContainer $c): AuthService {
                 return new AuthService($c->get('database.connection'), $c->get('mail.service'));
             });
 
@@ -408,7 +420,7 @@ if (!function_exists('app_container')) {
                 return new MailService($mailer, $fromEmail, $fromName, $replyTo);
             });
 
-            $container->register('image.service', static function (VTContainer $c): ImageService {
+            $container->register('image.service', static function (AppContainer $c): ImageService {
                 $uploadBasePath = dirname(__DIR__) . '/public/uploads';
                 $uploadBaseUrl = '/uploads';
                 return new ImageService(
@@ -426,22 +438,22 @@ if (!function_exists('app_container')) {
                 return new SecurityService();
             });
 
-            $container->register('user.service', static function (VTContainer $c): UserService {
+            $container->register('user.service', static function (AppContainer $c): UserService {
                 return new UserService(
                     $c->get('database.connection'),
                     $c->get('image.service')
                 );
             });
 
-            $container->register('search.service', static function (VTContainer $c): SearchService {
+            $container->register('search.service', static function (AppContainer $c): SearchService {
                 return new SearchService($c->get('database.connection'));
             });
 
-            $container->register('bluesky.service', static function (VTContainer $c): BlueskyService {
+            $container->register('bluesky.service', static function (AppContainer $c): BlueskyService {
                 return new BlueskyService($c->get('database.connection'));
             });
 
-            $container->register('bluesky.invitation.service', static function (VTContainer $c): BlueskyInvitationService {
+            $container->register('bluesky.invitation.service', static function (AppContainer $c): BlueskyInvitationService {
                 return new BlueskyInvitationService(
                     $c->get('database.connection'),
                     $c->get('auth.service'),
@@ -451,7 +463,7 @@ if (!function_exists('app_container')) {
                 );
             });
 
-            $container->register('invitation.manager', static function (VTContainer $c): InvitationService {
+            $container->register('invitation.manager', static function (AppContainer $c): InvitationService {
                 return new InvitationService(
                     $c->get('database.connection'),
                     $c->get('auth.service'),
@@ -463,11 +475,11 @@ if (!function_exists('app_container')) {
                 );
             });
 
-            $container->register('controller.auth', static function (VTContainer $c): AuthController {
+            $container->register('controller.auth', static function (AppContainer $c): AuthController {
                 return new AuthController($c->get('auth.service'), $c->get('validator.service'));
             }, false);
 
-            $container->register('controller.bluesky', static function (VTContainer $c): BlueskyController {
+            $container->register('controller.bluesky', static function (AppContainer $c): BlueskyController {
                 return new BlueskyController(
                     $c->get('auth.service'),
                     $c->get('bluesky.service'),
@@ -475,7 +487,7 @@ if (!function_exists('app_container')) {
                 );
             }, false);
 
-            $container->register('controller.bluesky.invitation', static function (VTContainer $c): BlueskyInvitationController {
+            $container->register('controller.bluesky.invitation', static function (AppContainer $c): BlueskyInvitationController {
                 return new BlueskyInvitationController(
                     $c->get('auth.service'),
                     $c->get('security.service'),
@@ -483,7 +495,7 @@ if (!function_exists('app_container')) {
                 );
             }, false);
 
-            $container->register('controller.events', static function (VTContainer $c): EventController {
+            $container->register('controller.events', static function (AppContainer $c): EventController {
                 return new EventController(
                     $c->get('event.service'),
                     $c->get('auth.service'),
@@ -496,7 +508,7 @@ if (!function_exists('app_container')) {
                 );
             }, false);
 
-            $container->register('controller.home', static function (VTContainer $c): HomeController {
+            $container->register('controller.home', static function (AppContainer $c): HomeController {
                 return new HomeController(
                     $c->get('auth.service'),
                     $c->get('event.service'),
@@ -506,7 +518,7 @@ if (!function_exists('app_container')) {
                 );
             }, false);
 
-            $container->register('controller.admin', static function (VTContainer $c): AdminController {
+            $container->register('controller.admin', static function (AppContainer $c): AdminController {
                 return new AdminController(
                     $c->get('auth.service'),
                     $c->get('event.service'),
@@ -517,7 +529,7 @@ if (!function_exists('app_container')) {
                 );
             }, false);
 
-            $container->register('controller.communities', static function (VTContainer $c): CommunityController {
+            $container->register('controller.communities', static function (AppContainer $c): CommunityController {
                 return new CommunityController(
                     $c->get('community.service'),
                     $c->get('circle.service'),
@@ -531,7 +543,7 @@ if (!function_exists('app_container')) {
                 );
             }, false);
 
-            $container->register('controller.communities.api', static function (VTContainer $c): CommunityApiController {
+            $container->register('controller.communities.api', static function (AppContainer $c): CommunityApiController {
                 return new CommunityApiController(
                     $c->get('community.service'),
                     $c->get('auth.service'),
@@ -540,14 +552,14 @@ if (!function_exists('app_container')) {
                 );
             }, false);
 
-            $container->register('controller.search', static function (VTContainer $c): SearchController {
+            $container->register('controller.search', static function (AppContainer $c): SearchController {
                 return new SearchController(
                     $c->get('search.service'),
                     $c->get('auth.service')
                 );
             }, false);
 
-            $container->register('controller.conversations', static function (VTContainer $c): ConversationController {
+            $container->register('controller.conversations', static function (AppContainer $c): ConversationController {
                 return new ConversationController(
                     $c->get('conversation.service'),
                     $c->get('circle.service'),
@@ -560,7 +572,7 @@ if (!function_exists('app_container')) {
                 );
             }, false);
 
-            $container->register('controller.conversations.api', static function (VTContainer $c): ConversationApiController {
+            $container->register('controller.conversations.api', static function (AppContainer $c): ConversationApiController {
                 return new ConversationApiController(
                     $c->get('conversation.service'),
                     $c->get('circle.service'),
@@ -569,7 +581,7 @@ if (!function_exists('app_container')) {
                 );
             }, false);
 
-            $container->register('controller.invitations', static function (VTContainer $c): InvitationApiController {
+            $container->register('controller.invitations', static function (AppContainer $c): InvitationApiController {
                 return new InvitationApiController(
                     $c->get('database.connection'),
                     $c->get('auth.service'),
@@ -579,7 +591,7 @@ if (!function_exists('app_container')) {
                 );
             }, false);
 
-            $container->register('controller.profile', static function (VTContainer $c): ProfileController {
+            $container->register('controller.profile', static function (AppContainer $c): ProfileController {
                 return new ProfileController(
                     $c->get('auth.service'),
                     $c->get('user.service'),
@@ -599,59 +611,12 @@ if (!function_exists('app_container')) {
 
 if (!function_exists('app_service')) {
     /**
-     * Convenience accessor for services during the migration.
+     * Resolve a service from the shared container.
      *
-     * @param string $id
      * @return mixed
      */
     function app_service(string $id)
     {
         return app_container()->get($id);
     }
-}
-
-if (!function_exists('vt_container')) {
-    function vt_container(): VTContainer
-    {
-        return app_container();
-    }
-}
-
-if (!function_exists('vt_service')) {
-    function vt_service(string $id)
-    {
-        return app_service($id);
-    }
-}
-
-/**
- * Legacy compatibility shim: App_Mail
- * Routes legacy mail helpers through the modern MailService.
- */
-if (!class_exists('App_Mail')) {
-    final class App_Mail {
-        /**
-         * @param string|array<string> $to
-         */
-        public static function send($to, string $subject, string $htmlBody, string $textBody = ''): bool
-        {
-            /** @var \App\Services\MailService $mail */
-            $mail = app_service('mail.service');
-            return $mail->send($to, $subject, $htmlBody, $textBody);
-        }
-
-        /**
-         * @param array<string,mixed> $variables
-         */
-        public static function sendTemplate(string $to, string $template, array $variables = []): bool
-        {
-            /** @var \App\Services\MailService $mail */
-            $mail = app_service('mail.service');
-            return $mail->sendTemplate($to, $template, $variables);
-        }
-    }
-}
-
-if (!class_exists('VT_Mail')) {
-    class_alias(App_Mail::class, 'VT_Mail');
 }
