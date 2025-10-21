@@ -21,7 +21,11 @@ $content = $content ?? '';
 $fullTitle = $page_title === $appName ? $appName : $page_title . ' - ' . $appName;
 
 $security = app_service('security.service');
-$csrf_token = $security->createNonce('app_nonce');
+$authService = app_service('auth.service');
+$currentUser = $authService->getCurrentUser();
+$viewer = $currentUser;
+$userId = (int)($currentUser?->id ?? 0);
+$csrf_token = $security->createNonce('app_nonce', $userId);
 ?><!DOCTYPE html>
 <html lang="en">
 <head>

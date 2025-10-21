@@ -9,6 +9,13 @@
  */
 
 $sidebar_content = $sidebar_content ?? '';
+
+// Fallback to standard secondary nav for layouts without sidebar (form, page)
+if (empty($sidebar_content)) {
+    ob_start();
+    include __DIR__ . '/sidebar-secondary-nav.php';
+    $sidebar_content = ob_get_clean();
+}
 ?>
 
 <!-- Mobile Menu Modal -->
