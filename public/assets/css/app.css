@@ -20,6 +20,13 @@
 
 /* Elonara Social - Clean Semantic CSS with .app- Prefixes */
 
+/* Dev trick. Gives every container a green border */
+/*
+ {
+    border: solid .5px green;
+}
+*/
+
 /* Variables */
 :root {
     --app-primary: #667eea;
@@ -62,8 +69,8 @@ html, body {
     margin: 0;
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    font-size: 16px;
-    line-height: 1.5;
+    font-size: 18.75px;
+    line-height: 1;
     color: var(--app-text);
     background-color: var(--app-background);
 }
@@ -144,7 +151,7 @@ a:focus {
     flex: 1;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 1rem;
+    padding: .25rem;
     border: 0.125rem solid var(--app-border);
     border-top: none;
     border-radius: 0 0 0.5rem 0.5rem;
@@ -236,7 +243,7 @@ a:focus {
     }
     
     .app-main-content {
-        padding: 0.5rem;
+        padding: 0.25rem;
         margin: 0;
         overflow-y: visible;
         overflow-x: hidden;
@@ -258,7 +265,7 @@ a:focus {
     }
     
     .app-section {
-        padding: 0.5rem;
+        padding: 1rem;
         margin-bottom: 0.5rem;
     }
     
@@ -271,6 +278,8 @@ a:focus {
         max-width: 100%;
         box-sizing: border-box;
         width: 100%;
+        margin: .25rem;
+        padding: .25rem;
     }
     
 }
@@ -409,7 +418,7 @@ a:focus {
     background: var(--app-surface);
     border: 0.125rem solid var(--app-border);
     border-radius: 0.75rem;
-    padding: 1.5rem;
+    padding: .5rem;
     margin-bottom: 1.5rem;
 }
 
@@ -756,6 +765,7 @@ a:focus {
     border: 0.0625rem solid var(--app-border);
     border-radius: 0.5rem;
     overflow: hidden;
+    margin: .25rem;
 }
 
 .app-card-header {
@@ -780,6 +790,43 @@ a:focus {
 
 .app-card-success {
     border-color: var(--app-success);
+}
+
+.app-card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+}
+
+.app-card-sub {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.app-card-desc {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.app-card-meta {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin-top: 0.75rem;
+}
+
+.app-card-image {
+    width: 100%;
+    overflow: hidden;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.app-card-image-img {
+    width: 100%;
+    height: auto;
+    display: block;
 }
 
 /* Navigation */
@@ -1039,7 +1086,7 @@ a:focus {
     }
 
     .app-section {
-        padding: 0.5rem;
+        padding: 0.25rem;
         margin-bottom: 0.25rem;
     }
 
