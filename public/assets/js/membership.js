@@ -623,10 +623,10 @@ function loadPendingInvitations(entityType, entityId) {
  */
 function renderInvitationsList(invitations, entityType) {
     const cards = (invitations || []).map(inv => {
-        const emailRaw = String(inv.invited_email || '');
-        const memberName = inv.member_name ? String(inv.member_name) : '';
-        const title = memberName !== '' ? memberName : emailRaw;
-        const subtitle = memberName !== '' ? emailRaw : '';
+        const emailRaw = String(inv.invited_email ?? inv.email ?? inv.guest_email ?? '');
+        const displayName = String(inv.member_name ?? inv.name ?? inv.guest_name ?? '').trim();
+        const title = displayName !== '' ? displayName : (emailRaw !== '' ? emailRaw : 'Invitation');
+        const subtitle = displayName !== '' ? emailRaw : '';
         const statusValue = String(inv.status || 'pending').toLowerCase();
         const statusLabel = mapStatusLabel(statusValue);
         const statusClass = mapStatusBadgeClass(statusValue);
