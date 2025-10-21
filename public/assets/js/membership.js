@@ -292,7 +292,7 @@ function renderInviteCard(options = {}) {
             }
             const badgeLabel = escapeHtml(String(badge.label));
             const badgeClass = badge.class ? escapeHtml(String(badge.class)) : 'app-badge-secondary';
-            return `<span class="${badgeClass}">${badgeLabel}</span>`;
+            return `<span class="app-badge ${badgeClass}">${badgeLabel}</span>`;
         })
         .filter(Boolean)
         .join('');
@@ -639,7 +639,7 @@ function renderInvitationsList(invitations, entityType) {
             { label: statusLabel, class: statusClass },
         ];
         if (isBluesky) {
-            badges.push({ label: 'Bluesky', class: 'app-badge-secondary' });
+            badges.push({ label: 'Bluesky', class: 'app-badge app-badge-secondary' });
         }
 
         const actions = [
@@ -888,7 +888,7 @@ function renderEventGuestRow(guest) {
         { label: statusLabel, class: statusClass },
     ];
     if (isBluesky) {
-        badges.push({ label: 'Bluesky', class: 'app-badge-secondary' });
+        badges.push({ label: 'Bluesky', class: 'app-badge app-badge-secondary' });
     }
 
     const actions = [
@@ -1076,15 +1076,15 @@ function mapStatusBadgeClass(status) {
     switch (status) {
         case 'confirmed':
         case 'accepted':
-            return 'app-badge-success';
+            return 'app-badge app-badge-success';
         case 'declined':
         case 'cancelled':
-            return 'app-badge-danger';
+            return 'app-badge app-badge-danger';
         case 'maybe':
-            return 'app-badge-warning';
+            return 'app-badge app-badge-warning';
         case 'pending':
         default:
-            return 'app-badge-secondary';
+            return 'app-badge app-badge-secondary';
     }
 }
 

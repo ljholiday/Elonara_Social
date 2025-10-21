@@ -38,7 +38,7 @@ $circle = $circle ?? 'all';
         $badges = [
             [
                 'label' => ucfirst($privacy),
-                'class' => $privacy === 'private' ? 'app-badge-secondary' : 'app-badge-success',
+                'class' => $privacy === 'private' ? 'app-badge app-badge-secondary' : 'app-badge app-badge-success',
             ],
         ];
 

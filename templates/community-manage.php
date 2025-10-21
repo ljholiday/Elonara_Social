@@ -71,10 +71,10 @@ $blueskyActionNonce = $securityService->createNonce('app_bluesky_action', $viewe
                 $roleLabelClass = $role === 'admin' ? 'primary' : ($role === 'moderator' ? 'secondary' : 'secondary');
 
                 $badges = [
-                    ['label' => ucfirst($role), 'class' => 'app-badge-' . $roleLabelClass],
+                    ['label' => ucfirst($role), 'class' => 'app-badge app-badge-' . $roleLabelClass],
                 ];
                 if ($isViewer) {
-                    $badges[] = ['label' => 'You', 'class' => 'app-badge-secondary'];
+                    $badges[] = ['label' => 'You', 'class' => 'app-badge app-badge-secondary'];
                 }
 
                 $actions = [];

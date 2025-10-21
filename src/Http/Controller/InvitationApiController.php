@@ -514,10 +514,10 @@ final class InvitationApiController
             $roleClass = $role === 'admin' ? 'primary' : ($role === 'moderator' ? 'secondary' : 'secondary');
 
             $badges = [
-                ['label' => ucfirst($role), 'class' => 'app-badge-' . $roleClass],
+                ['label' => ucfirst($role), 'class' => 'app-badge app-badge-' . $roleClass],
             ];
             if ($isSelf) {
-                $badges[] = ['label' => 'You', 'class' => 'app-badge-secondary'];
+                $badges[] = ['label' => 'You', 'class' => 'app-badge app-badge-secondary'];
             }
 
             $actions = [];

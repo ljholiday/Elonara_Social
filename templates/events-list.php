@@ -39,12 +39,12 @@ $filter = $filter ?? 'all';
         if ($contextLabel !== '') {
             $badges[] = [
                 'label' => $contextLabel,
-                'class' => 'app-badge-secondary',
+                'class' => 'app-badge app-badge-secondary',
             ];
         }
         $badges[] = [
             'label' => ucfirst($privacy),
-            'class' => $privacy === 'private' ? 'app-badge-secondary' : 'app-badge-success',
+            'class' => $privacy === 'private' ? 'app-badge app-badge-secondary' : 'app-badge app-badge-success',
         ];
 
         $stats = [];

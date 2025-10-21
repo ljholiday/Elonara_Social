@@ -84,7 +84,7 @@ if ($extraClass !== '') {
               }
               $badgeClass = isset($badge['class']) ? (string)$badge['class'] : 'app-badge-secondary';
             ?>
-            <span class="<?= htmlspecialchars($badgeClass, ENT_QUOTES, 'UTF-8'); ?>">
+            <span class="app-badge <?= htmlspecialchars($badgeClass, ENT_QUOTES, 'UTF-8'); ?>">
               <?= htmlspecialchars($badgeLabel, ENT_QUOTES, 'UTF-8'); ?>
             </span>
           <?php endforeach; ?>
