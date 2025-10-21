@@ -29,3 +29,5 @@ $current_path = $current_path ?? $_SERVER['REQUEST_URI'] ?? '/';
         </span>
     </button>
 </div>
+
+<?php include __DIR__ . '/mobile-menu-modal.php'; ?>
