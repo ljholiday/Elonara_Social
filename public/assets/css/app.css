@@ -215,6 +215,9 @@ a:focus {
 }
 
 @media (max-width: 768px) {
+    body {
+        font-size: 14px;
+    }
     
     .app-page-two-column {
         flex-direction: column;
