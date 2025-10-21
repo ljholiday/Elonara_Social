@@ -96,7 +96,7 @@ $conversations = $recent_conversations ?? [];
                   'body_html' => $bodyHtml,
                   'actions' => $actions,
               ];
-              include __DIR__ . '/partials/invite-card.php';
+              include __DIR__ . '/partials/member-card.php';
             ?>
           <?php endforeach; ?>
         </div>
@@ -158,7 +158,7 @@ $conversations = $recent_conversations ?? [];
                   'meta' => $metaText,
                   'actions' => $actions,
               ];
-              include __DIR__ . '/partials/invite-card.php';
+              include __DIR__ . '/partials/member-card.php';
             ?>
           <?php endforeach; ?>
         </div>
@@ -214,7 +214,7 @@ $conversations = $recent_conversations ?? [];
                   'body_html' => $bodyHtml,
                   'actions' => $actions,
               ];
-              include __DIR__ . '/partials/invite-card.php';
+              include __DIR__ . '/partials/member-card.php';
             ?>
           <?php endforeach; ?>
         </div>

@@ -112,7 +112,7 @@ $blueskyActionNonce = $securityService->createNonce('app_bluesky_action', $viewe
                     'meta' => $joinedAt ? 'Joined ' . date('M j, Y', strtotime((string)$joinedAt)) : null,
                     'actions' => $actions,
                 ];
-                include __DIR__ . '/partials/invite-card.php';
+                include __DIR__ . '/partials/member-card.php';
               ?>
             <?php endforeach; ?>
           <?php endif; ?>

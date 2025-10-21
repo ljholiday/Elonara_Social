@@ -510,7 +510,7 @@ final class InvitationApiController
             return '<div class="app-text-center app-text-muted">No members yet.</div>';
         }
 
-        $cardsPath = dirname(__DIR__, 3) . '/templates/partials/invite-card.php';
+        $cardsPath = dirname(__DIR__, 3) . '/templates/partials/member-card.php';
         ob_start();
         foreach ($members as $member) {
             $memberId = (int)($member['id'] ?? 0);
