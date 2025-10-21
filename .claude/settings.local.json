@@ -13,7 +13,8 @@
       "Bash(cat /Users/lonnholiday/Repositories/social.elonara/debug.log)",
       "Bash(mysql -u root -proot social_elonara -e \"SELECT id, title, slug, created_at FROM events WHERE id = 18\")",
       "Bash(mysql -u root -proot social_elonara -e \"SELECT id, title, slug FROM events WHERE slug LIKE ''%tamale%'' OR title LIKE ''%tamale%''\")",
-      "Bash(mysql -u root -proot social_elonara -e \"SELECT id, title, slug, description, created_at, created_by FROM events WHERE id = 18\")"
+      "Bash(mysql -u root -proot social_elonara -e \"SELECT id, title, slug, description, created_at, created_by FROM events WHERE id = 18\")",
+      "Bash(curl -s \"http://social.elonara.local/communities/lonn-holiday/manage?tab=invites\")"
     ],
     "deny": [],
     "ask": []
