@@ -206,9 +206,7 @@ final class InvitationApiController
         }
 
         $data = $result['data'];
-        $guestRecords = $data['guest_records'] ?? null;
         unset($data['guest_records']);
-        $data['html'] = $this->renderEventGuests($eventId, is_array($guestRecords) ? $guestRecords : null);
         $data['nonce'] = $this->createActionNonce('app_event_action');
 
         return $this->success($data, $result['status']);
@@ -239,11 +237,8 @@ final class InvitationApiController
             return $this->error($result['message'], $result['status']);
         }
 
-        $guestRecords = $result['data']['guest_records'] ?? [];
-
         return $this->success([
             'invitations' => $result['data']['invitations'],
-            'html' => $this->renderEventGuests($eventId, is_array($guestRecords) ? $guestRecords : null),
             'nonce' => $this->createActionNonce('app_event_action'),
         ]);
     }
@@ -274,9 +269,7 @@ final class InvitationApiController
         }
 
         $data = $result['data'];
-        $guestRecords = $data['guest_records'] ?? null;
         unset($data['guest_records']);
-        $data['html'] = $this->renderEventGuests($eventId, is_array($guestRecords) ? $guestRecords : null);
         $data['nonce'] = $this->createActionNonce('app_event_action');
 
         return $this->success($data, $result['status']);
@@ -309,9 +302,7 @@ final class InvitationApiController
         }
 
         $data = $result['data'];
-        $guestRecords = $data['guest_records'] ?? null;
         unset($data['guest_records']);
-        $data['html'] = $this->renderEventGuests($eventId, is_array($guestRecords) ? $guestRecords : null);
         $data['nonce'] = $this->createActionNonce('app_event_action');
 
         return $this->success($data, $result['status']);
