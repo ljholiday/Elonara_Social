@@ -17,6 +17,7 @@ declare(strict_types=1);
 $appName = (string)app_config('app.name', 'Elonara Social');
 $assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
 $page_title = $page_title ?? $appName;
+$page_description = $page_description ?? '';
 $main_content = $main_content ?? '';
 $sidebar_content = $sidebar_content ?? '';
 $current_path = $current_path ?? $_SERVER['REQUEST_URI'] ?? '/';
@@ -36,7 +37,10 @@ $csrf_token = $security->createNonce('app_nonce', $userId);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?= htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
     <meta name="theme-color" content="#4B0082">
+<?php include __DIR__ . '/../partials/head-meta.php'; ?>
+
     <title><?= htmlspecialchars($fullTitle); ?></title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="<?= htmlspecialchars($assetBase . '/css/app.css', ENT_QUOTES, 'UTF-8'); ?>">
 </head>

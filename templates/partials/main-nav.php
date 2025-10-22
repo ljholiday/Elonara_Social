@@ -10,8 +10,13 @@
  */
 
 $current_path = $current_path ?? $_SERVER['REQUEST_URI'] ?? '/';
+$assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
+$appName = (string)app_config('app.name', 'Elonara Social');
 ?>
 <div class="app-main-nav app-has-mobile-menu">
+    <a href="/" class="app-logo-link" aria-label="<?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8'); ?> Home">
+        <img src="<?= htmlspecialchars($assetBase . '/icons/logo-100.png', ENT_QUOTES, 'UTF-8'); ?>" alt="<?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8'); ?>" class="app-logo">
+    </a>
     <a href="/events" class="app-main-nav-item<?= str_contains($current_path, '/events') ? ' active' : ''; ?>">
         Events
     </a>
