@@ -41,7 +41,9 @@ if (!isset($user) || !is_object($user)) {
 $display_name = $user->display_name ?? 'Unknown User';
 
 // Get profile URL
-$profile_url = !empty($user->username) ? '/profile/' . htmlspecialchars($user->username, ENT_QUOTES, 'UTF-8') : '/profile';
+$profile_url = !empty($user->username)
+    ? '/profile/' . htmlspecialchars($user->username, ENT_QUOTES, 'UTF-8')
+    : (!empty($user->id) ? '/profile/' . intval($user->id) : '/profile');
 
 // Get avatar URL
 $avatar_url = '';

@@ -48,7 +48,12 @@ final class ProfileController
      */
     public function show(string $username): array
     {
-        $user = $this->users->getByUsername($username);
+        // Support both username and numeric ID
+        if (is_numeric($username)) {
+            $user = $this->users->getById((int)$username);
+        } else {
+            $user = $this->users->getByUsername($username);
+        }
 
         if ($user === null) {
             return [
