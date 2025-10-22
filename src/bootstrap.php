@@ -463,7 +463,7 @@ if (!function_exists('app_container')) {
                 );
             });
 
-            $container->register('invitation.manager', static function (AppContainer $c): InvitationService {
+            $container->register('invitation.service', static function (AppContainer $c): InvitationService {
                 return new InvitationService(
                     $c->get('database.connection'),
                     $c->get('auth.service'),
@@ -476,7 +476,12 @@ if (!function_exists('app_container')) {
             });
 
             $container->register('controller.auth', static function (AppContainer $c): AuthController {
-                return new AuthController($c->get('auth.service'), $c->get('validator.service'));
+                return new AuthController(
+                    $c->get('auth.service'),
+                    $c->get('validator.service'),
+                    $c->get('database.connection'),
+                    $c->get('invitation.service')
+                );
             }, false);
 
             $container->register('controller.bluesky', static function (AppContainer $c): BlueskyController {
@@ -500,7 +505,7 @@ if (!function_exists('app_container')) {
                     $c->get('event.service'),
                     $c->get('auth.service'),
                     $c->get('validator.service'),
-                    $c->get('invitation.manager'),
+                    $c->get('invitation.service'),
                     $c->get('conversation.service'),
                     $c->get('authorization.service'),
                     $c->get('community.service'),
@@ -585,7 +590,7 @@ if (!function_exists('app_container')) {
                 return new InvitationApiController(
                     $c->get('database.connection'),
                     $c->get('auth.service'),
-                    $c->get('invitation.manager'),
+                    $c->get('invitation.service'),
                     $c->get('security.service'),
                     $c->get('community.member.service')
                 );

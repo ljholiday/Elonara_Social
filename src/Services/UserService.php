@@ -315,6 +315,8 @@ final class UserService
                 u.status,
                 u.created_at,
                 COALESCE(NULLIF(mi.did, \'\'), NULLIF(mi.at_protocol_did, \'\')) AS did,
+                COALESCE(NULLIF(mi.handle, \'\'), NULLIF(mi.at_protocol_handle, \'\')) AS bluesky_handle,
+                mi.verification_method,
                 CASE
                     WHEN mi.is_verified = 1 THEN 1
                     WHEN up.is_verified = 1 THEN 1

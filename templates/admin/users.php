@@ -54,9 +54,19 @@ $currentQuery = $searchQuery !== '' ? ['q' => $searchQuery] : [];
         $username = (string)($user['username'] ?? '');
         $email = (string)($user['email'] ?? '');
         $did = trim((string)($user['did'] ?? ''));
+        $blueskyHandle = trim((string)($user['bluesky_handle'] ?? ''));
+        $verificationMethod = trim((string)($user['verification_method'] ?? ''));
         $isVerified = (int)($user['is_verified'] ?? 0) === 1;
         $verifiedLabel = $isVerified ? 'Yes' : 'No';
         $verifiedClass = $isVerified ? 'is-verified' : 'is-unverified';
+
+        $verificationLabel = match($verificationMethod) {
+            'oauth' => 'OAuth Verified',
+            'self_reported' => 'Self-Reported',
+            'invitation_linked' => 'Invitation Linked',
+            'none', '' => 'None',
+            default => ucfirst($verificationMethod)
+        };
         ?>
         <div class="admin-user-card">
           <div class="admin-user-header">
@@ -83,10 +93,16 @@ $currentQuery = $searchQuery !== '' ? ['q' => $searchQuery] : [];
               <span>Email:</span> <?= htmlspecialchars($email); ?>
             </div>
             <div class="admin-user-field">
+              <span>Bluesky:</span> <?= $blueskyHandle !== '' ? htmlspecialchars($blueskyHandle) : '—'; ?>
+            </div>
+            <div class="admin-user-field">
               <span>DID:</span> <?= $did !== '' ? htmlspecialchars($did) : '—'; ?>
             </div>
             <div class="admin-user-field">
-              <span>Verified:</span>
+              <span>Verification:</span> <?= htmlspecialchars($verificationLabel); ?>
+            </div>
+            <div class="admin-user-field">
+              <span>Account Verified:</span>
               <span class="admin-user-verified <?= $verifiedClass; ?>"><?= $verifiedLabel; ?></span>
             </div>
           </div>

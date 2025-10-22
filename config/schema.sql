@@ -422,6 +422,7 @@ CREATE TABLE `member_identities` (
   `private_key_encrypted` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci,
   `cross_site_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci,
   `is_verified` tinyint(1) DEFAULT '0',
+  `verification_method` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT 'none',
   `last_sync_at` datetime DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

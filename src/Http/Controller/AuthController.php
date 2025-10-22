@@ -3,15 +3,19 @@ declare(strict_types=1);
 
 namespace App\Http\Controller;
 
+use App\Database\Database;
 use App\Http\Request;
 use App\Services\AuthService;
+use App\Services\InvitationService;
 use App\Services\ValidatorService;
 
 final class AuthController
 {
     public function __construct(
         private AuthService $auth,
-        private ValidatorService $validator
+        private ValidatorService $validator,
+        private Database $database,
+        private InvitationService $invitations
     ) {
     }
 
@@ -20,10 +24,22 @@ final class AuthController
         $redirect = $this->sanitizeRedirect($this->request()->query('redirect_to'));
         $flashMessage = $this->popFlashMessage();
 
+        $invitation = $this->extractInvitationContext($redirect);
+
+        // Store invitation token in session for resilience against page refreshes/errors
+        if ($invitation !== null && str_contains($redirect, '/invitation/accept?token=')) {
+            parse_str(parse_url($redirect, PHP_URL_QUERY) ?? '', $query);
+            $token = $query['token'] ?? '';
+            if ($token !== '') {
+                $_SESSION['pending_invitation_token'] = $token;
+            }
+        }
+
         return $this->buildView(
             loginInput: ['redirect_to' => $redirect],
             registerInput: ['redirect_to' => $redirect],
-            flash: $flashMessage !== null ? ['type' => 'success', 'message' => $flashMessage] : []
+            flash: $flashMessage !== null ? ['type' => 'success', 'message' => $flashMessage] : [],
+            invitation: $invitation
         );
     }
 
@@ -54,6 +70,12 @@ final class AuthController
         if ($errors === []) {
             $result = $this->auth->attemptLogin($identifierValidation['value'], $passwordRaw, $remember);
             if ($result['success']) {
+                // Check for pending invitation in session and auto-accept
+                $invitationRedirect = $this->processPendingInvitation();
+                if ($invitationRedirect !== null) {
+                    return ['redirect' => $invitationRedirect];
+                }
+
                 return [
                     'redirect' => $redirect !== '' ? $redirect : '/',
                 ];
@@ -85,6 +107,7 @@ final class AuthController
         $emailRaw = (string)$request->input('email', '');
         $passwordRaw = (string)$request->input('password', '');
         $confirmRaw = (string)$request->input('confirm_password', '');
+        $blueskyHandleRaw = (string)$request->input('bluesky_handle', '');
         $redirect = $this->sanitizeRedirect($request->input('redirect_to'));
 
         // Validate inputs
@@ -120,6 +143,31 @@ final class AuthController
             ]);
 
             if ($result['success']) {
+                $userId = $result['user_id'] ?? 0;
+
+                // Store self-reported Bluesky handle if provided
+                if ($blueskyHandleRaw !== '') {
+                    $this->storeSelfReportedBlueskyHandle($userId, $blueskyHandleRaw);
+                }
+
+                // Auto-verify and login when redirect_to is present (e.g., Bluesky invitations)
+                // These users are verified via their Bluesky DID
+                if ($redirect !== '' && str_contains($redirect, '/invitation/accept')) {
+                    $this->autoVerifyUser($userId);
+                    $loginResult = $this->auth->attemptLogin($emailValidation['value'], $passwordRaw, false);
+                    if ($loginResult['success']) {
+                        // Check for pending invitation in session and auto-accept
+                        $invitationRedirect = $this->processPendingInvitation();
+                        if ($invitationRedirect !== null) {
+                            return ['redirect' => $invitationRedirect];
+                        }
+                        return [
+                            'redirect' => $redirect,
+                        ];
+                    }
+                }
+
+                // Standard flow: show success message and login form
                 $successFlash = [
                     'type' => 'success',
                     // Plain-language guidance so new members know to verify first.
@@ -166,6 +214,7 @@ final class AuthController
                 'display_name' => $displayNameValidation['value'] ?? $displayNameRaw,
                 'username' => $usernameValidation['value'] ?? $usernameRaw,
                 'email' => $emailValidation['value'] ?? $emailRaw,
+                'bluesky_handle' => $blueskyHandleRaw,
                 'redirect_to' => $redirect,
             ],
             registerErrors: $errors,
@@ -359,7 +408,8 @@ final class AuthController
         array $registerInput = [],
         array $registerErrors = [],
         string $active = 'login',
-        array $flash = []
+        array $flash = [],
+        ?array $invitation = null
     ): array {
         return [
             'active' => $active,
@@ -377,10 +427,12 @@ final class AuthController
                     'display_name' => '',
                     'username' => '',
                     'email' => '',
+                    'bluesky_handle' => '',
                     'redirect_to' => '',
                 ], $registerInput),
             ],
             'flash' => $flash,
+            'invitation' => $invitation,
         ];
     }
 
@@ -394,5 +446,162 @@ final class AuthController
         unset($_SESSION['flash_message']);
 
         return $message;
+    }
+
+    private function storeSelfReportedBlueskyHandle(int $userId, string $handleRaw): void
+    {
+        if ($userId <= 0 || $handleRaw === '') {
+            return;
+        }
+
+        $handle = trim($handleRaw);
+        $handle = ltrim($handle, '@');
+
+        if ($handle === '') {
+            return;
+        }
+
+        $pdo = $this->database->pdo();
+        $stmt = $pdo->prepare('
+            INSERT INTO member_identities (user_id, email, handle, verification_method, is_verified, created_at, updated_at)
+            SELECT ?, email, ?, ?, 0, NOW(), NOW()
+            FROM users
+            WHERE id = ?
+            ON DUPLICATE KEY UPDATE
+                handle = VALUES(handle),
+                verification_method = VALUES(verification_method),
+                updated_at = NOW()
+        ');
+
+        $stmt->execute([
+            $userId,
+            $handle,
+            'self_reported',
+            $userId
+        ]);
+    }
+
+    private function autoVerifyUser(int $userId): void
+    {
+        if ($userId <= 0) {
+            return;
+        }
+
+        $pdo = $this->database->pdo();
+        $stmt = $pdo->prepare("UPDATE users SET status = 'active' WHERE id = ?");
+        $stmt->execute([$userId]);
+    }
+
+    /**
+     * Extract invitation context from redirect_to URL
+     * @return array{type:string,name:string,inviter:string}|null
+     */
+    private function extractInvitationContext(string $redirect): ?array
+    {
+        if ($redirect === '' || !str_contains($redirect, '/invitation/accept?token=')) {
+            return null;
+        }
+
+        // Extract token from redirect URL
+        parse_str(parse_url($redirect, PHP_URL_QUERY) ?? '', $query);
+        $token = $query['token'] ?? '';
+
+        if ($token === '') {
+            return null;
+        }
+
+        $pdo = $this->database->pdo();
+
+        // Try community invitation first
+        $stmt = $pdo->prepare('
+            SELECT
+                ci.community_id,
+                ci.invited_by_member_id,
+                c.name AS community_name,
+                u.display_name AS inviter_name
+            FROM community_invitations ci
+            LEFT JOIN communities c ON c.id = ci.community_id
+            LEFT JOIN users u ON u.id = ci.invited_by_member_id
+            WHERE ci.invitation_token = ?
+              AND ci.status = ?
+              AND (ci.expires_at IS NULL OR ci.expires_at > NOW())
+            LIMIT 1
+        ');
+        $stmt->execute([$token, 'pending']);
+        $invitation = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($invitation !== false) {
+            return [
+                'type' => 'community',
+                'name' => (string)($invitation['community_name'] ?? 'a community'),
+                'inviter' => (string)($invitation['inviter_name'] ?? 'Someone'),
+            ];
+        }
+
+        // Try event invitation (guests table uses rsvp_token)
+        $stmt = $pdo->prepare('
+            SELECT
+                g.event_id,
+                e.title AS event_name,
+                u.display_name AS inviter_name
+            FROM guests g
+            LEFT JOIN events e ON e.id = g.event_id
+            LEFT JOIN users u ON u.id = e.author_id
+            WHERE g.rsvp_token = ?
+              AND g.status = ?
+            LIMIT 1
+        ');
+        $stmt->execute([$token, 'pending']);
+        $eventInvite = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($eventInvite !== false) {
+            return [
+                'type' => 'event',
+                'name' => (string)($eventInvite['event_name'] ?? 'an event'),
+                'inviter' => (string)($eventInvite['inviter_name'] ?? 'Someone'),
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Process pending invitation stored in session.
+     * Returns redirect URL on success, null otherwise.
+     */
+    private function processPendingInvitation(): ?string
+    {
+        if (!isset($_SESSION['pending_invitation_token'])) {
+            return null;
+        }
+
+        $token = (string)$_SESSION['pending_invitation_token'];
+        if ($token === '') {
+            unset($_SESSION['pending_invitation_token']);
+            return null;
+        }
+
+        $user = $this->auth->getCurrentUser();
+        if ($user === null) {
+            return null;
+        }
+
+        $viewerId = (int)($user->id ?? 0);
+        if ($viewerId <= 0) {
+            return null;
+        }
+
+        // Try to accept the invitation
+        $result = $this->invitations->acceptCommunityInvitation($token, $viewerId);
+
+        // Clear the session token
+        unset($_SESSION['pending_invitation_token']);
+
+        if ($result['success']) {
+            $redirectUrl = (string)($result['data']['redirect_url'] ?? '');
+            return $redirectUrl !== '' ? $redirectUrl : null;
+        }
+
+        return null;
     }
 }

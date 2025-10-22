@@ -10,15 +10,32 @@ $registerInput = array_merge([
     'display_name' => '',
     'username' => '',
     'email' => '',
+    'bluesky_handle' => '',
     'redirect_to' => '',
 ], $register['input'] ?? []);
 $usernameMinLength = (int)user_config('username_min_length', 2);
 $usernameMaxLength = (int)user_config('username_max_length', 30);
 $loginErrors = $login['errors'] ?? [];
 $registerErrors = $register['errors'] ?? [];
+$invitation = $invitation ?? null;
 ?>
 <section class="app-section app-auth">
   <div class="app-container">
+    <?php if ($invitation !== null): ?>
+      <div class="app-card app-mb-4" style="border-left: 4px solid var(--color-primary, #3b82f6);">
+        <div class="app-card-body app-p-4 app-text-center">
+          <h2 class="app-heading app-heading-lg app-mb-2">You've Been Invited!</h2>
+          <p class="app-text-lg app-mb-1">
+            <strong><?php echo e($invitation['inviter']); ?></strong> has invited you to
+            <?php echo $invitation['type'] === 'event' ? 'RSVP to' : 'join'; ?>
+          </p>
+          <p class="app-text-xl app-font-bold app-text-primary">
+            <?php echo e($invitation['name']); ?>
+          </p>
+        </div>
+      </div>
+    <?php endif; ?>
+
     <?php if (!empty($flash['message'])): ?>
       <!-- Friendly success copy so brand-new members know what to do next -->
       <div class="app-alert app-alert-success app-mb-4">
@@ -144,6 +161,29 @@ $registerErrors = $register['errors'] ?? [];
                 <p class="app-input-error"><?php echo e($registerErrors['email']); ?></p>
               <?php endif; ?>
             </div>
+
+            <?php
+            $showBlueskyField = str_contains($registerInput['redirect_to'], '/invitation/accept');
+            if ($showBlueskyField):
+            ?>
+            <div class="app-field">
+              <label class="app-label" for="register-bluesky-handle">Bluesky Handle (optional)</label>
+              <input
+                id="register-bluesky-handle"
+                name="bluesky_handle"
+                type="text"
+                class="app-input<?php echo isset($registerErrors['bluesky_handle']) ? ' is-invalid' : ''; ?>"
+                value="<?php echo e($registerInput['bluesky_handle']); ?>"
+                placeholder="yourname.bsky.social"
+              >
+              <p class="app-text-muted app-text-sm">
+                Link your Bluesky account to unlock cross-posting and follower features.
+              </p>
+              <?php if (isset($registerErrors['bluesky_handle'])): ?>
+                <p class="app-input-error"><?php echo e($registerErrors['bluesky_handle']); ?></p>
+              <?php endif; ?>
+            </div>
+            <?php endif; ?>
 
             <div class="app-field">
               <label class="app-label" for="register-password">Password</label>

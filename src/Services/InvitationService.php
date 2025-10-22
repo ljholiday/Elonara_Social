@@ -403,6 +403,11 @@ final class InvitationService
                 ':did' => $invitedDid,
                 ':id' => $memberId,
             ]);
+
+            // Store invited DID in member_identities if not already verified
+            if (!$blueskyVerified) {
+                $this->storePendingBlueskyDid($viewerId, $invitedDid);
+            }
         }
 
         $community = $this->fetchCommunity($communityId);
@@ -1075,5 +1080,55 @@ final class InvitationService
             'status' => $targetStatus,
             'message' => $statusMessage,
         ]);
+    }
+
+    /**
+     * Store Bluesky DID from invitation for users without full OAuth verification.
+     * This links the user to their invited Bluesky identity even with self-reported handles.
+     */
+    private function storePendingBlueskyDid(int $userId, string $did): void
+    {
+        if ($userId <= 0 || $did === '') {
+            return;
+        }
+
+        $pdo = $this->database->pdo();
+
+        // Check if user already has member_identities record
+        $stmt = $pdo->prepare('
+            SELECT id, verification_method, did
+            FROM member_identities
+            WHERE user_id = ?
+            LIMIT 1
+        ');
+        $stmt->execute([$userId]);
+        $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($existing !== false) {
+            // Update existing record only if not already verified via OAuth
+            $currentMethod = (string)($existing['verification_method'] ?? 'none');
+            if ($currentMethod !== 'oauth') {
+                $updateStmt = $pdo->prepare('
+                    UPDATE member_identities
+                    SET did = ?,
+                        at_protocol_did = ?,
+                        verification_method = ?,
+                        updated_at = NOW()
+                    WHERE user_id = ?
+                ');
+                $newMethod = $currentMethod === 'self_reported' ? 'self_reported' : 'invitation_linked';
+                $updateStmt->execute([$did, $did, $newMethod, $userId]);
+            }
+        } else {
+            // Create new record for invitation-linked identity
+            $insertStmt = $pdo->prepare('
+                INSERT INTO member_identities
+                (user_id, email, did, at_protocol_did, verification_method, is_verified, created_at, updated_at)
+                SELECT ?, email, ?, ?, ?, 0, NOW(), NOW()
+                FROM users
+                WHERE id = ?
+            ');
+            $insertStmt->execute([$userId, $did, $did, 'invitation_linked', $userId]);
+        }
     }
 }

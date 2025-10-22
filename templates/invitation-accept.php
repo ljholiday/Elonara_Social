@@ -29,18 +29,21 @@ $displayMessage = $message !== ''
                 <?php if ($redirectUrl !== null) : ?>
                     <div class="app-mt-5">
                         <a class="app-btn app-btn-primary" href="<?php echo htmlspecialchars($redirectUrl, ENT_QUOTES, 'UTF-8'); ?>">
-                            Continue
+                            Continue to Community
                         </a>
                     </div>
                 <?php endif; ?>
 
                 <?php if ($needsBlueskyLink && $connectUrl !== null) : ?>
                     <div class="app-mt-4">
-                        <a class="app-btn app-btn-secondary" href="<?php echo htmlspecialchars($connectUrl, ENT_QUOTES, 'UTF-8'); ?>">
-                            Connect Bluesky
-                        </a>
                         <p class="app-text-muted app-mt-2">
-                            Linking Bluesky lets you manage future invites without extra steps.
+                            Want to unlock Bluesky-powered features like cross-posting and follower invites?
+                        </p>
+                        <a class="app-btn app-btn-secondary app-mt-3" href="<?php echo htmlspecialchars($connectUrl, ENT_QUOTES, 'UTF-8'); ?>">
+                            Connect Your Bluesky Account
+                        </a>
+                        <p class="app-text-muted app-mt-2 app-text-sm">
+                            Connecting your Bluesky account lets you post to Bluesky from Elonara and invite your followers to events and communities.
                         </p>
                     </div>
                 <?php endif; ?>

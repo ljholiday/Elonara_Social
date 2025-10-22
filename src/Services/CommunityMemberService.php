@@ -246,7 +246,10 @@ final class CommunityMemberService
             throw new RuntimeException('Cannot remove the only admin. Promote another member first.');
         }
 
-        $stmt = $this->database->pdo()->prepare(
+        $pdo = $this->database->pdo();
+        $userId = (int)$member['user_id'];
+
+        $stmt = $pdo->prepare(
             "DELETE FROM community_members WHERE id = :id AND community_id = :community_id"
         );
 
@@ -258,6 +261,15 @@ final class CommunityMemberService
         if ($success === false || $stmt->rowCount() === 0) {
             throw new RuntimeException('Failed to remove member.');
         }
+
+        // Also delete any invitation records for this user in this community
+        $inviteStmt = $pdo->prepare(
+            "DELETE FROM community_invitations WHERE community_id = :community_id AND invited_user_id = :user_id"
+        );
+        $inviteStmt->execute([
+            ':community_id' => $communityId,
+            ':user_id' => $userId,
+        ]);
 
         $this->refreshMemberCount($communityId);
     }
