@@ -152,92 +152,20 @@
 })();
 
 /**
- * Edit reply
+ * Edit reply - opens modal with existing reply data
  */
-window.editReply = function(replyId) {
-	const replyCard = document.querySelector(`article:has(button[onclick*="editReply(${replyId})"])`);
-	if (!replyCard) return;
+window.editReply = function(buttonElement) {
+	const replyId = buttonElement.dataset.replyId;
+	const content = buttonElement.dataset.replyContent || '';
+	const imageUrl = buttonElement.dataset.replyImageUrl || '';
+	const imageAlt = buttonElement.dataset.replyImageAlt || '';
 
-	const contentDiv = replyCard.querySelector('.app-card-desc');
-	if (!contentDiv) return;
-
-	// Get current content (strip HTML breaks)
-	const currentContent = contentDiv.innerHTML.replace(/<br\s*\/?>/gi, '\n').trim();
-	const plainText = contentDiv.textContent.trim();
-
-	// Replace content with textarea
-	contentDiv.innerHTML = `
-		<textarea class="app-form-textarea" id="edit-reply-${replyId}" rows="4" style="width: 100%; margin-bottom: 0.5rem;">${plainText}</textarea>
-		<div style="display: flex; gap: 0.5rem;">
-			<button class="app-btn app-btn-sm app-btn-primary" onclick="saveReply(${replyId})">Save</button>
-			<button class="app-btn app-btn-sm" onclick="cancelEditReply(${replyId}, ${JSON.stringify(currentContent).replace(/"/g, '&quot;')})">Cancel</button>
-		</div>
-	`;
-
-	// Focus textarea
-	document.getElementById(`edit-reply-${replyId}`).focus();
-};
-
-/**
- * Cancel edit reply
- */
-window.cancelEditReply = function(replyId, originalContent) {
-	const replyCard = document.querySelector(`article:has(button[onclick*="editReply(${replyId})"])`);
-	if (!replyCard) return;
-
-	const contentDiv = replyCard.querySelector('.app-card-desc');
-	if (!contentDiv) return;
-
-	contentDiv.innerHTML = originalContent;
-};
-
-/**
- * Save reply
- */
-window.saveReply = function(replyId) {
-	const textarea = document.getElementById(`edit-reply-${replyId}`);
-	if (!textarea) return;
-
-	const content = textarea.value.trim();
-	if (!content) {
-		alert('Reply content cannot be empty');
-		return;
+	// Call the global function from reply-modal.js
+	if (typeof window.openReplyModalForEdit === 'function') {
+		window.openReplyModalForEdit(replyId, content, imageUrl, imageAlt);
+	} else {
+		console.error('Reply modal edit function not available');
 	}
-
-	// Get CSRF token
-	const nonce = document.querySelector('meta[name="csrf-token"]')?.content;
-
-	// Prepare form data
-	const formData = new FormData();
-	formData.append('nonce', nonce);
-	formData.append('content', content);
-
-	// Disable textarea during save
-	textarea.disabled = true;
-
-	fetch(`/api/replies/${replyId}/edit`, {
-		method: 'POST',
-		body: formData
-	})
-	.then(response => response.json())
-	.then(data => {
-		if (data.success) {
-			// Update content in DOM
-			const replyCard = document.querySelector(`article:has(button[onclick*="editReply(${replyId})"])`);
-			const contentDiv = replyCard?.querySelector('.app-card-desc');
-			if (contentDiv) {
-				contentDiv.textContent = content;
-			}
-		} else {
-			alert(data.message || 'Failed to update reply');
-			textarea.disabled = false;
-		}
-	})
-	.catch(error => {
-		console.error('Error updating reply:', error);
-		alert('Network error. Please try again.');
-		textarea.disabled = false;
-	});
 };
 
 /**

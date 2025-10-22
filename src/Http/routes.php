@@ -409,9 +409,31 @@ return static function (Router $router): void {
                 return true;
             }
 
-            // Update reply
+            // Prepare update data
             $content = $request->input('content');
-            $conversationService->updateReply($replyId, ['content' => $content]);
+            $updateData = ['content' => $content];
+
+            // Check for image upload
+            $hasImage = !empty($_FILES['reply_image']) && !empty($_FILES['reply_image']['tmp_name']);
+            if ($hasImage) {
+                $imageAlt = trim((string)$request->input('image_alt', ''));
+                if ($imageAlt === '') {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'Image alt-text is required for accessibility.']);
+                    return true;
+                }
+                $updateData['image'] = $_FILES['reply_image'];
+                $updateData['image_alt'] = $imageAlt;
+            } else {
+                // If no new image, preserve existing alt text
+                $imageAlt = trim((string)$request->input('image_alt', ''));
+                if ($imageAlt !== '') {
+                    $updateData['image_alt'] = $imageAlt;
+                }
+            }
+
+            // Update reply
+            $conversationService->updateReply($replyId, $updateData);
 
             http_response_code(200);
             echo json_encode(['success' => true, 'message' => 'Reply updated']);

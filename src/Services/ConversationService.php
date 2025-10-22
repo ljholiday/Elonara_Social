@@ -812,20 +812,70 @@ final class ConversationService
             throw new \RuntimeException('Reply content is required.');
         }
 
+        // Handle image upload if provided
+        $imageUrl = null;
+        $imageAlt = null;
+        $updateImage = false;
+
+        if ($this->imageService && !empty($data['image']) && !empty($data['image']['tmp_name'])) {
+            $imageAlt = trim((string)($data['image_alt'] ?? ''));
+            if ($imageAlt === '') {
+                throw new \RuntimeException('Image alt-text is required for accessibility.');
+            }
+
+            $uploaderId = (int)($reply['author_id'] ?? 0);
+            $conversationId = (int)($reply['conversation_id'] ?? 0);
+            $uploadResult = $this->imageService->upload(
+                file: $data['image'],
+                uploaderId: $uploaderId,
+                altText: $imageAlt,
+                imageType: 'reply',
+                entityType: 'conversation',
+                entityId: $conversationId,
+                context: [
+                    'conversation_id' => $conversationId,
+                    'reply_id' => $replyId
+                ]
+            );
+
+            if (!$uploadResult['success']) {
+                throw new \RuntimeException($uploadResult['error'] ?? 'Failed to upload image.');
+            }
+
+            $imageUrl = $uploadResult['urls'];
+            $updateImage = true;
+        } elseif (isset($data['image_alt'])) {
+            // Update alt text only if no new image but alt text provided
+            $imageAlt = trim((string)$data['image_alt']);
+            $updateImage = true;
+        }
+
         $pdo = $this->db->pdo();
         $now = date('Y-m-d H:i:s');
 
-        $stmt = $pdo->prepare(
-            'UPDATE conversation_replies
-             SET content = :content, updated_at = :updated_at
-             WHERE id = :id'
-        );
-
-        return $stmt->execute([
-            ':content' => $content,
-            ':updated_at' => $now,
-            ':id' => $replyId
-        ]);
+        if ($updateImage) {
+            $sql = 'UPDATE conversation_replies
+                    SET content = :content, image_url = :image_url, image_alt = :image_alt, updated_at = :updated_at
+                    WHERE id = :id';
+            $stmt = $pdo->prepare($sql);
+            return $stmt->execute([
+                ':content' => $content,
+                ':image_url' => $imageUrl ?? $reply['image_url'] ?? null,
+                ':image_alt' => $imageAlt ?? $reply['image_alt'] ?? null,
+                ':updated_at' => $now,
+                ':id' => $replyId
+            ]);
+        } else {
+            $sql = 'UPDATE conversation_replies
+                    SET content = :content, updated_at = :updated_at
+                    WHERE id = :id';
+            $stmt = $pdo->prepare($sql);
+            return $stmt->execute([
+                ':content' => $content,
+                ':updated_at' => $now,
+                ':id' => $replyId
+            ]);
+        }
     }
 
     /**
