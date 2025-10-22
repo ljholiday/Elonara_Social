@@ -522,6 +522,11 @@ a:focus {
     outline-offset: 2px;
 }
 
+.app-btn-primary {
+    background: var(--app-background);
+    color: var(--app-text);
+}
+
 .app-btn-secondary {
     background: var(--app-surface);
     color: var(--app-text);
@@ -529,8 +534,8 @@ a:focus {
 }
 
 .app-btn-sm {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.65rem;
 }
 
 .app-btn-lg {
@@ -856,7 +861,7 @@ a:focus {
     border-left: none;
     border-right: none;
     border-top: none;
-    padding: 0.5rem;
+    padding: 0.25rem .25rem;
     margin: 0;
 }
 
@@ -866,12 +871,12 @@ a:focus {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.25rem 1rem;
+    padding: 0.25rem .25rem;
     border-radius: 0.5rem;
     text-decoration: none;
     color: var(--app-text-muted);
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     transition: all 0.2s ease;
     max-height: 2rem;
 }
