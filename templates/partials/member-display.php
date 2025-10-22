@@ -40,10 +40,11 @@ if (!isset($user) || !is_object($user)) {
 // Get display name
 $display_name = $user->display_name ?? 'Unknown User';
 
-// Get profile URL
-$profile_url = !empty($user->username)
-    ? '/profile/' . htmlspecialchars($user->username, ENT_QUOTES, 'UTF-8')
-    : (!empty($user->id) ? '/profile/' . intval($user->id) : '/profile');
+// Get profile URL - canonical format uses numeric ID
+// IDs are stable (username changes don't break links) and always present (username can be NULL)
+$profile_url = !empty($user->id)
+    ? '/profile/' . (int)$user->id
+    : '/profile';
 
 // Get avatar URL
 $avatar_url = '';

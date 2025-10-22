@@ -36,7 +36,10 @@ final class ProfileController
     }
 
     /**
-     * Show user profile by username
+     * Show user profile by username or numeric ID
+     *
+     * Design decision: System-generated URLs use numeric IDs (stable, never break on username changes).
+     * Username support exists as a courtesy for human-typed URLs. Canonical format is /profile/{id}.
      *
      * @return array{
      *   user: array<string, mixed>|null,
@@ -48,8 +51,8 @@ final class ProfileController
      */
     public function show(string $username): array
     {
-        // Support both username and numeric ID
-        if (is_numeric($username)) {
+        // Support both numeric IDs (canonical) and usernames (convenience for manual URLs)
+        if (ctype_digit($username)) {
             $user = $this->users->getById((int)$username);
         } else {
             $user = $this->users->getByUsername($username);
