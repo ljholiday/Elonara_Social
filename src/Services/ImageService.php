@@ -252,7 +252,9 @@ final class ImageService
         $webpPath = preg_replace('/\.(jpe?g|png|gif)$/i', '.webp', $originalPath);
         $quality = $this->config['quality']['webp'] ?? 85;
 
-        imagewebp($image, $webpPath, $quality);
+        if (imagewebp($image, $webpPath, $quality)) {
+            chmod($webpPath, 0644);
+        }
     }
 
     /**
@@ -313,13 +315,19 @@ final class ImageService
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $quality = $this->config['quality'] ?? [];
 
-        return match ($ext) {
+        $result = match ($ext) {
             'jpg', 'jpeg' => imagejpeg($image, $path, $quality['jpeg'] ?? 90),
             'png' => imagepng($image, $path, $quality['png'] ?? 8),
             'gif' => imagegif($image, $path),
             'webp' => imagewebp($image, $path, $quality['webp'] ?? 90),
             default => false,
         };
+
+        if ($result && file_exists($path)) {
+            chmod($path, 0644);
+        }
+
+        return $result;
     }
 
     private function getUploadDirectory(string $entityType, int $entityId): string
