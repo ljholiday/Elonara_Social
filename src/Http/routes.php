@@ -42,6 +42,7 @@ return static function (Router $router): void {
 
         app_render('home.php', [
             'page_title' => 'Home',
+            'page_description' => 'Your personal dashboard - upcoming events, communities, and recent conversations',
             'viewer' => $view['viewer'],
             'upcoming_events' => $view['upcoming_events'],
             'my_communities' => $view['my_communities'],
@@ -255,6 +256,7 @@ return static function (Router $router): void {
 
         app_render('profile-edit.php', [
             'page_title' => 'Edit Profile',
+            'page_description' => 'Update your profile information, avatar, and settings',
             'user' => $result['user'],
             'errors' => $result['errors'],
             'input' => $result['input'],
@@ -277,8 +279,13 @@ return static function (Router $router): void {
         $navService = app_service('navigation.service');
         $tabs = $navService->buildProfileTabs($result['user'], $viewer, '/profile/' . $username);
 
+        $profileDescription = $result['user'] && !empty($result['user']['bio'])
+            ? substr(strip_tags($result['user']['bio']), 0, 160)
+            : ($result['user'] ? 'View ' . e($result['user']['display_name'] ?? $result['user']['username']) . '\'s profile and activity' : 'User profile');
+
         app_render('profile-view.php', [
             'page_title' => $result['user'] ? e($result['user']['display_name'] ?? $result['user']['username']) . ' - Profile' : 'User Not Found',
+            'page_description' => $profileDescription,
             'user' => $result['user'],
             'is_own_profile' => $result['is_own_profile'],
             'stats' => $result['stats'],
@@ -631,6 +638,7 @@ return static function (Router $router): void {
 
         app_render('events-list.php', array_merge($view, [
             'page_title' => 'Events',
+            'page_description' => 'Browse upcoming events and gatherings in your community',
             'nav_items' => [
                 ['title' => 'All', 'url' => '/events?filter=all', 'active' => $filter === 'all'],
                 ['title' => 'My Events', 'url' => '/events?filter=my', 'active' => $filter === 'my'],
@@ -724,6 +732,9 @@ return static function (Router $router): void {
     $router->get('/events/{slug}', static function (Request $request, string $slug) {
         $view = app_service('controller.events')->show($slug);
         $eventTitle = $view['event']['title'] ?? 'Event';
+        $eventDescription = !empty($view['event']['description'])
+            ? substr(strip_tags($view['event']['description']), 0, 160)
+            : 'View event details, RSVP, and connect with attendees';
 
         ob_start();
         $viewer = app_service('auth.service')->getCurrentUser();
@@ -735,6 +746,7 @@ return static function (Router $router): void {
 
         app_render('event-detail.php', array_merge($view, [
             'page_title' => $eventTitle,
+            'page_description' => $eventDescription,
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
         ]), 'two-column');
@@ -773,6 +785,7 @@ return static function (Router $router): void {
 
         app_render('communities-list.php', array_merge($view, [
             'page_title' => 'Communities',
+            'page_description' => 'Discover and join communities based on shared interests',
             'nav_items' => [
                 ['title' => 'All', 'url' => '/communities?circle=all', 'active' => $circle === 'all'],
                 ['title' => 'Inner', 'url' => '/communities?circle=inner', 'active' => $circle === 'inner'],
@@ -872,6 +885,9 @@ return static function (Router $router): void {
             http_response_code($status);
         }
         $communityTitle = $view['community']['title'] ?? $view['community']['name'] ?? 'Community';
+        $communityDescription = !empty($view['community']['description'])
+            ? substr(strip_tags($view['community']['description']), 0, 160)
+            : 'Join this community to connect with members and participate in events';
 
         ob_start();
         $viewer = app_service('auth.service')->getCurrentUser();
@@ -883,6 +899,7 @@ return static function (Router $router): void {
 
         app_render('community-detail.php', array_merge($view, [
             'page_title' => $communityTitle,
+            'page_description' => $communityDescription,
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
         ]), 'two-column');
@@ -961,6 +978,7 @@ return static function (Router $router): void {
 
         app_render('conversations-list.php', array_merge($view, [
             'page_title' => 'Conversations',
+            'page_description' => 'Join discussions and connect with community members',
             'nav_items' => [
                 ['title' => 'All', 'url' => '/conversations?circle=all', 'active' => $circle === 'all'],
                 ['title' => 'Inner', 'url' => '/conversations?circle=inner', 'active' => $circle === 'inner'],
@@ -1067,6 +1085,9 @@ return static function (Router $router): void {
     $router->get('/conversations/{slug}', static function (Request $request, string $slug) {
         $view = app_service('controller.conversations')->show($slug);
         $conversationTitle = $view['conversation']['title'] ?? 'Conversation';
+        $conversationDescription = !empty($view['conversation']['content'])
+            ? substr(strip_tags($view['conversation']['content']), 0, 160)
+            : 'Join the discussion and share your thoughts';
 
         ob_start();
         $viewer = app_service('auth.service')->getCurrentUser();
@@ -1078,6 +1099,7 @@ return static function (Router $router): void {
 
         app_render('conversation-detail.php', array_merge($view, [
             'page_title' => $conversationTitle,
+            'page_description' => $conversationDescription,
             'nav_items' => $tabs,
             'sidebar_content' => $sidebar,
         ]), 'two-column');

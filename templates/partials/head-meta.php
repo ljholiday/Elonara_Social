@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-$appUrl = rtrim((string)app_config('app_url', 'http://localhost'), '/');
+$appUrl = rtrim((string)app_config('app.url', 'http://localhost'), '/');
 $currentUrl = $appUrl . ($_SERVER['REQUEST_URI'] ?? '/');
 ?>
     <?php if ($page_description): ?>
