@@ -69,6 +69,16 @@ $circle = $circle ?? 'all';
       endforeach; ?>
     </div>
   <?php else: ?>
-    <p class="app-text-muted">No communities found.</p>
+    <div class="app-card">
+      <div class="app-card-body app-text-center app-stack app-gap-3">
+        <p class="app-text-muted">No communities found. Discover communities others have created or start your own!</p>
+        <div class="app-flex app-gap-2 app-justify-center app-flex-wrap">
+          <a class="app-btn app-btn-primary" href="/communities/create">Create Community</a>
+          <?php if ($circle !== 'all'): ?>
+            <a class="app-btn app-btn-outline" href="/communities?circle=all">Browse All Communities</a>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
   <?php endif; ?>
 </section>

@@ -45,7 +45,17 @@ $pagination = $pagination ?? ['page' => 1, 'per_page' => 20, 'has_more' => false
       <?php endforeach; ?>
     </div>
   <?php else: ?>
-    <p class="app-text-muted">No conversations found.</p>
+    <div class="app-card">
+      <div class="app-card-body app-text-center app-stack app-gap-3">
+        <p class="app-text-muted">No conversations found. Start a discussion and connect with your community!</p>
+        <div class="app-flex app-gap-2 app-justify-center app-flex-wrap">
+          <a class="app-btn app-btn-primary" href="/conversations/create">Start Conversation</a>
+          <?php if ($circle !== 'all'): ?>
+            <a class="app-btn app-btn-outline" href="/conversations?circle=all">Browse All Conversations</a>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
   <?php endif; ?>
 
   <?php if (!empty($pagination['has_more'])): ?>

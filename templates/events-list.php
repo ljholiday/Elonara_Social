@@ -62,12 +62,19 @@ $filter = $filter ?? 'all';
       endforeach; ?>
     </div>
   <?php else: ?>
-    <p class="app-text-muted">
-      <?php if ($filter === 'my'): ?>
-        You do not have any upcoming events yet.
-      <?php else: ?>
-        No events found.
-      <?php endif; ?>
-    </p>
+    <div class="app-card">
+      <div class="app-card-body app-text-center app-stack app-gap-3">
+        <?php if ($filter === 'my'): ?>
+          <p class="app-text-muted">You don't have any upcoming events yet. Plan your first event or check out what others are organizing!</p>
+          <div class="app-flex app-gap-2 app-justify-center app-flex-wrap">
+            <a class="app-btn app-btn-primary" href="/events/create">Create Event</a>
+            <a class="app-btn app-btn-outline" href="/events?filter=all">Browse All Events</a>
+          </div>
+        <?php else: ?>
+          <p class="app-text-muted">No events found. Be the first to create one!</p>
+          <a class="app-btn app-btn-primary" href="/events/create">Create Event</a>
+        <?php endif; ?>
+      </div>
+    </div>
   <?php endif; ?>
 </section>

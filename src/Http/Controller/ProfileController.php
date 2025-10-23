@@ -153,11 +153,8 @@ final class ProfileController
 
             // Verify CSRF token
             $nonce = (string)$request->input('profile_nonce', '');
-            $logFile = dirname(__DIR__, 3) . '/debug.log';
-            file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "ProfileController nonce verification: nonce={$nonce}, action=app_profile_update, userId={$currentUserId}\n", FILE_APPEND);
 
             if (!$this->security->verifyNonce($nonce, 'app_profile_update', $currentUserId)) {
-                file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "Nonce verification FAILED\n", FILE_APPEND);
                 return [
                     'user' => $user,
                     'errors' => ['nonce' => 'Security verification failed. Please refresh and try again.'],
@@ -167,7 +164,6 @@ final class ProfileController
                     ],
                 ];
             }
-            file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "Nonce verification PASSED\n", FILE_APPEND);
 
             // Validate inputs
             $displayNameValidation = $this->validator->textField($request->input('display_name', ''), 2, 100);
@@ -265,10 +261,11 @@ final class ProfileController
 
             return ['redirect' => '/profile/' . urlencode($username) . '?updated=1'];
         } catch (\Throwable $e) {
-            file_put_contents(dirname(__DIR__, 3) . '/debug.log', date('[Y-m-d H:i:s] ') . "ProfileController::update exception: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
+            // Log error for debugging but don't expose details to user
+            error_log("ProfileController::update exception: " . $e->getMessage());
             return [
                 'user' => $user ?? null,
-                'errors' => ['general' => $e->getMessage()],
+                'errors' => ['general' => 'An error occurred while updating your profile. Please try again.'],
                 'input' => $input ?? ['display_name' => '', 'bio' => '', 'avatar_alt' => ''],
             ];
         }

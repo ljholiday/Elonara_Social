@@ -19,13 +19,11 @@ $conversations = $recent_conversations ?? [];
           <p class="app-text-muted app-text-lg">
             Plan events, keep up with your communities, and jump into the conversations that matter.
           </p>
-<!--
           <div class="app-flex app-gap-2 app-flex-wrap">
             <a class="app-btn app-btn-primary" href="/events/create">Create event</a>
             <a class="app-btn app-btn-secondary" href="/communities/create">Start a community</a>
             <a class="app-btn app-btn-outline" href="/conversations/create">New conversation</a>
           </div>
--->
         </div>
         <aside class="app-card app-max-w-sm">
           <div class="app-card-body app-stack app-gap-2">

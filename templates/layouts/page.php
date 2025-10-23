@@ -52,6 +52,7 @@ $csrf_token = $security->createNonce('app_nonce', $userId);
         <?php endif; ?>
     </div>
 
+    <?php include __DIR__ . '/../partials/flash-messages.php'; ?>
     <?= $content; ?>
 </div>
 

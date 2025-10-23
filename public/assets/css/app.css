@@ -728,6 +728,12 @@ a:focus {
     color: var(--app-danger);
 }
 
+.app-alert-info {
+    background-color: #e7f3ff;
+    border-color: #4a90e2;
+    color: #2563a8;
+}
+
 /* Badges */
 .app-badge {
     display: inline-flex;

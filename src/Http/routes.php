@@ -268,8 +268,6 @@ return static function (Router $router): void {
 
     $router->get('/profile/{username}', static function (Request $request, string $username) {
         $result = app_service('controller.profile')->show($username);
-        $logFile = dirname(__DIR__, 2) . '/debug.log';
-        file_put_contents($logFile, date('[Y-m-d H:i:s] ') . "Profile view - avatar_url: " . ($result['user']['avatar_url'] ?? 'NULL') . "\n", FILE_APPEND);
 
         ob_start();
         $viewer = app_service('auth.service')->getCurrentUser();
@@ -299,7 +297,6 @@ return static function (Router $router): void {
     });
 
     $router->post('/profile/update', static function (Request $request) {
-        error_log("Profile update route hit - FILES: " . json_encode($_FILES));
         try {
             $result = app_service('controller.profile')->update($request);
             if (isset($result['redirect'])) {
@@ -329,9 +326,9 @@ return static function (Router $router): void {
             ], 'two-column');
             return true;
         } catch (\Throwable $e) {
-            file_put_contents(__DIR__ . '/../../debug.log', date('[Y-m-d H:i:s] ') . "Profile update route error: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
+            error_log("Profile update route error: " . $e->getMessage());
             http_response_code(500);
-            echo "Error updating profile. Check debug.log for details.";
+            echo "An error occurred while updating your profile. Please try again.";
             exit;
         }
     });
@@ -1075,9 +1072,9 @@ return static function (Router $router): void {
             ]), 'two-column');
             return true;
         } catch (\Throwable $e) {
-            file_put_contents(__DIR__ . '/../../debug.log', date('[Y-m-d H:i:s] ') . "Reply route error: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
+            error_log("Reply route error: " . $e->getMessage());
             http_response_code(500);
-            echo "Error posting reply. Check debug.log for details.";
+            echo "An error occurred while posting your reply. Please try again.";
             exit;
         }
     });
