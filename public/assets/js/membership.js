@@ -267,6 +267,23 @@ function escapeAttr(value) {
         .replace(/>/g, '&gt;');
 }
 
+function getClosest(element, selector) {
+    if (!element) {
+        return null;
+    }
+    if (typeof element.closest === 'function') {
+        return element.closest(selector);
+    }
+    let current = element;
+    while (current && current.nodeType === 1) {
+        if (typeof current.matches === 'function' && current.matches(selector)) {
+            return current;
+        }
+        current = current.parentElement;
+    }
+    return null;
+}
+
 function renderInviteCard(options = {}) {
     const {
         title = '',
@@ -339,13 +356,59 @@ function renderInviteCard(options = {}) {
  * Initialize invitation URL copy buttons
  */
 function initInvitationCopy() {
-    const copyButtons = document.querySelectorAll('.app-copy-invitation-url');
+    const fallbackLinkInput = document.getElementById('invitation-link');
+    const fallbackMessageInput = document.getElementById('custom-message');
 
-    copyButtons.forEach(button => {
+    function findWithin(container, selector, fallback) {
+        if (container) {
+            const match = container.querySelector(selector);
+            if (match) {
+                return match;
+            }
+        }
+        return fallback || null;
+    }
+
+    document.querySelectorAll('.app-copy-invitation-link, .app-copy-invitation-url').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            const url = this.getAttribute('data-url');
+
+            const explicitUrl = this.getAttribute('data-url');
+            if (explicitUrl && explicitUrl.trim() !== '') {
+                copyInvitationUrl(explicitUrl);
+                return;
+            }
+
+            const cardBody = getClosest(this, '.app-card-body');
+            const linkInput = findWithin(cardBody, '#invitation-link', fallbackLinkInput);
+            const url = linkInput ? String(linkInput.value || '').trim() : '';
+
+            if (url === '') {
+                alert('No invitation link available to copy yet.');
+                return;
+            }
+
             copyInvitationUrl(url);
+        });
+    });
+
+    document.querySelectorAll('.app-copy-invitation-with-message').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const cardBody = getClosest(this, '.app-card-body');
+            const linkInput = findWithin(cardBody, '#invitation-link', fallbackLinkInput);
+            const messageInput = findWithin(cardBody, '#custom-message', fallbackMessageInput);
+
+            const url = linkInput ? String(linkInput.value || '').trim() : '';
+            if (url === '') {
+                alert('No invitation link available to copy yet.');
+                return;
+            }
+
+            const message = messageInput ? String(messageInput.value || '').trim() : '';
+            const content = message !== '' ? message + '\n' + url : url;
+            copyInvitationUrl(content);
         });
     });
 }
@@ -768,12 +831,47 @@ function attachInvitationActionHandlers(entityType, entityId, cancelNonce = '') 
  * Copy invitation URL to clipboard
  */
 function copyInvitationUrl(url) {
-    navigator.clipboard.writeText(url).then(() => {
-        alert('Invitation link copied to clipboard!');
-    }).catch(err => {
-        console.error('Failed to copy:', err);
-        alert('Failed to copy link. Please copy manually: ' + url);
-    });
+    if (typeof url !== 'string' || url.trim() === '') {
+        alert('No invitation link available to copy yet.');
+        return;
+    }
+
+    const cleaned = url.trim();
+
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(cleaned).then(() => {
+            alert('Invitation link copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy via Clipboard API:', err);
+            legacyCopyToClipboard(cleaned);
+        });
+        return;
+    }
+
+    legacyCopyToClipboard(cleaned);
+}
+
+function legacyCopyToClipboard(text) {
+    try {
+        const tempInput = document.createElement('textarea');
+        tempInput.value = text;
+        tempInput.setAttribute('readonly', '');
+        tempInput.style.position = 'absolute';
+        tempInput.style.left = '-9999px';
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        const succeeded = document.execCommand('copy');
+        document.body.removeChild(tempInput);
+
+        if (succeeded) {
+            alert('Invitation link copied to clipboard!');
+        } else {
+            alert('Copy not supported in this browser. Please copy manually: ' + text);
+        }
+    } catch (error) {
+        console.error('Legacy copy failed:', error);
+        alert('Failed to copy link. Please copy manually: ' + text);
+    }
 }
 
 // ============================================================================

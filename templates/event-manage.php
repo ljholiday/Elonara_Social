@@ -41,7 +41,8 @@ $blueskyActionNonce = $securityService->createNonce('app_bluesky_action', $viewe
     $eventDate = $event['event_date'] ?? null;
     $privacy = ucfirst((string)($event['privacy'] ?? 'public'));
 
-    $invitationLink = '/events/' . ($slug !== '' ? rawurlencode($slug) : (string)$eventId) . '?join=1';
+    $invitePath = 'events/' . ($slug !== '' ? rawurlencode($slug) : (string)$eventId);
+    $invitationLink = app_url($invitePath . '?join=1');
     $tabs = [
       'settings' => 'Overview',
       'guests'   => 'Guests',

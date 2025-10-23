@@ -37,7 +37,11 @@ $blueskyActionNonce = $securityService->createNonce('app_bluesky_action', $viewe
     $name = (string)($community['title'] ?? $community['name'] ?? 'Community');
     $slug = (string)($community['slug'] ?? $communityId);
     $memberCount = count($members);
-    $shareLink = '/communities/' . ($slug !== '' ? rawurlencode($slug) : (string)$communityId) . '?join=1';
+    $shareLink = (string)($share_link ?? '');
+    if ($shareLink === '') {
+        $sharePath = 'communities/' . ($slug !== '' ? rawurlencode($slug) : (string)$communityId);
+        $shareLink = app_url($sharePath);
+    }
     $tab = in_array($tab, ['members', 'invites'], true) ? $tab : 'members';
     $viewerRole = $viewer_role;
   ?>

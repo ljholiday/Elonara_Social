@@ -158,6 +158,31 @@ if (!function_exists('app_service')) {
     }
 }
 
+if (!function_exists('app_url')) {
+    /**
+     * Build an absolute URL using the configured application base URL.
+     */
+    function app_url(string $path = ''): string
+    {
+        if ($path !== '' && (str_starts_with($path, 'http://') || str_starts_with($path, 'https://'))) {
+            return $path;
+        }
+
+        $baseUrl = rtrim((string)app_config('app.url', ''), '/');
+        if ($baseUrl === '') {
+            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            $baseUrl = $protocol . '://' . $host;
+        }
+
+        if ($path === '' || $path === '/') {
+            return $baseUrl;
+        }
+
+        return $baseUrl . '/' . ltrim($path, '/');
+    }
+}
+
 if (!function_exists('app_env')) {
     /**
      * Get the current application environment.
@@ -544,7 +569,8 @@ if (!function_exists('app_container')) {
                     $c->get('community.member.service'),
                     $c->get('event.service'),
                     $c->get('conversation.service'),
-                    $c->get('image.service')
+                    $c->get('image.service'),
+                    $c->get('invitation.service')
                 );
             }, false);
 

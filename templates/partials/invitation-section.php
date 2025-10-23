@@ -48,7 +48,8 @@ $share_url = $invite_url !== '' ? $invite_url : '/' . $entity_type . 's';
 					<input type="text" class="app-form-input app-flex-1" id="invitation-link"
 						   value="<?php echo htmlspecialchars($share_url, ENT_QUOTES, 'UTF-8'); ?>"
 						   readonly>
-					<button type="button" class="app-btn app-copy-invitation-link">
+					<button type="button" class="app-btn app-copy-invitation-link"
+						data-url="<?php echo htmlspecialchars($share_url, ENT_QUOTES, 'UTF-8'); ?>">
 						Copy
 					</button>
 				</div>
