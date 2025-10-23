@@ -1,20 +1,36 @@
 {
   "name": "Elonara Social",
   "short_name": "Elonara",
-  "start_url": "/",
+  "description": "Communities, events, and conversations — the actually social network.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#4B0082",
+  "categories": ["social", "communication", "community"],
   "icons": [
     {
       "src": "/assets/icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/assets/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "prefer_related_applications": false,
+  "dir": "auto",
+  "lang": "en-US",
+  "serviceworker": {
+    "src": "/sw.js",
+    "scope": "/",
+    "update_via_cache": "none"
+  }
 }
+
