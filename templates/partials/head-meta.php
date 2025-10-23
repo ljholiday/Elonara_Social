@@ -12,6 +12,10 @@
 
 declare(strict_types=1);
 
+// Temporary debug - remove after testing
+var_dump('Config test:', app_config('app.url'), app_config('app'));
+exit;
+
 $appUrl = rtrim((string)app_config('app.url', 'http://localhost'), '/');
 $currentUrl = $appUrl . ($_SERVER['REQUEST_URI'] ?? '/');
 ?>
