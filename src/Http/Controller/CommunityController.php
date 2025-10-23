@@ -13,6 +13,7 @@ use App\Services\CommunityMemberService;
 use App\Services\EventService;
 use App\Services\ConversationService;
 use App\Services\ImageService;
+use App\Services\InvitationService;
 use App\Support\ContextBuilder;
 use App\Support\ContextLabel;
 
@@ -29,7 +30,8 @@ final class CommunityController
         private CommunityMemberService $members,
         private EventService $events,
         private ConversationService $conversations,
-        private ImageService $images
+        private ImageService $images,
+        private InvitationService $invitations
     ) {
     }
 
@@ -79,7 +81,7 @@ final class CommunityController
 
         $communityId = (int)($community['id'] ?? 0);
         $privacy = strtolower((string)($community['privacy'] ?? 'public'));
-        $isMember = $communityId > 0 && in_array($communityId, $memberCommunities, true);
+        $isMember = $viewerId > 0 && $communityId > 0 && $this->members->isMember($communityId, $viewerId);
         $isCreator = $viewerId > 0 && isset($community['creator_id']) && (int)$community['creator_id'] === $viewerId;
 
         if ($privacy === 'private' && !$isMember && !$isCreator) {
@@ -331,6 +333,17 @@ final class CommunityController
         $tab = $this->normalizeManageTab($this->request()->query('tab'));
         $members = $this->members->listMembers($communityId);
 
+        $shareLink = '';
+        $shareVisibility = '';
+        if ($viewerId > 0) {
+            $shareResponse = $this->invitations->generateCommunityShareLink($communityId, $viewerId);
+            if (($shareResponse['success'] ?? false) === true) {
+                $shareData = $shareResponse['data'] ?? [];
+                $shareLink = (string)($shareData['share_url'] ?? '');
+                $shareVisibility = (string)($shareData['visibility'] ?? '');
+            }
+        }
+
         return [
             'status' => 200,
             'community' => $community,
@@ -339,6 +352,8 @@ final class CommunityController
             'viewer_role' => $viewerRole,
             'viewer_id' => $viewerId,
             'can_manage_members' => $this->canEditMembers($viewerRole),
+            'share_link' => $shareLink,
+            'share_visibility' => $shareVisibility,
         ];
     }
 

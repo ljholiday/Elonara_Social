@@ -510,9 +510,21 @@ final class AuthController
             return null;
         }
 
+        // Check for public community share token (pc_...)
+        if (str_starts_with($token, 'pc_')) {
+            $communityInfo = $this->invitations->getCommunityInfoFromShareToken($token);
+            if ($communityInfo !== null) {
+                return [
+                    'type' => 'community',
+                    'name' => $communityInfo['name'],
+                    'inviter' => $communityInfo['creator'],
+                ];
+            }
+        }
+
         $pdo = $this->database->pdo();
 
-        // Try community invitation first
+        // Try private community invitation
         $stmt = $pdo->prepare('
             SELECT
                 ci.community_id,

@@ -13,6 +13,8 @@ final class InvitationService
     private const TOKEN_LENGTH = 32;
     private const EXPIRY_DAYS = 7;
     private const EVENT_TOKEN_LENGTH = 64;
+    private const PUBLIC_COMMUNITY_SHARE_PREFIX = 'pc_';
+    private const SHARE_EMAIL_PREFIX = 'share:';
 
     public function __construct(
         private Database $database,
@@ -102,10 +104,14 @@ final class InvitationService
                     u.username AS member_username
              FROM community_invitations ci
              LEFT JOIN users u ON u.id = ci.invited_user_id
-             WHERE ci.community_id = :community_id
+            WHERE ci.community_id = :community_id
+              AND ci.invited_email NOT LIKE :share_prefix
              ORDER BY ci.created_at DESC"
         );
-        $stmt->execute([':community_id' => $communityId]);
+        $stmt->execute([
+            ':community_id' => $communityId,
+            ':share_prefix' => self::SHARE_EMAIL_PREFIX . '%',
+        ]);
         $invitations = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         return $this->success([
@@ -303,6 +309,46 @@ final class InvitationService
     }
 
     /**
+     * Generate a shareable community invitation link for management UI.
+     *
+     * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
+     */
+    public function generateCommunityShareLink(int $communityId, int $viewerId): array
+    {
+        $community = $this->fetchCommunity($communityId);
+        if ($community === null) {
+            return $this->failure('Community not found.', 404);
+        }
+
+        if (!$this->canManageCommunity($communityId, $viewerId, ['admin', 'moderator'])) {
+            return $this->failure('You do not have permission to generate invitation links.', 403);
+        }
+
+        $privacy = strtolower((string)($community['privacy'] ?? 'public'));
+        if ($privacy === 'public') {
+            $token = $this->createPublicCommunityShareToken($communityId);
+
+            return $this->success([
+                'share_url' => $this->buildInvitationUrl('community', $token),
+                'share_token' => $token,
+                'visibility' => 'public',
+            ]);
+        }
+
+        $share = $this->ensurePrivateCommunityShareInvitation($communityId, $viewerId);
+        if ($share === null) {
+            return $this->failure('Unable to generate invitation link at this time.', 500);
+        }
+
+        return $this->success([
+            'share_url' => $this->buildInvitationUrl('community', $share['token']),
+            'share_token' => $share['token'],
+            'visibility' => 'private',
+            'expires_at' => $share['expires_at'],
+        ]);
+    }
+
+    /**
      * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
      */
     public function acceptCommunityInvitation(string $token, int $viewerId): array
@@ -322,16 +368,30 @@ final class InvitationService
         $invitation = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($invitation === false) {
-            return $this->failure('Invalid or expired invitation.', 404);
+            $publicCommunityId = $this->decodePublicCommunityShareToken($token);
+            if ($publicCommunityId === null) {
+                return $this->failure('Invalid or expired invitation.', 404);
+            }
+
+            return $this->acceptPublicCommunityShare($publicCommunityId, $viewerId);
         }
 
         $invitationId = (int)$invitation['id'];
         $communityId = (int)$invitation['community_id'];
         $invitedEmailRaw = (string)($invitation['invited_email'] ?? '');
+        $expiresAt = $invitation['expires_at'] ?? null;
+
+        $isShareInvite = \str_starts_with($invitedEmailRaw, self::SHARE_EMAIL_PREFIX);
+        $shareType = $isShareInvite
+            ? strtolower(ltrim(substr($invitedEmailRaw, strlen(self::SHARE_EMAIL_PREFIX)), ':'))
+            : '';
+        if ($shareType === '') {
+            $shareType = 'private';
+        }
+
         $invitedEmail = strtolower(trim($invitedEmailRaw));
         $isBlueskyInvite = \str_starts_with($invitedEmail, 'bsky:');
         $invitedDid = $isBlueskyInvite ? strtolower(trim(substr($invitedEmail, 5))) : '';
-        $expiresAt = $invitation['expires_at'] ?? null;
 
         if ($expiresAt !== null && $expiresAt !== '' && strtotime((string)$expiresAt) < time()) {
             $this->updateCommunityInvitation($invitationId, 'expired');
@@ -368,7 +428,7 @@ final class InvitationService
                 $redirectBack = '/invitation/accept?token=' . rawurlencode($token);
                 $blueskyConnectUrl = '/profile/edit?connect=bluesky&redirect=' . rawurlencode($redirectBack);
             }
-        } else {
+        } elseif (!$isShareInvite) {
             if ($userEmail === '' || $userEmail !== $invitedEmail) {
                 return $this->failure('This invitation was sent to a different email address.', 403);
             }
@@ -376,7 +436,30 @@ final class InvitationService
 
         if ($this->communityMembers->isMember($communityId, $viewerId)) {
             $this->updateCommunityInvitation($invitationId, 'accepted', $viewerId, true);
-            return $this->failure('You are already a member of this community.', 409);
+
+            $community = $this->fetchCommunity($communityId);
+            $communitySlug = (string)($community['slug'] ?? '');
+            $redirectUrl = $communitySlug !== ''
+                ? '/communities/' . $communitySlug
+                : '/communities/' . $communityId;
+
+            $message = 'You are already a member of this community.';
+
+            return $this->success([
+                'message' => $message,
+                'member_id' => null,
+                'community_id' => $communityId,
+                'community_slug' => $communitySlug,
+                'redirect_url' => $this->appendInvitationStatus($redirectUrl, 'already-member'),
+                'bluesky_verified' => false,
+                'needs_bluesky_link' => false,
+                'bluesky_connect_url' => $blueskyConnectUrl,
+                'already_member' => true,
+                'flash' => [
+                    'type' => 'info',
+                    'message' => $message,
+                ],
+            ]);
         }
 
         $displayName = (string)($user->display_name ?? $user->email ?? '');
@@ -427,10 +510,14 @@ final class InvitationService
             'member_id' => $memberId,
             'community_id' => $communityId,
             'community_slug' => $communitySlug,
-            'redirect_url' => $redirectUrl,
+            'redirect_url' => $this->appendInvitationStatus($redirectUrl, 'accepted'),
             'bluesky_verified' => $blueskyVerified,
             'needs_bluesky_link' => $isBlueskyInvite && !$blueskyVerified,
             'bluesky_connect_url' => $blueskyConnectUrl,
+            'flash' => [
+                'type' => 'success',
+                'message' => $message,
+            ],
         ]);
     }
 
@@ -783,7 +870,7 @@ final class InvitationService
     private function fetchCommunity(int $communityId): ?array
     {
         $stmt = $this->database->pdo()->prepare(
-            'SELECT id, name, slug FROM communities WHERE id = :id LIMIT 1'
+            'SELECT id, name, slug, privacy FROM communities WHERE id = :id LIMIT 1'
         );
         $stmt->execute([':id' => $communityId]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -1080,6 +1167,232 @@ final class InvitationService
             'status' => $targetStatus,
             'message' => $statusMessage,
         ]);
+    }
+
+    /**
+     * Ensure a single-use share invitation exists for a private community.
+     *
+     * @return array{token:string,expires_at:string}|null
+     */
+    private function ensurePrivateCommunityShareInvitation(int $communityId, int $viewerId): ?array
+    {
+        $pdo = $this->database->pdo();
+        $shareEmail = self::SHARE_EMAIL_PREFIX . 'private';
+
+        $stmt = $pdo->prepare(
+            'SELECT invitation_token, expires_at
+             FROM community_invitations
+             WHERE community_id = :community_id
+               AND invited_by_member_id = :viewer_id
+               AND invited_email = :share_email
+               AND status = \'pending\'
+             ORDER BY created_at DESC
+             LIMIT 1'
+        );
+        $stmt->execute([
+            ':community_id' => $communityId,
+            ':viewer_id' => $viewerId,
+            ':share_email' => $shareEmail,
+        ]);
+        $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($existing !== false) {
+            $expiresAt = (string)($existing['expires_at'] ?? '');
+            if ($expiresAt === '' || strtotime($expiresAt) > time()) {
+                return [
+                    'token' => (string)$existing['invitation_token'],
+                    'expires_at' => $expiresAt,
+                ];
+            }
+        }
+
+        $token = $this->generateToken();
+        $expiresAt = date('Y-m-d H:i:s', strtotime('+' . self::EXPIRY_DAYS . ' days'));
+
+        $insert = $pdo->prepare(
+            'INSERT INTO community_invitations
+                (community_id, invited_by_member_id, invited_email, invitation_token, message, status, expires_at, created_at)
+             VALUES (:community_id, :viewer_id, :invited_email, :token, \'\', \'pending\', :expires_at, NOW())'
+        );
+        $insert->execute([
+            ':community_id' => $communityId,
+            ':viewer_id' => $viewerId,
+            ':invited_email' => $shareEmail,
+            ':token' => $token,
+            ':expires_at' => $expiresAt,
+        ]);
+
+        return [
+            'token' => $token,
+            'expires_at' => $expiresAt,
+        ];
+    }
+
+    private function createPublicCommunityShareToken(int $communityId): string
+    {
+        $payload = (string)$communityId;
+        $signature = hash_hmac('sha256', 'community_public_share|' . $payload, $this->communityShareSecret());
+        $encoded = $this->base64UrlEncode($payload . ':' . $signature);
+
+        return self::PUBLIC_COMMUNITY_SHARE_PREFIX . $encoded;
+    }
+
+    private function decodePublicCommunityShareToken(string $token): ?int
+    {
+        if (!\str_starts_with($token, self::PUBLIC_COMMUNITY_SHARE_PREFIX)) {
+            return null;
+        }
+
+        $encoded = substr($token, strlen(self::PUBLIC_COMMUNITY_SHARE_PREFIX));
+        $decoded = $this->base64UrlDecode($encoded);
+        if (!is_string($decoded)) {
+            return null;
+        }
+
+        $parts = explode(':', $decoded);
+        if (count($parts) !== 2) {
+            return null;
+        }
+
+        [$communityIdPart, $signature] = $parts;
+        if (!ctype_digit($communityIdPart)) {
+            return null;
+        }
+
+        $expected = hash_hmac('sha256', 'community_public_share|' . $communityIdPart, $this->communityShareSecret());
+        if (!hash_equals($expected, $signature)) {
+            return null;
+        }
+
+        return (int)$communityIdPart;
+    }
+
+    /**
+     * Get community information from a share token (for display purposes, e.g., banners).
+     * Returns community name and creator display name if token is valid.
+     *
+     * @return array{name:string,creator:string}|null
+     */
+    public function getCommunityInfoFromShareToken(string $token): ?array
+    {
+        $communityId = $this->decodePublicCommunityShareToken($token);
+        if ($communityId === null) {
+            return null;
+        }
+
+        $pdo = $this->database->pdo();
+        $stmt = $pdo->prepare('
+            SELECT
+                c.name,
+                u.display_name AS creator_name
+            FROM communities c
+            LEFT JOIN users u ON u.id = c.creator_id
+            WHERE c.id = ? AND c.privacy = ?
+            LIMIT 1
+        ');
+        $stmt->execute([$communityId, 'public']);
+        $community = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($community === false) {
+            return null;
+        }
+
+        return [
+            'name' => (string)($community['name'] ?? 'Community'),
+            'creator' => (string)($community['creator_name'] ?? 'Someone'),
+        ];
+    }
+
+    /**
+     * Accept an invitation generated from a public-community share token.
+     *
+     * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
+     */
+    private function acceptPublicCommunityShare(int $communityId, int $viewerId): array
+    {
+        if ($viewerId <= 0) {
+            return $this->failure('You must be logged in to accept this invitation.', 401);
+        }
+
+        $community = $this->fetchCommunity($communityId);
+        if ($community === null) {
+            return $this->failure('Community not found.', 404);
+        }
+
+        $privacy = strtolower((string)($community['privacy'] ?? 'public'));
+        if ($privacy !== 'public') {
+            return $this->failure('This invitation is no longer valid.', 403);
+        }
+
+        $user = $this->auth->getUserById($viewerId);
+        if ($user === null) {
+            return $this->failure('User not found.', 404);
+        }
+
+        if ($this->communityMembers->isMember($communityId, $viewerId)) {
+            return $this->failure('You are already a member of this community.', 409);
+        }
+
+        $displayName = (string)($user->display_name ?? $user->email ?? '');
+
+        try {
+            $memberId = $this->communityMembers->addMember(
+                $communityId,
+                $viewerId,
+                $user->email ?? '',
+                $displayName,
+                'member'
+            );
+        } catch (\RuntimeException $e) {
+            return $this->failure('Failed to add you to the community: ' . $e->getMessage(), 500);
+        }
+
+        $communitySlug = (string)($community['slug'] ?? '');
+        $redirectUrl = $communitySlug !== ''
+            ? '/communities/' . $communitySlug
+            : '/communities/' . $communityId;
+
+        return $this->success([
+            'message' => 'You have successfully joined the community!',
+            'member_id' => $memberId,
+            'community_id' => $communityId,
+            'community_slug' => $communitySlug,
+            'redirect_url' => $redirectUrl,
+            'bluesky_verified' => false,
+            'needs_bluesky_link' => false,
+            'bluesky_connect_url' => null,
+        ]);
+    }
+
+    private function base64UrlEncode(string $data): string
+    {
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+    }
+
+    private function base64UrlDecode(string $data): ?string
+    {
+        $remainder = strlen($data) % 4;
+        if ($remainder > 0) {
+            $data .= str_repeat('=', 4 - $remainder);
+        }
+
+        $decoded = base64_decode(strtr($data, '-_', '+/'), true);
+        return $decoded === false ? null : $decoded;
+    }
+
+    /**
+     * Append invitation status as a query parameter to a URL
+     */
+    private function appendInvitationStatus(string $url, string $status): string
+    {
+        $separator = str_contains($url, '?') ? '&' : '?';
+        return $url . $separator . 'invitation_status=' . rawurlencode($status);
+    }
+
+    private function communityShareSecret(): string
+    {
+        $secret = (string)app_config('security.salts.nonce', '');
+        return $secret !== '' ? $secret : 'community-share-secret';
     }
 
     /**
