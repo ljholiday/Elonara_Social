@@ -62,6 +62,7 @@ final class AdminController
             'page_title' => 'Site Settings',
             'nav_active' => 'settings',
             'mailConfig' => app_config('mail'),
+            'analyticsConfig' => app_config('analytics', []),
         ];
     }
 
@@ -108,6 +109,38 @@ final class AdminController
                 ? ['type' => 'success', 'message' => 'Test email sent to ' . $to]
                 : ['type' => 'error', 'message' => 'Failed to send test email. Check debug.log for details.'],
         ];
+    }
+
+    public function saveAnalyticsSettings(): array
+    {
+        $this->guard();
+
+        $request = $this->request();
+        $nonce = (string)$request->input('_admin_nonce', '');
+        $currentUser = $this->auth->getCurrentUser();
+        $currentUserId = (int)($currentUser?->id ?? 0);
+
+        if (!$this->security()->verifyNonce($nonce, 'app_admin', $currentUserId)) {
+            return $this->redirectWithFlash('error', 'Security check failed. Please refresh and try again.', '/admin/settings');
+        }
+
+        $trackingId = trim((string)$request->input('ga_tracking_id', ''));
+
+        // Validate format if not empty
+        if ($trackingId !== '' && !preg_match('/^(G|UA|GT|AW)-[A-Z0-9]+$/i', $trackingId)) {
+            return $this->redirectWithFlash('error', 'Invalid tracking ID format. Expected G-XXXXXXXXXX or UA-XXXXXXXXX', '/admin/settings');
+        }
+
+        try {
+            $this->updateConfigFile('analytics', ['google_tracking_id' => $trackingId]);
+            $message = $trackingId !== ''
+                ? 'Analytics tracking enabled successfully.'
+                : 'Analytics tracking disabled successfully.';
+            return $this->redirectWithFlash('success', $message, '/admin/settings');
+        } catch (\Throwable $e) {
+            $this->logAdminError('save_analytics', $currentUserId, $e->getMessage());
+            return $this->redirectWithFlash('error', 'Failed to save analytics settings. Check logs for details.', '/admin/settings');
+        }
     }
 
     public function reindexSearch(): array
@@ -303,5 +336,55 @@ final class AdminController
         }
 
         return $this->redirectWithFlash('error', 'Unable to delete user.');
+    }
+
+    /**
+     * Update a section of the config/config.php file
+     *
+     * @param string $section The top-level config key to update
+     * @param array<string,mixed> $data The data to set for that section
+     * @throws \RuntimeException if config file cannot be read or written
+     */
+    private function updateConfigFile(string $section, array $data): void
+    {
+        $configPath = dirname(__DIR__, 3) . '/config/config.php';
+
+        if (!is_file($configPath) || !is_readable($configPath)) {
+            throw new \RuntimeException('Config file not found or not readable.');
+        }
+
+        $currentConfig = require $configPath;
+        if (!is_array($currentConfig)) {
+            throw new \RuntimeException('Config file did not return an array.');
+        }
+
+        // Update the section
+        $currentConfig[$section] = $data;
+
+        // Generate PHP code
+        $export = var_export($currentConfig, true);
+        $content = <<<PHP
+<?php
+/**
+ * Elonara Social - Master Configuration File
+ *
+ * SINGLE SOURCE OF TRUTH for all application configuration.
+ * This file is gitignored - never commit to repository.
+ */
+
+declare(strict_types=1);
+
+return {$export};
+
+PHP;
+
+        if (file_put_contents($configPath, $content) === false) {
+            throw new \RuntimeException('Failed to write config file.');
+        }
+    }
+
+    private function logAdminError(string $action, int $userId, string $message): void
+    {
+        error_log(sprintf('[ADMIN ERROR] Action: %s, User: %d, Message: %s', $action, $userId, $message));
     }
 }

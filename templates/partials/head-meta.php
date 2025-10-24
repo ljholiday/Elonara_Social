@@ -37,3 +37,17 @@ $currentUrl = $appUrl . ($_SERVER['REQUEST_URI'] ?? '/');
     <meta name="twitter:description" content="<?= htmlspecialchars($page_description, ENT_QUOTES, 'UTF-8'); ?>">
     <?php endif; ?>
     <meta name="twitter:image" content="<?= htmlspecialchars($appUrl . $assetBase . '/icons/og-image.png', ENT_QUOTES, 'UTF-8'); ?>">
+
+    <!-- Google Analytics -->
+    <?php
+    $gaTrackingId = (string)app_config('analytics.google_tracking_id', '');
+    if ($gaTrackingId !== ''):
+    ?>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=<?= htmlspecialchars($gaTrackingId, ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '<?= htmlspecialchars($gaTrackingId, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>');
+    </script>
+    <?php endif; ?>

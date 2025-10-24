@@ -291,6 +291,7 @@ a:focus {
     .app-main-nav-item {
         padding: 0.24rem 0.2rem;
         font-size: 0.875rem;
+        align-items: center;
     }
 
     .app-nav-left {

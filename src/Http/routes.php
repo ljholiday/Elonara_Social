@@ -99,6 +99,15 @@ return static function (Router $router): void {
         exit;
     });
 
+    $router->post('/admin/settings/analytics', static function (Request $request) {
+        $result = app_service('controller.admin')->saveAnalyticsSettings();
+        if (!empty($result['flash'])) {
+            $_SESSION['admin_flash'] = $result['flash'];
+        }
+        header('Location: ' . ($result['redirect'] ?? '/admin/settings'));
+        exit;
+    });
+
     $router->post('/admin/search/reindex', static function (Request $request) {
         $result = app_service('controller.admin')->reindexSearch();
         if (!empty($result['flash'])) {
