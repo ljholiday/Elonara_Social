@@ -522,6 +522,31 @@ final class AuthController
             }
         }
 
+        // Check for public event share token (pe_...)
+        if (str_starts_with($token, 'pe_')) {
+            $eventInfo = $this->invitations->getEventInfoFromShareToken($token);
+            if ($eventInfo !== null) {
+                // Need to get host name - fetch event details
+                $pdo = $this->database->pdo();
+                $stmt = $pdo->prepare('
+                    SELECT u.display_name
+                    FROM events e
+                    LEFT JOIN users u ON u.id = e.author_id
+                    WHERE e.slug = ?
+                    LIMIT 1
+                ');
+                $stmt->execute([$eventInfo['slug']]);
+                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+                $hostName = $row !== false ? (string)($row['display_name'] ?? 'Someone') : 'Someone';
+
+                return [
+                    'type' => 'event',
+                    'name' => $eventInfo['title'],
+                    'inviter' => $hostName,
+                ];
+            }
+        }
+
         $pdo = $this->database->pdo();
 
         // Try private community invitation

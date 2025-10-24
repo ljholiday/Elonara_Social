@@ -467,7 +467,30 @@ final class InvitationApiController
             ];
         }
 
-        return $this->completeCommunityAcceptance($token, $viewerId);
+        // Try community invitation first
+        $communityResult = $this->completeCommunityAcceptance($token, $viewerId);
+
+        // If community acceptance failed with 404, check if it's a private event token
+        if (($communityResult['status'] ?? 200) === 404) {
+            $eventResult = $this->invitations->acceptPrivateEventShareInvitation($token, $viewerId);
+
+            if ($eventResult['success']) {
+                $data = $eventResult['data'];
+                $rsvpToken = (string)($data['rsvp_token'] ?? '');
+                $redirectUrl = $rsvpToken !== '' ? '/rsvp/' . $rsvpToken : '/events';
+
+                return [
+                    'status' => 302,
+                    'redirect' => $redirectUrl,
+                    'body' => [
+                        'success' => true,
+                        'message' => $data['message'] ?? 'Please complete your RSVP.',
+                    ],
+                ];
+            }
+        }
+
+        return $communityResult;
     }
 
     /**
@@ -494,15 +517,17 @@ final class InvitationApiController
         }
 
         $data = $result['data'];
-        $eventSlug = (string)($data['event_slug'] ?? '');
-        $redirectUrl = $eventSlug !== '' ? '/events/' . $eventSlug : '/events';
+        $rsvpToken = (string)($data['rsvp_token'] ?? '');
+
+        // Redirect to RSVP form to collect dietary restrictions and preferences
+        $redirectUrl = $rsvpToken !== '' ? '/rsvp/' . $rsvpToken : '/events';
 
         return [
             'status' => 302,
             'redirect' => $redirectUrl,
             'body' => [
                 'success' => true,
-                'message' => $data['message'] ?? 'RSVP recorded!',
+                'message' => $data['message'] ?? 'Please complete your RSVP.',
             ],
         ];
     }
