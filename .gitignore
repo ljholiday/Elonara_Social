@@ -28,6 +28,8 @@ cache/
 tmp/
 *.log
 *.sql
+!config/schema.sql
+!config/migrations/*.sql
 *.sqlite
 *.bak
 *.swp
