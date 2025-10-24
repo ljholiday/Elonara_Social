@@ -95,6 +95,64 @@ final class AdminController
         ];
     }
 
+    public function events(): array
+    {
+        $this->guard();
+
+        $request = $this->request();
+        $search = trim((string)$request->query('q', ''));
+        $page = max(1, (int)$request->query('page', 1));
+        $perPage = 25;
+        $offset = ($page - 1) * $perPage;
+
+        $result = $this->events->listForAdmin($search, $perPage, $offset);
+        $total = $result['total'];
+        $pages = max(1, (int)ceil($total / $perPage));
+
+        return [
+            'page_title' => 'Events',
+            'nav_active' => 'events',
+            'page_description' => 'Search and manage events.',
+            'searchQuery' => $search,
+            'events' => $result['events'],
+            'pagination' => [
+                'page' => $page,
+                'pages' => $pages,
+                'per_page' => $perPage,
+                'total' => $total,
+            ],
+        ];
+    }
+
+    public function communities(): array
+    {
+        $this->guard();
+
+        $request = $this->request();
+        $search = trim((string)$request->query('q', ''));
+        $page = max(1, (int)$request->query('page', 1));
+        $perPage = 25;
+        $offset = ($page - 1) * $perPage;
+
+        $result = $this->communities->listForAdmin($search, $perPage, $offset);
+        $total = $result['total'];
+        $pages = max(1, (int)ceil($total / $perPage));
+
+        return [
+            'page_title' => 'Communities',
+            'nav_active' => 'communities',
+            'page_description' => 'Search and manage communities.',
+            'searchQuery' => $search,
+            'communities' => $result['communities'],
+            'pagination' => [
+                'page' => $page,
+                'pages' => $pages,
+                'per_page' => $perPage,
+                'total' => $total,
+            ],
+        ];
+    }
+
     public function sendTestEmail(): array
     {
         $this->guard();
@@ -169,6 +227,64 @@ final class AdminController
         } catch (\Throwable $e) {
             $this->logAdminError('reindex_search', (int)$currentUserId, $e->getMessage());
             return $this->redirectWithFlash('error', 'Failed to rebuild search index. Check logs for details.', '/admin');
+        }
+    }
+
+    public function deleteEvent(int $eventId): array
+    {
+        $this->guard();
+
+        $request = $this->request();
+        $nonce = (string)$request->input('_admin_nonce', '');
+        $currentUser = $this->auth->getCurrentUser();
+        $currentUserId = (int)($currentUser?->id ?? 0);
+
+        if (!$this->security()->verifyNonce($nonce, 'app_admin', $currentUserId)) {
+            return $this->redirectWithFlash('error', 'Security check failed. Please refresh and try again.', '/admin/events');
+        }
+
+        if ($eventId <= 0) {
+            return $this->redirectWithFlash('error', 'Invalid event ID.', '/admin/events');
+        }
+
+        try {
+            $deleted = $this->events->delete((string)$eventId);
+            if ($deleted) {
+                return $this->redirectWithFlash('success', 'Event deleted successfully.', '/admin/events');
+            }
+            return $this->redirectWithFlash('error', 'Unable to delete event. Event may not exist.', '/admin/events');
+        } catch (\Throwable $e) {
+            $this->logAdminError('delete_event', $currentUserId, $e->getMessage());
+            return $this->redirectWithFlash('error', 'Failed to delete event. Check logs for details.', '/admin/events');
+        }
+    }
+
+    public function deleteCommunity(int $communityId): array
+    {
+        $this->guard();
+
+        $request = $this->request();
+        $nonce = (string)$request->input('_admin_nonce', '');
+        $currentUser = $this->auth->getCurrentUser();
+        $currentUserId = (int)($currentUser?->id ?? 0);
+
+        if (!$this->security()->verifyNonce($nonce, 'app_admin', $currentUserId)) {
+            return $this->redirectWithFlash('error', 'Security check failed. Please refresh and try again.', '/admin/communities');
+        }
+
+        if ($communityId <= 0) {
+            return $this->redirectWithFlash('error', 'Invalid community ID.', '/admin/communities');
+        }
+
+        try {
+            $deleted = $this->communities->delete((string)$communityId);
+            if ($deleted) {
+                return $this->redirectWithFlash('success', 'Community and all associated events deleted successfully.', '/admin/communities');
+            }
+            return $this->redirectWithFlash('error', 'Unable to delete community. Community may not exist.', '/admin/communities');
+        } catch (\Throwable $e) {
+            $this->logAdminError('delete_community', $currentUserId, $e->getMessage());
+            return $this->redirectWithFlash('error', 'Failed to delete community. Check logs for details.', '/admin/communities');
         }
     }
 

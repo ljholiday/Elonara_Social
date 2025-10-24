@@ -73,6 +73,61 @@ final class EventService
     }
 
     /**
+     * @return array{events: array<int, array<string, mixed>>, total: int}
+     */
+    public function listForAdmin(string $search = '', int $limit = 25, int $offset = 0): array
+    {
+        $search = trim($search);
+        $hasSearch = $search !== '';
+
+        $where = [];
+        $params = [];
+
+        if ($hasSearch) {
+            $where[] = "(e.title LIKE :search OR e.description LIKE :search OR com.name LIKE :search OR u.display_name LIKE :search)";
+            $params[':search'] = '%' . $search . '%';
+        }
+
+        $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        // Count total
+        $countSql = "SELECT COUNT(DISTINCT e.id) FROM events e
+                     LEFT JOIN users u ON u.id = e.author_id
+                     LEFT JOIN communities com ON e.community_id = com.id
+                     {$whereClause}";
+        $countStmt = $this->db->pdo()->prepare($countSql);
+        foreach ($params as $key => $value) {
+            $countStmt->bindValue($key, $value);
+        }
+        $countStmt->execute();
+        $total = (int)$countStmt->fetchColumn();
+
+        // Fetch events
+        $sql = "SELECT e.id, e.title, e.event_date, e.end_date, e.privacy, e.slug,
+                       e.community_id, com.name AS community_name, com.slug AS community_slug,
+                       u.id AS host_id, u.display_name AS host_name
+                FROM events e
+                LEFT JOIN users u ON u.id = e.author_id
+                LEFT JOIN communities com ON e.community_id = com.id
+                {$whereClause}
+                ORDER BY e.event_date DESC
+                LIMIT :lim OFFSET :off";
+
+        $stmt = $this->db->pdo()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'events' => $stmt->fetchAll(PDO::FETCH_ASSOC),
+            'total' => $total,
+        ];
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     public function listMine(int $viewerId, ?string $viewerEmail = null, int $limit = 20): array

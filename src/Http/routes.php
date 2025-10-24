@@ -80,6 +80,26 @@ return static function (Router $router): void {
         return true;
     });
 
+    $router->get('/admin/events', static function (Request $request) {
+        $view = app_service('controller.admin')->events();
+        if (!empty($_SESSION['admin_flash'])) {
+            $view['flash'] = $_SESSION['admin_flash'];
+            unset($_SESSION['admin_flash']);
+        }
+        app_render('admin/events.php', $view, 'admin');
+        return true;
+    });
+
+    $router->get('/admin/communities', static function (Request $request) {
+        $view = app_service('controller.admin')->communities();
+        if (!empty($_SESSION['admin_flash'])) {
+            $view['flash'] = $_SESSION['admin_flash'];
+            unset($_SESSION['admin_flash']);
+        }
+        app_render('admin/communities.php', $view, 'admin');
+        return true;
+    });
+
     $router->post('/admin/users/{userId}/{action}', static function (Request $request, string $userId, string $action) {
         $result = app_service('controller.admin')->handleUserAction($action, (int)$userId);
         if (!empty($result['flash'])) {
@@ -114,6 +134,24 @@ return static function (Router $router): void {
             $_SESSION['admin_flash'] = $result['flash'];
         }
         header('Location: ' . ($result['redirect'] ?? '/admin'));
+        exit;
+    });
+
+    $router->post('/admin/events/{eventId}/delete', static function (Request $request, string $eventId) {
+        $result = app_service('controller.admin')->deleteEvent((int)$eventId);
+        if (!empty($result['flash'])) {
+            $_SESSION['admin_flash'] = $result['flash'];
+        }
+        header('Location: ' . ($result['redirect'] ?? '/admin/events'));
+        exit;
+    });
+
+    $router->post('/admin/communities/{communityId}/delete', static function (Request $request, string $communityId) {
+        $result = app_service('controller.admin')->deleteCommunity((int)$communityId);
+        if (!empty($result['flash'])) {
+            $_SESSION['admin_flash'] = $result['flash'];
+        }
+        header('Location: ' . ($result['redirect'] ?? '/admin/communities'));
         exit;
     });
 

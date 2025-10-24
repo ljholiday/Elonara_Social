@@ -121,6 +121,58 @@ final class CommunityService
     }
 
     /**
+     * @return array{communities: array<int, array<string, mixed>>, total: int}
+     */
+    public function listForAdmin(string $search = '', int $limit = 25, int $offset = 0): array
+    {
+        $search = trim($search);
+        $hasSearch = $search !== '';
+
+        $where = [];
+        $params = [];
+
+        if ($hasSearch) {
+            $where[] = "(c.name LIKE :search OR c.description LIKE :search OR u.display_name LIKE :search)";
+            $params[':search'] = '%' . $search . '%';
+        }
+
+        $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        // Count total
+        $countSql = "SELECT COUNT(DISTINCT c.id) FROM communities c
+                     LEFT JOIN users u ON u.id = c.created_by
+                     {$whereClause}";
+        $countStmt = $this->db->pdo()->prepare($countSql);
+        foreach ($params as $key => $value) {
+            $countStmt->bindValue($key, $value);
+        }
+        $countStmt->execute();
+        $total = (int)$countStmt->fetchColumn();
+
+        // Fetch communities
+        $sql = "SELECT c.id, c.name, c.slug, c.description, c.privacy, c.member_count,
+                       c.created_at, u.id AS creator_id, u.display_name AS creator_name
+                FROM communities c
+                LEFT JOIN users u ON u.id = c.created_by
+                {$whereClause}
+                ORDER BY COALESCE(c.created_at, c.id) DESC
+                LIMIT :lim OFFSET :off";
+
+        $stmt = $this->db->pdo()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'communities' => $stmt->fetchAll(PDO::FETCH_ASSOC),
+            'total' => $total,
+        ];
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     public function listByCircle(?array $allowedCommunities, array $memberCommunities, int $limit = 20): array
