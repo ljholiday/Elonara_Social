@@ -1104,7 +1104,7 @@ return static function (Router $router): void {
     });
 
     $router->get('/rsvp/{token}', static function (Request $request, string $token) {
-        $invitationService = app_service('invitation.manager');
+        $invitationService = app_service('invitation.service');
         $security = app_service('security.service');
 
         $result = $invitationService->getEventInvitationByToken($token);
@@ -1157,7 +1157,7 @@ return static function (Router $router): void {
     });
 
     $router->post('/rsvp/{token}', static function (Request $request, string $token) {
-        $invitationService = app_service('invitation.manager');
+        $invitationService = app_service('invitation.service');
         $security = app_service('security.service');
 
         $initial = $invitationService->getEventInvitationByToken($token);

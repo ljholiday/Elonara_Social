@@ -426,11 +426,21 @@ final class EventController
             ));
         }
 
+        $shareLink = '';
+        if ($viewerId > 0 && $eventId > 0) {
+            $shareResponse = $this->invitations->generateEventShareLink($eventId, $viewerId);
+            if (($shareResponse['success'] ?? false) === true) {
+                $shareData = $shareResponse['data'] ?? [];
+                $shareLink = (string)($shareData['share_url'] ?? '');
+            }
+        }
+
         return [
             'status' => 200,
             'event' => $event,
             'tab' => $tab,
             'guest_summary' => $guestSummary,
+            'share_link' => $shareLink,
         ];
     }
 

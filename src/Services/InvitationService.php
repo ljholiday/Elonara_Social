@@ -14,6 +14,7 @@ final class InvitationService
     private const EXPIRY_DAYS = 7;
     private const EVENT_TOKEN_LENGTH = 64;
     private const PUBLIC_COMMUNITY_SHARE_PREFIX = 'pc_';
+    private const PUBLIC_EVENT_SHARE_PREFIX = 'pe_';
     private const SHARE_EMAIL_PREFIX = 'share:';
 
     public function __construct(
@@ -345,6 +346,33 @@ final class InvitationService
             'share_token' => $share['token'],
             'visibility' => 'private',
             'expires_at' => $share['expires_at'],
+        ]);
+    }
+
+    /**
+     * Generate a shareable event invitation link.
+     * Events always get public, reusable share tokens.
+     *
+     * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
+     */
+    public function generateEventShareLink(int $eventId, int $viewerId): array
+    {
+        $event = $this->fetchEvent($eventId, includeSlug: true, includeTitle: false);
+        if ($event === null) {
+            return $this->failure('Event not found.', 404);
+        }
+
+        $authorId = (int)($event['author_id'] ?? 0);
+        if ($viewerId <= 0 || $authorId !== $viewerId) {
+            return $this->failure('You do not have permission to generate invitation links.', 403);
+        }
+
+        $token = $this->createPublicEventShareToken($eventId);
+
+        return $this->success([
+            'share_url' => $this->buildInvitationUrl('event', $token),
+            'share_token' => $token,
+            'visibility' => 'public',
         ]);
     }
 
@@ -769,6 +797,11 @@ final class InvitationService
             $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
             $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
             $baseUrl = $protocol . '://' . $host;
+        }
+
+        // Event share tokens (pe_) use /invitation/accept, individual guest tokens use /rsvp/
+        if ($type === 'event' && str_starts_with($token, 'pe_')) {
+            return "{$baseUrl}/invitation/accept?token={$token}";
         }
 
         return $type === 'community'
@@ -1237,6 +1270,15 @@ final class InvitationService
         return self::PUBLIC_COMMUNITY_SHARE_PREFIX . $encoded;
     }
 
+    private function createPublicEventShareToken(int $eventId): string
+    {
+        $payload = (string)$eventId;
+        $signature = hash_hmac('sha256', 'event_public_share|' . $payload, $this->eventShareSecret());
+        $encoded = $this->base64UrlEncode($payload . ':' . $signature);
+
+        return self::PUBLIC_EVENT_SHARE_PREFIX . $encoded;
+    }
+
     private function decodePublicCommunityShareToken(string $token): ?int
     {
         if (!\str_starts_with($token, self::PUBLIC_COMMUNITY_SHARE_PREFIX)) {
@@ -1265,6 +1307,36 @@ final class InvitationService
         }
 
         return (int)$communityIdPart;
+    }
+
+    private function decodePublicEventShareToken(string $token): ?int
+    {
+        if (!\str_starts_with($token, self::PUBLIC_EVENT_SHARE_PREFIX)) {
+            return null;
+        }
+
+        $encoded = substr($token, strlen(self::PUBLIC_EVENT_SHARE_PREFIX));
+        $decoded = $this->base64UrlDecode($encoded);
+        if (!is_string($decoded)) {
+            return null;
+        }
+
+        $parts = explode(':', $decoded);
+        if (count($parts) !== 2) {
+            return null;
+        }
+
+        [$eventIdPart, $signature] = $parts;
+        if (!ctype_digit($eventIdPart)) {
+            return null;
+        }
+
+        $expected = hash_hmac('sha256', 'event_public_share|' . $eventIdPart, $this->eventShareSecret());
+        if (!hash_equals($expected, $signature)) {
+            return null;
+        }
+
+        return (int)$eventIdPart;
     }
 
     /**
@@ -1301,6 +1373,123 @@ final class InvitationService
             'name' => (string)($community['name'] ?? 'Community'),
             'creator' => (string)($community['creator_name'] ?? 'Someone'),
         ];
+    }
+
+    /**
+     * Get event information from a share token (for routing purposes).
+     * Returns event slug and title if token is valid.
+     *
+     * @return array{slug:string,title:string}|null
+     */
+    public function getEventInfoFromShareToken(string $token): ?array
+    {
+        $eventId = $this->decodePublicEventShareToken($token);
+        if ($eventId === null) {
+            return null;
+        }
+
+        $pdo = $this->database->pdo();
+        $stmt = $pdo->prepare('
+            SELECT
+                e.slug,
+                e.title
+            FROM events e
+            WHERE e.id = ?
+            LIMIT 1
+        ');
+        $stmt->execute([$eventId]);
+        $event = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($event === false) {
+            return null;
+        }
+
+        return [
+            'slug' => (string)($event['slug'] ?? ''),
+            'title' => (string)($event['title'] ?? 'Event'),
+        ];
+    }
+
+    /**
+     * Accept an event share invitation generated from a public event share token.
+     *
+     * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
+     */
+    public function acceptEventShareInvitation(string $token, int $viewerId): array
+    {
+        if ($viewerId <= 0) {
+            return $this->failure('You must be logged in to RSVP.', 401);
+        }
+
+        $eventId = $this->decodePublicEventShareToken($token);
+        if ($eventId === null) {
+            return $this->failure('Invalid or expired event invitation.', 404);
+        }
+
+        $event = $this->fetchEvent($eventId, includeSlug: true, includeTitle: true);
+        if ($event === null) {
+            return $this->failure('Event not found.', 404);
+        }
+
+        $user = $this->auth->getUserById($viewerId);
+        if ($user === null) {
+            return $this->failure('User not found.', 404);
+        }
+
+        $userEmail = strtolower((string)($user->email ?? ''));
+        $displayName = (string)($user->display_name ?? $userEmail);
+
+        // Check if already a guest
+        $pdo = $this->database->pdo();
+        $stmt = $pdo->prepare('
+            SELECT id, status
+            FROM guests
+            WHERE event_id = ? AND email = ?
+            LIMIT 1
+        ');
+        $stmt->execute([$eventId, $userEmail]);
+        $existingGuest = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($existingGuest !== false) {
+            $status = (string)($existingGuest['status'] ?? 'pending');
+            $message = $status === 'confirmed' || $status === 'yes'
+                ? 'You have already RSVP\'d to this event.'
+                : 'You already have a pending invitation to this event.';
+
+            $eventSlug = (string)($event['slug'] ?? '');
+            return $this->success([
+                'message' => $message,
+                'event_id' => $eventId,
+                'event_slug' => $eventSlug,
+                'already_guest' => true,
+            ]);
+        }
+
+        // Create guest record
+        try {
+            $stmt = $pdo->prepare('
+                INSERT INTO guests
+                (event_id, email, name, status, converted_user_id, invitation_source, rsvp_date)
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
+            ');
+            $stmt->execute([
+                $eventId,
+                $userEmail,
+                $displayName,
+                'confirmed',
+                $viewerId,
+                'share_link',
+            ]);
+        } catch (\PDOException $e) {
+            return $this->failure('Failed to record your RSVP: ' . $e->getMessage(), 500);
+        }
+
+        $eventSlug = (string)($event['slug'] ?? '');
+        return $this->success([
+            'message' => 'You have successfully RSVP\'d to this event!',
+            'event_id' => $eventId,
+            'event_slug' => $eventSlug,
+        ]);
     }
 
     /**
@@ -1393,6 +1582,12 @@ final class InvitationService
     {
         $secret = (string)app_config('security.salts.nonce', '');
         return $secret !== '' ? $secret : 'community-share-secret';
+    }
+
+    private function eventShareSecret(): string
+    {
+        $secret = (string)app_config('security.salts.nonce', '');
+        return $secret !== '' ? $secret : 'event-share-secret';
     }
 
     /**

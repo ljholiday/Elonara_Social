@@ -449,6 +449,11 @@ final class InvitationApiController
             return $this->error('Invitation token is required.', 400);
         }
 
+        // Check if this is an event share token (pe_)
+        if (str_starts_with($token, 'pe_')) {
+            return $this->handleEventShareToken($token);
+        }
+
         $viewerId = (int)($this->auth->currentUserId() ?? 0);
         if ($viewerId <= 0) {
             $redirect = '/auth?redirect_to=' . rawurlencode('/invitation/accept?token=' . rawurlencode($token));
@@ -463,6 +468,43 @@ final class InvitationApiController
         }
 
         return $this->completeCommunityAcceptance($token, $viewerId);
+    }
+
+    /**
+     * Handle event share token acceptance.
+     */
+    private function handleEventShareToken(string $token): array
+    {
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
+        if ($viewerId <= 0) {
+            $redirect = '/auth?redirect_to=' . rawurlencode('/invitation/accept?token=' . rawurlencode($token));
+            return [
+                'status' => 302,
+                'redirect' => $redirect,
+                'body' => [
+                    'success' => false,
+                    'message' => 'Please sign in to accept the invitation.',
+                ],
+            ];
+        }
+
+        $result = $this->invitations->acceptEventShareInvitation($token, $viewerId);
+        if (!$result['success']) {
+            return $this->error($result['message'], $result['status']);
+        }
+
+        $data = $result['data'];
+        $eventSlug = (string)($data['event_slug'] ?? '');
+        $redirectUrl = $eventSlug !== '' ? '/events/' . $eventSlug : '/events';
+
+        return [
+            'status' => 302,
+            'redirect' => $redirectUrl,
+            'body' => [
+                'success' => true,
+                'message' => $data['message'] ?? 'RSVP recorded!',
+            ],
+        ];
     }
 
     /**
