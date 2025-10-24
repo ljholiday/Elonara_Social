@@ -1,5 +1,5 @@
 // Version bump triggers Chrome to refresh the cache
-const CACHE_NAME = 'elonara-cache-v3';
+const CACHE_NAME = 'elonara-cache-v4';
 const urlsToCache = [
   '/',
   '/manifest.json',
