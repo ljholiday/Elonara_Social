@@ -21,10 +21,10 @@ $appName = (string)app_config('app.name', 'Elonara Social');
         Events
     </a>
     <a href="/conversations" class="app-main-nav-item<?= str_contains($current_path, '/conversations') ? ' active' : ''; ?>">
-        Conversations
+        Conversation
     </a>
     <a href="/communities" class="app-main-nav-item<?= str_contains($current_path, '/communities') ? ' active' : ''; ?>">
-        Communities
+        Community
     </a>
     <button type="button" class="app-mobile-menu-toggle app-main-nav-item" id="mobile-menu-toggle" aria-label="Open menu">
         <span class="app-hamburger-icon">
