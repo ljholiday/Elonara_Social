@@ -509,7 +509,19 @@ a:focus {
 .app-text-muted { color: var(--app-text-muted); }
 .app-text-center { text-align: center; }
 .app-text-xl {
+    font-size: 1.5rem;
+    line-height: 1.75rem;
+}
+.app-text-lg {
     font-size: 1.25rem;
+    line-height: 1.75rem;
+}
+.app-text-md {
+    font-size: 1rem;
+    line-height: 1.75rem;
+}
+.app-text-sm {
+    font-size: .75rem;
     line-height: 1.75rem;
 }
 .app-text-6xl {
