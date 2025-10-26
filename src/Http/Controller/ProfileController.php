@@ -275,6 +275,7 @@ final class ProfileController
             if ($avatarUrlUploaded && $input['avatar_alt']) {
                 // Use the already-uploaded image
                 $updateData['avatar_url'] = $avatarUrlUploaded;
+                $updateData['avatar_alt'] = $input['avatar_alt'];
             } elseif ($hasAvatar) {
                 // Traditional file upload
                 $updateData['avatar'] = $_FILES['avatar'];
@@ -286,6 +287,7 @@ final class ProfileController
             if ($coverUrlUploaded && $input['cover_alt']) {
                 // Use the already-uploaded image
                 $updateData['cover_url'] = $coverUrlUploaded;
+                $updateData['cover_alt'] = $input['cover_alt'];
             } elseif ($hasCover) {
                 // Traditional file upload
                 $updateData['cover'] = $_FILES['cover'];

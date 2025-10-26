@@ -27,7 +27,7 @@ final class UserService
     public function getById(int $userId): ?array
     {
         $stmt = $this->db->pdo()->prepare(
-            'SELECT id, username, email, display_name, bio, avatar_url, cover_url, cover_alt, role, status, created_at, updated_at
+            'SELECT id, username, email, display_name, bio, avatar_url, avatar_alt, cover_url, cover_alt, role, status, created_at, updated_at
              FROM users
              WHERE id = :id
              LIMIT 1'
@@ -46,7 +46,7 @@ final class UserService
     public function getByUsername(string $username): ?array
     {
         $stmt = $this->db->pdo()->prepare(
-            'SELECT id, username, email, display_name, bio, avatar_url, cover_url, cover_alt, role, created_at, updated_at
+            'SELECT id, username, email, display_name, bio, avatar_url, avatar_alt, cover_url, cover_alt, role, created_at, updated_at
              FROM users
              WHERE username = :username
              LIMIT 1'
@@ -104,6 +104,12 @@ final class UserService
         if (isset($data['avatar_url']) && is_string($data['avatar_url']) && $data['avatar_url'] !== '') {
             $updates[] = 'avatar_url = :avatar_url';
             $params[':avatar_url'] = $data['avatar_url'];
+
+            // Also update avatar_alt if provided
+            if (isset($data['avatar_alt'])) {
+                $updates[] = 'avatar_alt = :avatar_alt';
+                $params[':avatar_alt'] = trim((string)$data['avatar_alt']);
+            }
         }
         // Handle avatar upload (traditional file upload)
         elseif ($this->imageService && !empty($data['avatar']) && !empty($data['avatar']['tmp_name'])) {

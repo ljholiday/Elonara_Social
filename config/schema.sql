@@ -609,6 +609,7 @@ CREATE TABLE `users` (
   `bio` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `avatar_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `avatar_preference` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'auto' COMMENT 'Avatar source preference: auto, custom, gravatar',
+  `avatar_alt` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `cover_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `cover_alt` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `status` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'active',
