@@ -2,6 +2,76 @@
 $errors = $errors ?? [];
 $input = $input ?? ['title' => '', 'description' => '', 'event_date' => ''];
 $event = $event ?? null;
+$recurrenceType = strtolower((string)($input['recurrence_type'] ?? 'none'));
+if (!in_array($recurrenceType, ['none', 'daily', 'weekly', 'monthly'], true)) {
+  $recurrenceType = 'none';
+}
+$recurrenceIntervalValue = (string)($input['recurrence_interval'] ?? '1');
+$recurrenceIntervalValue = $recurrenceIntervalValue !== '' ? $recurrenceIntervalValue : '1';
+$recurrenceDays = $input['recurrence_days'] ?? [];
+if (!is_array($recurrenceDays)) {
+  $recurrenceDays = [];
+}
+$monthlyType = strtolower((string)($input['monthly_type'] ?? 'date'));
+if (!in_array($monthlyType, ['date', 'weekday'], true)) {
+  $monthlyType = 'date';
+}
+$monthlyDayNumber = (string)($input['monthly_day_number'] ?? '');
+$monthlyWeek = strtolower((string)($input['monthly_week'] ?? ''));
+$monthlyWeekday = strtolower((string)($input['monthly_weekday'] ?? ''));
+$weekdayShortLabels = [
+  'mon' => 'Mon',
+  'tue' => 'Tue',
+  'wed' => 'Wed',
+  'thu' => 'Thu',
+  'fri' => 'Fri',
+  'sat' => 'Sat',
+  'sun' => 'Sun',
+];
+$weekdayLongLabels = [
+  'mon' => 'Monday',
+  'tue' => 'Tuesday',
+  'wed' => 'Wednesday',
+  'thu' => 'Thursday',
+  'fri' => 'Friday',
+  'sat' => 'Saturday',
+  'sun' => 'Sunday',
+];
+$recurrenceDays = array_map(static fn ($day) => strtolower((string)$day), $recurrenceDays);
+$recurrenceDays = array_values(array_filter(
+  $recurrenceDays,
+  static fn ($day) => array_key_exists($day, $weekdayShortLabels)
+));
+$monthlyWeekLabels = [
+  'first' => 'First',
+  'second' => 'Second',
+  'third' => 'Third',
+  'fourth' => 'Fourth',
+  'last' => 'Last',
+];
+if (!array_key_exists($monthlyWeek, $monthlyWeekLabels)) {
+  $monthlyWeek = '';
+}
+if (!array_key_exists($monthlyWeekday, $weekdayLongLabels)) {
+  $monthlyWeekday = '';
+}
+$recurrenceOptions = [
+  'none' => 'Does not repeat',
+  'daily' => 'Daily',
+  'weekly' => 'Weekly',
+  'monthly' => 'Monthly',
+];
+$recurrenceIntervalSuffix = match ($recurrenceType) {
+  'daily' => 'day(s)',
+  'weekly' => 'week(s)',
+  'monthly' => 'month(s)',
+  default => 'day(s)',
+};
+$showRecurrenceInterval = $recurrenceType !== 'none' || isset($errors['recurrence_interval']) || isset($errors['recurrence_days']) || isset($errors['monthly_day_number']) || isset($errors['monthly_week']) || isset($errors['monthly_weekday']);
+$showRecurrenceWeekly = $recurrenceType === 'weekly' || isset($errors['recurrence_days']);
+$showRecurrenceMonthly = $recurrenceType === 'monthly' || isset($errors['monthly_day_number']) || isset($errors['monthly_week']) || isset($errors['monthly_weekday']);
+$showMonthlyDate = ($recurrenceType === 'monthly' && $monthlyType === 'date') || isset($errors['monthly_day_number']);
+$showMonthlyWeekday = ($recurrenceType === 'monthly' && $monthlyType === 'weekday') || isset($errors['monthly_week']) || isset($errors['monthly_weekday']);
 ?>
 <section class="app-section app-event-edit">
   <?php if (!$event): ?>
@@ -57,6 +127,125 @@ $event = $event ?? null;
           value="<?= e($input['end_date'] ?? '') ?>"
         >
         <p class="app-field-help">Optional. Leave blank for single-day event.</p>
+      </div>
+
+      <div class="app-field">
+        <label class="app-label" for="recurrence_type">Repeats</label>
+        <select
+          class="app-input"
+          id="recurrence_type"
+          name="recurrence_type"
+        >
+          <?php foreach ($recurrenceOptions as $value => $label): ?>
+            <option value="<?= e($value) ?>"<?= $recurrenceType === $value ? ' selected' : '' ?>><?= e($label) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <p class="app-field-help">Choose how often this event repeats.</p>
+      </div>
+
+      <div class="app-field app-recurrence-section" data-recurrence-section="interval"<?= $showRecurrenceInterval ? '' : ' style="display:none;"' ?>>
+        <label class="app-label" for="recurrence_interval">Repeat every</label>
+        <div class="app-recurrence-interval">
+          <input
+            class="app-input app-recurrence-interval-input<?= isset($errors['recurrence_interval']) ? ' is-invalid' : '' ?>"
+            type="number"
+            min="1"
+            max="30"
+            id="recurrence_interval"
+            name="recurrence_interval"
+            value="<?= e($recurrenceIntervalValue) ?>"
+          >
+          <span class="app-text-muted" id="recurrence_interval_suffix"><?= e($recurrenceIntervalSuffix) ?></span>
+        </div>
+        <p class="app-field-help">Common choices are every 1, 2, or 4 intervals.</p>
+        <?php if (isset($errors['recurrence_interval'])): ?>
+          <div class="app-field-error"><?= e($errors['recurrence_interval']) ?></div>
+        <?php endif; ?>
+      </div>
+
+      <div class="app-field app-recurrence-section" data-recurrence-section="weekly"<?= $showRecurrenceWeekly ? '' : ' style="display:none;"' ?>>
+        <span class="app-label">Repeat on</span>
+        <div class="app-recurrence-weekdays">
+          <?php foreach ($weekdayShortLabels as $dayKey => $dayLabel): ?>
+            <label class="app-checkbox app-recurrence-weekday">
+              <input
+                type="checkbox"
+                name="recurrence_days[]"
+                value="<?= e($dayKey) ?>"
+                <?= in_array($dayKey, $recurrenceDays, true) ? ' checked' : '' ?>
+              >
+              <span><?= e($dayLabel) ?></span>
+            </label>
+          <?php endforeach; ?>
+        </div>
+        <?php if (isset($errors['recurrence_days'])): ?>
+          <div class="app-field-error"><?= e($errors['recurrence_days']) ?></div>
+        <?php endif; ?>
+      </div>
+
+      <div class="app-field app-recurrence-section" data-recurrence-section="monthly"<?= $showRecurrenceMonthly ? '' : ' style="display:none;"' ?>>
+        <label class="app-label">Monthly pattern</label>
+        <div class="app-radio-group app-recurrence-monthly-type">
+          <label class="app-radio-label">
+            <input type="radio" name="monthly_type" value="date"<?= $monthlyType === 'date' ? ' checked' : '' ?>>
+            <span>On day</span>
+          </label>
+          <label class="app-radio-label">
+            <input type="radio" name="monthly_type" value="weekday"<?= $monthlyType === 'weekday' ? ' checked' : '' ?>>
+            <span>On the</span>
+          </label>
+        </div>
+        <div class="app-recurrence-monthly-mode" data-monthly-mode="date"<?= $showMonthlyDate ? '' : ' style="display:none;"' ?>>
+          <label class="app-label" for="monthly_day_number">Day of month</label>
+          <input
+            class="app-input<?= isset($errors['monthly_day_number']) ? ' is-invalid' : '' ?>"
+            type="number"
+            min="1"
+            max="31"
+            id="monthly_day_number"
+            name="monthly_day_number"
+            value="<?= e($monthlyDayNumber) ?>"
+          >
+          <?php if (isset($errors['monthly_day_number'])): ?>
+            <div class="app-field-error"><?= e($errors['monthly_day_number']) ?></div>
+          <?php endif; ?>
+        </div>
+        <div class="app-recurrence-monthly-mode" data-monthly-mode="weekday"<?= $showMonthlyWeekday ? '' : ' style="display:none;"' ?>>
+          <div class="app-recurrence-monthly-grid">
+            <div class="app-recurrence-monthly-cell">
+              <label class="app-label" for="monthly_week">Week</label>
+              <select
+                class="app-input<?= isset($errors['monthly_week']) ? ' is-invalid' : '' ?>"
+                id="monthly_week"
+                name="monthly_week"
+              >
+                <option value="">Select week</option>
+                <?php foreach ($monthlyWeekLabels as $value => $label): ?>
+                  <option value="<?= e($value) ?>"<?= $monthlyWeek === $value ? ' selected' : '' ?>><?= e($label) ?></option>
+                <?php endforeach; ?>
+              </select>
+              <?php if (isset($errors['monthly_week'])): ?>
+                <div class="app-field-error"><?= e($errors['monthly_week']) ?></div>
+              <?php endif; ?>
+            </div>
+            <div class="app-recurrence-monthly-cell">
+              <label class="app-label" for="monthly_weekday">Weekday</label>
+              <select
+                class="app-input<?= isset($errors['monthly_weekday']) ? ' is-invalid' : '' ?>"
+                id="monthly_weekday"
+                name="monthly_weekday"
+              >
+                <option value="">Select day</option>
+                <?php foreach ($weekdayLongLabels as $value => $label): ?>
+                  <option value="<?= e($value) ?>"<?= $monthlyWeekday === $value ? ' selected' : '' ?>><?= e($label) ?></option>
+                <?php endforeach; ?>
+              </select>
+              <?php if (isset($errors['monthly_weekday'])): ?>
+                <div class="app-field-error"><?= e($errors['monthly_weekday']) ?></div>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="app-field">

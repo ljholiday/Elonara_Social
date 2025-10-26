@@ -5,7 +5,7 @@ require_once dirname(__DIR__) . '/src/bootstrap.php';
 
 $pdo = app_service('database.connection')->pdo();
 $auth = app_service('auth.service');
-$invitations = app_service('invitation.manager');
+$invitations = app_service('invitation.service');
 $communityMembers = app_service('community.member.service');
 $bluesky = app_service('bluesky.service');
 

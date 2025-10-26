@@ -14,6 +14,7 @@ use App\Services\CommunityService;
 use App\Services\ImageService;
 use App\Support\ContextBuilder;
 use App\Support\ContextLabel;
+use App\Support\RecurrenceFormatter;
 
 /**
  * Thin HTTP controller for event listings and detail views.
@@ -80,6 +81,7 @@ final class EventController
             'context_path' => $contextPath,
             'context_label' => $contextPath !== [] ? ContextLabel::renderPlain($contextPath) : '',
             'context_label_html' => $contextPath !== [] ? ContextLabel::render($contextPath) : '',
+            'recurrence_summary' => $event !== null ? RecurrenceFormatter::describe($event) : '',
         ];
     }
 
@@ -101,6 +103,13 @@ final class EventController
                     'event_date' => '',
                     'end_date' => '',
                     'location' => '',
+                    'recurrence_type' => 'none',
+                    'recurrence_interval' => '1',
+                    'recurrence_days' => [],
+                    'monthly_type' => 'date',
+                    'monthly_day_number' => '',
+                    'monthly_week' => '',
+                    'monthly_weekday' => '',
                 ],
                 'context' => ['allowed' => false],
             ];
@@ -120,6 +129,13 @@ final class EventController
                 'event_date' => '',
                 'end_date' => '',
                 'location' => '',
+                'recurrence_type' => 'none',
+                'recurrence_interval' => '1',
+                'recurrence_days' => [],
+                'monthly_type' => 'date',
+                'monthly_day_number' => '',
+                'monthly_week' => '',
+                'monthly_weekday' => '',
             ],
             'context' => $context,
         ];
@@ -139,7 +155,20 @@ final class EventController
         if ($viewerId === null || $viewerId <= 0) {
             return [
                 'errors' => ['auth' => 'You must be logged in to create an event.'],
-                'input' => ['title' => '', 'description' => '', 'event_date' => '', 'end_date' => '', 'location' => ''],
+                'input' => [
+                    'title' => '',
+                    'description' => '',
+                    'event_date' => '',
+                    'end_date' => '',
+                    'location' => '',
+                    'recurrence_type' => 'none',
+                    'recurrence_interval' => '1',
+                    'recurrence_days' => [],
+                    'monthly_type' => 'date',
+                    'monthly_day_number' => '',
+                    'monthly_week' => '',
+                    'monthly_weekday' => '',
+                ],
                 'context' => ['allowed' => false],
             ];
         }
@@ -171,6 +200,12 @@ final class EventController
             'event_date' => $validated['event_date_db'],
             'end_date' => $validated['end_date_db'],
             'location' => $validated['input']['location'],
+            'recurrence_type' => $validated['recurrence']['recurrence_type'],
+            'recurrence_interval' => $validated['recurrence']['recurrence_interval'],
+            'recurrence_days' => $validated['recurrence']['recurrence_days'],
+            'monthly_type' => $validated['recurrence']['monthly_type'],
+            'monthly_week' => $validated['recurrence']['monthly_week'],
+            'monthly_day' => $validated['recurrence']['monthly_day'],
             'author_id' => $viewerId,
             'created_by' => $viewerId,
             'community_id' => $context['community_id'] ?? 0,
@@ -189,6 +224,12 @@ final class EventController
                 'event_date' => $validated['event_date_db'],
                 'end_date' => $validated['end_date_db'],
                 'location' => $validated['input']['location'],
+                'recurrence_type' => $validated['recurrence']['recurrence_type'],
+                'recurrence_interval' => $validated['recurrence']['recurrence_interval'],
+                'recurrence_days' => $validated['recurrence']['recurrence_days'],
+                'monthly_type' => $validated['recurrence']['monthly_type'],
+                'monthly_week' => $validated['recurrence']['monthly_week'],
+                'monthly_day' => $validated['recurrence']['monthly_day'],
                 'featured_image' => $featuredImageUrlUploaded,
                 'featured_image_alt' => $imageAlt,
             ]);
@@ -242,6 +283,79 @@ final class EventController
             ];
         }
 
+        $allowedRecurrenceTypes = ['none', 'daily', 'weekly', 'monthly'];
+        $recurrenceType = strtolower((string)($event['recurrence_type'] ?? 'none'));
+        if (!in_array($recurrenceType, $allowedRecurrenceTypes, true)) {
+            $recurrenceType = 'none';
+        }
+
+        $recurrenceIntervalRaw = (string)($event['recurrence_interval'] ?? '1');
+        $recurrenceInterval = (string)((
+            filter_var($recurrenceIntervalRaw, FILTER_VALIDATE_INT) !== false
+        ) ? $recurrenceIntervalRaw : '1');
+        if ((int)$recurrenceInterval <= 0) {
+            $recurrenceInterval = '1';
+        }
+
+        $weekdayMap = [
+            'mon' => 'mon',
+            'monday' => 'mon',
+            'tue' => 'tue',
+            'tuesday' => 'tue',
+            'wed' => 'wed',
+            'wednesday' => 'wed',
+            'thu' => 'thu',
+            'thursday' => 'thu',
+            'fri' => 'fri',
+            'friday' => 'fri',
+            'sat' => 'sat',
+            'saturday' => 'sat',
+            'sun' => 'sun',
+            'sunday' => 'sun',
+        ];
+        $weeklyDays = [];
+        $recurrenceDaysRaw = (string)($event['recurrence_days'] ?? '');
+        if ($recurrenceDaysRaw !== '') {
+            $parts = array_filter(array_map('trim', explode(',', $recurrenceDaysRaw)));
+            foreach ($parts as $part) {
+                $key = strtolower($part);
+                if (isset($weekdayMap[$key])) {
+                    $weeklyDays[] = $weekdayMap[$key];
+                }
+            }
+            $weeklyDays = array_values(array_unique($weeklyDays));
+        }
+
+        $allowedMonthlyTypes = ['date', 'weekday'];
+        $monthlyType = strtolower((string)($event['monthly_type'] ?? 'date'));
+        if (!in_array($monthlyType, $allowedMonthlyTypes, true)) {
+            $monthlyType = 'date';
+        }
+
+        $monthlyDayNumber = '';
+        $monthlyWeek = '';
+        $monthlyWeekday = '';
+
+        if ($recurrenceType === 'monthly') {
+            if ($monthlyType === 'date') {
+                $monthlyDayValue = (string)($event['monthly_day'] ?? '');
+                if ($monthlyDayValue !== '' && filter_var($monthlyDayValue, FILTER_VALIDATE_INT) !== false) {
+                    $monthlyDayNumber = $monthlyDayValue;
+                }
+            } else {
+                $monthlyWeekRaw = strtolower((string)($event['monthly_week'] ?? ''));
+                $allowedMonthlyWeeks = ['first', 'second', 'third', 'fourth', 'last'];
+                if (in_array($monthlyWeekRaw, $allowedMonthlyWeeks, true)) {
+                    $monthlyWeek = $monthlyWeekRaw;
+                }
+
+                $monthlyWeekdayRaw = strtolower((string)($event['monthly_day'] ?? ''));
+                if (isset($weekdayMap[$monthlyWeekdayRaw])) {
+                    $monthlyWeekday = $weekdayMap[$monthlyWeekdayRaw];
+                }
+            }
+        }
+
         return [
             'event' => $event,
             'errors' => [],
@@ -252,6 +366,13 @@ final class EventController
                 'end_date' => $this->formatForInput($event['end_date'] ?? null),
                 'location' => $event['location'] ?? '',
                 'featured_image_alt' => $event['featured_image_alt'] ?? '',
+                'recurrence_type' => $recurrenceType,
+                'recurrence_interval' => $recurrenceInterval,
+                'recurrence_days' => $weeklyDays,
+                'monthly_type' => $monthlyType,
+                'monthly_day_number' => $monthlyDayNumber,
+                'monthly_week' => $monthlyWeek,
+                'monthly_weekday' => $monthlyWeekday,
             ],
         ];
     }
@@ -290,6 +411,12 @@ final class EventController
             'event_date' => $validated['event_date_db'],
             'end_date' => $validated['end_date_db'],
             'location' => $validated['input']['location'],
+            'recurrence_type' => $validated['recurrence']['recurrence_type'],
+            'recurrence_interval' => $validated['recurrence']['recurrence_interval'],
+            'recurrence_days' => $validated['recurrence']['recurrence_days'],
+            'monthly_type' => $validated['recurrence']['monthly_type'],
+            'monthly_week' => $validated['recurrence']['monthly_week'],
+            'monthly_day' => $validated['recurrence']['monthly_day'],
         ];
 
         // Handle featured image from modal upload or traditional file upload
@@ -575,11 +702,161 @@ final class EventController
             }
         }
 
+        $allowedRecurrenceTypes = ['none', 'daily', 'weekly', 'monthly'];
+        $recurrenceTypeRaw = strtolower(trim((string)$request->input('recurrence_type', 'none')));
+        $recurrenceType = in_array($recurrenceTypeRaw, $allowedRecurrenceTypes, true) ? $recurrenceTypeRaw : 'none';
+
+        $recurrenceIntervalRaw = trim((string)$request->input('recurrence_interval', '1'));
+        $recurrenceIntervalInput = $recurrenceIntervalRaw !== '' ? $recurrenceIntervalRaw : '1';
+        $recurrenceIntervalValue = 1;
+        if ($recurrenceType !== 'none') {
+            $intervalValidation = filter_var(
+                $recurrenceIntervalRaw,
+                FILTER_VALIDATE_INT,
+                ['options' => ['min_range' => 1, 'max_range' => 30]]
+            );
+            if ($intervalValidation === false) {
+                $errors['recurrence_interval'] = 'Recurrence interval must be between 1 and 30.';
+            } else {
+                $recurrenceIntervalValue = (int)$intervalValidation;
+                $recurrenceIntervalInput = (string)$recurrenceIntervalValue;
+            }
+        } else {
+            $recurrenceIntervalInput = '1';
+        }
+
+        $weekdayOrder = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+        $weekdayMap = [
+            'mon' => 'mon',
+            'monday' => 'mon',
+            'tue' => 'tue',
+            'tuesday' => 'tue',
+            'wed' => 'wed',
+            'wednesday' => 'wed',
+            'thu' => 'thu',
+            'thursday' => 'thu',
+            'fri' => 'fri',
+            'friday' => 'fri',
+            'sat' => 'sat',
+            'saturday' => 'sat',
+            'sun' => 'sun',
+            'sunday' => 'sun',
+        ];
+
+        $recurrenceDaysInput = $request->input('recurrence_days', []);
+        $selectedWeekdays = [];
+        if (is_array($recurrenceDaysInput)) {
+            foreach ($recurrenceDaysInput as $day) {
+                $normalized = strtolower(trim((string)$day));
+                if ($normalized === '') {
+                    continue;
+                }
+
+                $candidate = $weekdayMap[$normalized] ?? null;
+                if ($candidate === null && in_array($normalized, $weekdayOrder, true)) {
+                    $candidate = $normalized;
+                }
+
+                if ($candidate !== null && !in_array($candidate, $selectedWeekdays, true)) {
+                    $selectedWeekdays[] = $candidate;
+                }
+            }
+        }
+
+        if ($selectedWeekdays !== []) {
+            $weekdayRank = array_flip($weekdayOrder);
+            usort(
+                $selectedWeekdays,
+                static function (string $a, string $b) use ($weekdayRank): int {
+                    return $weekdayRank[$a] <=> $weekdayRank[$b];
+                }
+            );
+        }
+
+        if ($recurrenceType === 'weekly' && $selectedWeekdays === []) {
+            $errors['recurrence_days'] = 'Select at least one day of the week.';
+        }
+
+        $allowedMonthlyTypes = ['date', 'weekday'];
+        $monthlyTypeRaw = strtolower(trim((string)$request->input('monthly_type', 'date')));
+        $monthlyType = in_array($monthlyTypeRaw, $allowedMonthlyTypes, true) ? $monthlyTypeRaw : 'date';
+
+        $monthlyDayNumberRaw = trim((string)$request->input('monthly_day_number', ''));
+        $monthlyDayNumberValue = null;
+        if ($monthlyDayNumberRaw !== '') {
+            $dayNumberValidation = filter_var(
+                $monthlyDayNumberRaw,
+                FILTER_VALIDATE_INT,
+                ['options' => ['min_range' => 1, 'max_range' => 31]]
+            );
+            if ($dayNumberValidation !== false) {
+                $monthlyDayNumberValue = (int)$dayNumberValidation;
+                $monthlyDayNumberRaw = (string)$monthlyDayNumberValue;
+            }
+        }
+
+        $allowedMonthlyWeeks = ['first', 'second', 'third', 'fourth', 'last'];
+        $monthlyWeekRaw = strtolower(trim((string)$request->input('monthly_week', '')));
+        $monthlyWeek = in_array($monthlyWeekRaw, $allowedMonthlyWeeks, true) ? $monthlyWeekRaw : '';
+
+        $monthlyWeekdayRaw = strtolower(trim((string)$request->input('monthly_weekday', '')));
+        $monthlyWeekday = '';
+        if (isset($weekdayMap[$monthlyWeekdayRaw])) {
+            $monthlyWeekday = $weekdayMap[$monthlyWeekdayRaw];
+        } elseif (in_array($monthlyWeekdayRaw, $weekdayOrder, true)) {
+            $monthlyWeekday = $monthlyWeekdayRaw;
+        }
+
+        $monthlyTypeForDb = 'date';
+        $monthlyWeekForDb = '';
+        $monthlyDayForDb = '';
+
+        if ($recurrenceType === 'monthly') {
+            $monthlyTypeForDb = $monthlyType;
+            if ($monthlyType === 'date') {
+                if ($monthlyDayNumberValue === null) {
+                    $errors['monthly_day_number'] = 'Choose the day of the month for this recurring event.';
+                } else {
+                    $monthlyDayForDb = (string)$monthlyDayNumberValue;
+                    $monthlyDayNumberRaw = (string)$monthlyDayNumberValue;
+                }
+                $monthlyWeek = '';
+                $monthlyWeekday = '';
+            } else {
+                if ($monthlyWeek === '') {
+                    $errors['monthly_week'] = 'Choose which week of the month this event repeats on.';
+                }
+                if ($monthlyWeekday === '') {
+                    $errors['monthly_weekday'] = 'Choose the weekday for this recurring event.';
+                }
+                $monthlyWeekForDb = $monthlyWeek;
+                $monthlyDayForDb = $monthlyWeekday;
+            }
+        }
+
+        $input['recurrence_type'] = $recurrenceType;
+        $input['recurrence_interval'] = $recurrenceIntervalInput;
+        $input['recurrence_days'] = $selectedWeekdays;
+        $input['monthly_type'] = $monthlyType;
+        $input['monthly_day_number'] = $monthlyDayNumberRaw;
+        $input['monthly_week'] = $monthlyWeek;
+        $input['monthly_weekday'] = $monthlyWeekday;
+
+        $recurrenceData = [
+            'recurrence_type' => $recurrenceType,
+            'recurrence_interval' => max(1, $recurrenceIntervalValue),
+            'recurrence_days' => $recurrenceType === 'weekly' ? implode(',', $selectedWeekdays) : '',
+            'monthly_type' => $recurrenceType === 'monthly' ? $monthlyTypeForDb : 'date',
+            'monthly_week' => $recurrenceType === 'monthly' ? $monthlyWeekForDb : '',
+            'monthly_day' => $recurrenceType === 'monthly' ? $monthlyDayForDb : '',
+        ];
+
         return [
             'input' => $input,
             'errors' => $errors,
             'event_date_db' => $eventDateDb,
             'end_date_db' => $endDateDb,
+            'recurrence' => $recurrenceData,
         ];
     }
 

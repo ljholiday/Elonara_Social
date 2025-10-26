@@ -13,6 +13,7 @@
               ? sprintf('%s - %s', date_fmt($e->event_date), date_fmt($e->end_date))
               : date_fmt($e->event_date);
       }
+      $recurrenceSummary = (string)($recurrence_summary ?? '');
       $hasLocation = !empty($e->location);
     ?>
     <?php if ($featuredImageUrl !== ''): ?>
@@ -37,10 +38,13 @@
         <?php endif; ?>
       </h1>
     </header>
-    <?php if ($dateDisplay !== '' || $hasLocation): ?>
+    <?php if ($dateDisplay !== '' || $recurrenceSummary !== '' || $hasLocation): ?>
       <div class="app-flex app-flex-wrap app-gap app-mb-4 app-text-muted">
         <?php if ($dateDisplay !== ''): ?>
           <div><?= e($dateDisplay) ?></div>
+        <?php endif; ?>
+        <?php if ($recurrenceSummary !== ''): ?>
+          <div><?= e($recurrenceSummary) ?></div>
         <?php endif; ?>
         <?php if ($hasLocation): ?>
           <div><?= e($e->location) ?></div>

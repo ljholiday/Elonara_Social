@@ -2836,6 +2836,86 @@ body.app-modal-open {
     border-radius: 0.5rem;
 }
 
+/* Event recurrence controls */
+.app-recurrence-section {
+    margin-top: var(--app-space-md);
+}
+
+.app-recurrence-section.is-hidden {
+    display: none;
+}
+
+.app-recurrence-interval {
+    display: flex;
+    align-items: center;
+    gap: var(--app-space-sm);
+}
+
+.app-recurrence-interval-input {
+    max-width: 6rem;
+}
+
+.app-recurrence-weekdays {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--app-space-sm);
+}
+
+.app-recurrence-weekday {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-xs);
+    padding: 0.35rem 0.75rem;
+    border: 0.0625rem solid var(--app-border);
+    border-radius: var(--app-radius-sm);
+    background: var(--app-surface);
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.app-recurrence-weekday:hover {
+    border-color: var(--app-primary);
+}
+
+.app-recurrence-weekday input {
+    margin-right: 0.25rem;
+}
+
+.app-recurrence-weekday span {
+    font-weight: 500;
+}
+
+.app-recurrence-weekday input:checked + span {
+    color: var(--app-primary);
+    font-weight: 600;
+}
+
+.app-recurrence-monthly-type {
+    display: flex;
+    gap: var(--app-space-md);
+    margin-bottom: var(--app-space-sm);
+    flex-wrap: wrap;
+}
+
+.app-recurrence-monthly-mode {
+    margin-top: var(--app-space-sm);
+}
+
+.app-recurrence-monthly-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--app-space-sm);
+}
+
+.app-recurrence-monthly-cell {
+    flex: 1;
+    min-width: 12rem;
+}
+
+.is-hidden {
+    display: none !important;
+}
+
 /* Mobile adjustments */
 @media (max-width: 768px)g {
     .app-profile-cover {
