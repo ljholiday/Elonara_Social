@@ -438,13 +438,17 @@
     });
 
     // Event listeners for file upload
-    selectFileBtn.addEventListener('click', () => fileInput.click());
+    if (selectFileBtn) {
+        selectFileBtn.addEventListener('click', () => fileInput.click());
+    }
 
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files[0]) {
-            handleFileSelection(e.target.files[0]);
-        }
-    });
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                handleFileSelection(e.target.files[0]);
+            }
+        });
+    }
 
     // Drag and drop
     uploadArea.addEventListener('dragover', (e) => {
@@ -468,8 +472,12 @@
         }
     });
 
-    uploadSubmitBtn.addEventListener('click', uploadFile);
-    uploadCancelBtn.addEventListener('click', resetUploadForm);
+    if (uploadSubmitBtn) {
+        uploadSubmitBtn.addEventListener('click', uploadFile);
+    }
+    if (uploadCancelBtn) {
+        uploadCancelBtn.addEventListener('click', resetUploadForm);
+    }
 
     // Event listeners for modal dismissal
     dismissButtons.forEach(button => {
