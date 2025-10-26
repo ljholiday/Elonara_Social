@@ -83,42 +83,31 @@ $event = $event ?? null;
       </div>
 
       <div class="app-field">
-        <label class="app-label" for="featured_image">Featured Image</label>
-        <?php if (!empty($event['featured_image'])): ?>
-          <div class="app-mb-3">
+        <label class="app-label">Featured Image</label>
+        <div class="app-mb-3" id="featured-image-preview-container">
+          <?php if (!empty($event['featured_image'])): ?>
             <?php
               $featuredUrl = getImageUrl($event['featured_image'], 'mobile', 'original');
               if ($featuredUrl):
             ?>
-              <img src="<?= e($featuredUrl) ?>" alt="<?= e($event['featured_image_alt'] ?? 'Current featured image') ?>" style="max-width: 100%; height: auto; border-radius: 4px;">
+              <img src="<?= e($featuredUrl) ?>" alt="<?= e($event['featured_image_alt'] ?? 'Current featured image') ?>" class="app-img" style="max-width: 400px;" id="featured-image-preview">
               <div class="app-text-muted app-mt-1">Current featured image</div>
+            <?php else: ?>
+              <img src="" alt="Featured image preview" class="app-img" style="max-width: 400px; display: none;" id="featured-image-preview">
             <?php endif; ?>
-          </div>
-        <?php endif; ?>
-        <input
-          type="file"
-          class="app-input<?= isset($errors['featured_image']) ? ' is-invalid' : '' ?>"
-          id="featured_image"
-          name="featured_image"
-          accept="image/jpeg,image/png,image/gif,image/webp"
-        >
-        <small class="app-help-text">Optional. Upload a new image to replace the current one. Maximum 10MB.</small>
+          <?php else: ?>
+            <img src="" alt="Featured image preview" class="app-img" style="max-width: 400px; display: none;" id="featured-image-preview">
+          <?php endif; ?>
+        </div>
+        <button type="button" class="app-btn app-btn-primary" onclick="window.appOpenImageLibrary({ imageType: 'featured', targetPreview: 'featured-image-preview', targetAltInput: 'featured-image-alt', targetUrlInput: 'featured-image-url' })">
+          Select Image
+        </button>
+        <input type="hidden" id="featured-image-alt" name="featured_image_alt" value="<?= e($input['featured_image_alt'] ?? '') ?>">
+        <input type="hidden" id="featured-image-url" name="featured_image_url_uploaded" value="">
+        <small class="app-help-text" style="display: block; margin-top: 0.5rem;">Click to upload a new image or choose from your library. Recommended size: 1200x630px.</small>
         <?php if (isset($errors['featured_image'])): ?>
           <div class="app-field-error"><?= e($errors['featured_image']) ?></div>
         <?php endif; ?>
-      </div>
-
-      <div class="app-field">
-        <label class="app-label" for="featured_image_alt">Featured image description</label>
-        <input
-          type="text"
-          class="app-input<?= isset($errors['featured_image_alt']) ? ' is-invalid' : '' ?>"
-          id="featured_image_alt"
-          name="featured_image_alt"
-          placeholder="Describe the image for accessibility"
-          value="<?= e($input['featured_image_alt'] ?? '') ?>"
-        >
-        <small class="app-help-text">Required if uploading a new image. Describe what's in the image for screen reader users.</small>
         <?php if (isset($errors['featured_image_alt'])): ?>
           <div class="app-field-error"><?= e($errors['featured_image_alt']) ?></div>
         <?php endif; ?>

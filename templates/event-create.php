@@ -97,31 +97,19 @@ $contextAllowed = (bool)($context['allowed'] ?? false);
     </div>
 
     <div class="app-field">
-      <label class="app-label" for="featured_image">Featured Image</label>
-      <input
-        type="file"
-        class="app-input<?= isset($errors['featured_image']) ? ' is-invalid' : '' ?>"
-        id="featured_image"
-        name="featured_image"
-        accept="image/jpeg,image/png,image/gif,image/webp"
-      >
-      <small class="app-help-text">Optional. Maximum 10MB. JPEG, PNG, GIF, or WebP format.</small>
+      <label class="app-label">Featured Image</label>
+      <div class="app-mb-3" id="featured-image-preview-container">
+        <img src="" alt="Featured image preview" class="app-img" style="max-width: 400px; display: none;" id="featured-image-preview">
+      </div>
+      <button type="button" class="app-btn app-btn-primary" onclick="window.appOpenImageLibrary({ imageType: 'featured', targetPreview: 'featured-image-preview', targetAltInput: 'featured-image-alt', targetUrlInput: 'featured-image-url' })">
+        Select Image
+      </button>
+      <input type="hidden" id="featured-image-alt" name="featured_image_alt" value="<?= e($input['featured_image_alt'] ?? '') ?>">
+      <input type="hidden" id="featured-image-url" name="featured_image_url_uploaded" value="">
+      <small class="app-help-text" style="display: block; margin-top: 0.5rem;">Click to upload a new image or choose from your library. Recommended size: 1200x630px.</small>
       <?php if (isset($errors['featured_image'])): ?>
         <div class="app-field-error"><?= e($errors['featured_image']) ?></div>
       <?php endif; ?>
-    </div>
-
-    <div class="app-field">
-      <label class="app-label" for="featured_image_alt">Featured image description</label>
-      <input
-        type="text"
-        class="app-input<?= isset($errors['featured_image_alt']) ? ' is-invalid' : '' ?>"
-        id="featured_image_alt"
-        name="featured_image_alt"
-        placeholder="Describe the image for accessibility"
-        value="<?= e($input['featured_image_alt'] ?? '') ?>"
-      >
-      <small class="app-help-text">Required if uploading an image. Describe what's in the image for screen reader users.</small>
       <?php if (isset($errors['featured_image_alt'])): ?>
         <div class="app-field-error"><?= e($errors['featured_image_alt']) ?></div>
       <?php endif; ?>

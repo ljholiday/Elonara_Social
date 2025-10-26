@@ -48,31 +48,19 @@ $input = $input ?? ['name' => '', 'description' => '', 'privacy' => 'public'];
     </div>
 
     <div class="app-field">
-      <label class="app-label" for="cover_image">Cover Image</label>
-      <input
-        type="file"
-        class="app-input<?= isset($errors['cover_image']) ? ' is-invalid' : '' ?>"
-        id="cover_image"
-        name="cover_image"
-        accept="image/jpeg,image/png,image/gif,image/webp"
-      >
-      <small class="app-help-text">Optional. Maximum 10MB. JPEG, PNG, GIF, or WebP format.</small>
+      <label class="app-label">Cover Image</label>
+      <div class="app-mb-3" id="cover-image-preview-container">
+        <img src="" alt="Cover image preview" class="app-img" style="max-width: 400px; display: none;" id="cover-image-preview">
+      </div>
+      <button type="button" class="app-btn app-btn-primary" onclick="window.appOpenImageLibrary({ imageType: 'cover', targetPreview: 'cover-image-preview', targetAltInput: 'cover-image-alt', targetUrlInput: 'cover-image-url' })">
+        Select Image
+      </button>
+      <input type="hidden" id="cover-image-alt" name="cover_image_alt" value="<?= e($input['cover_image_alt'] ?? '') ?>">
+      <input type="hidden" id="cover-image-url" name="cover_image_url_uploaded" value="">
+      <small class="app-help-text" style="display: block; margin-top: 0.5rem;">Click to upload a new image or choose from your library. Recommended size: 1200x400px.</small>
       <?php if (isset($errors['cover_image'])): ?>
         <div class="app-field-error"><?= e($errors['cover_image']) ?></div>
       <?php endif; ?>
-    </div>
-
-    <div class="app-field">
-      <label class="app-label" for="cover_image_alt">Cover image description</label>
-      <input
-        type="text"
-        class="app-input<?= isset($errors['cover_image_alt']) ? ' is-invalid' : '' ?>"
-        id="cover_image_alt"
-        name="cover_image_alt"
-        placeholder="Describe the image for accessibility"
-        value="<?= e($input['cover_image_alt'] ?? '') ?>"
-      >
-      <small class="app-help-text">Required if uploading an image. Describe what's in the image for screen reader users.</small>
       <?php if (isset($errors['cover_image_alt'])): ?>
         <div class="app-field-error"><?= e($errors['cover_image_alt']) ?></div>
       <?php endif; ?>

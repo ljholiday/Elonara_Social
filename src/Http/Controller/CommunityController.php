@@ -162,10 +162,22 @@ final class CommunityController
             'creator_display_name' => $viewerName,
         ]);
 
-        // Handle cover image upload if provided
-        if (!empty($_FILES['cover_image']) && !empty($_FILES['cover_image']['tmp_name'])) {
+        // Handle cover image from modal upload or traditional file upload
+        $coverImageUrlUploaded = (string)$this->request()->input('cover_image_url_uploaded', '');
+        $imageAlt = trim((string)$this->request()->input('cover_image_alt', ''));
+
+        if ($coverImageUrlUploaded !== '' && $imageAlt !== '') {
+            // Use pre-uploaded image from modal
+            $this->communities->update($community['slug'], [
+                'name' => $validated['input']['name'],
+                'description' => $validated['input']['description'],
+                'privacy' => $validated['input']['privacy'],
+                'cover_image' => $coverImageUrlUploaded,
+                'cover_image_alt' => $imageAlt,
+            ]);
+        } elseif (!empty($_FILES['cover_image']) && !empty($_FILES['cover_image']['tmp_name'])) {
+            // Traditional file upload
             $communityId = (int)$community['id'];
-            $imageAlt = trim((string)$this->request()->input('cover_image_alt', ''));
             $imageValidation = $this->validateImageUpload($_FILES['cover_image'], $imageAlt, $communityId);
 
             if (empty($imageValidation['error'])) {
@@ -263,10 +275,17 @@ final class CommunityController
             'privacy' => $validated['input']['privacy'],
         ];
 
-        // Handle cover image upload if provided
-        if (!empty($_FILES['cover_image']) && !empty($_FILES['cover_image']['tmp_name'])) {
+        // Handle cover image from modal upload or traditional file upload
+        $coverImageUrlUploaded = (string)$this->request()->input('cover_image_url_uploaded', '');
+        $imageAlt = trim((string)$this->request()->input('cover_image_alt', ''));
+
+        if ($coverImageUrlUploaded !== '' && $imageAlt !== '') {
+            // Use pre-uploaded image from modal
+            $updateData['cover_image'] = $coverImageUrlUploaded;
+            $updateData['cover_image_alt'] = $imageAlt;
+        } elseif (!empty($_FILES['cover_image']) && !empty($_FILES['cover_image']['tmp_name'])) {
+            // Traditional file upload
             $communityId = (int)$community['id'];
-            $imageAlt = trim((string)$this->request()->input('cover_image_alt', ''));
             $imageValidation = $this->validateImageUpload($_FILES['cover_image'], $imageAlt, $communityId);
 
             if (!empty($imageValidation['error'])) {

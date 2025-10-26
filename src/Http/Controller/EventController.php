@@ -177,12 +177,26 @@ final class EventController
             'privacy' => $context['privacy'] ?? 'public',
         ]);
 
-        // Handle featured image upload if provided
-        if (!empty($_FILES['featured_image']) && !empty($_FILES['featured_image']['tmp_name'])) {
+        // Handle featured image from modal upload or traditional file upload
+        $featuredImageUrlUploaded = (string)$request->input('featured_image_url_uploaded', '');
+        $imageAlt = trim((string)$request->input('featured_image_alt', ''));
+
+        if ($featuredImageUrlUploaded !== '' && $imageAlt !== '') {
+            // Use pre-uploaded image from modal
+            $this->events->update($slug, [
+                'title' => $validated['input']['title'],
+                'description' => $validated['input']['description'],
+                'event_date' => $validated['event_date_db'],
+                'end_date' => $validated['end_date_db'],
+                'location' => $validated['input']['location'],
+                'featured_image' => $featuredImageUrlUploaded,
+                'featured_image_alt' => $imageAlt,
+            ]);
+        } elseif (!empty($_FILES['featured_image']) && !empty($_FILES['featured_image']['tmp_name'])) {
+            // Traditional file upload
             $event = $this->events->getBySlugOrId($slug);
             if ($event !== null) {
                 $eventId = (int)$event['id'];
-                $imageAlt = trim((string)$request->input('featured_image_alt', ''));
                 $imageValidation = $this->validateImageUpload(
                     $_FILES['featured_image'],
                     $imageAlt,
@@ -278,11 +292,18 @@ final class EventController
             'location' => $validated['input']['location'],
         ];
 
-        // Handle featured image upload if provided
-        if (!empty($_FILES['featured_image']) && !empty($_FILES['featured_image']['tmp_name'])) {
+        // Handle featured image from modal upload or traditional file upload
+        $featuredImageUrlUploaded = (string)$request->input('featured_image_url_uploaded', '');
+        $imageAlt = trim((string)$request->input('featured_image_alt', ''));
+
+        if ($featuredImageUrlUploaded !== '' && $imageAlt !== '') {
+            // Use pre-uploaded image from modal
+            $updateData['featured_image'] = $featuredImageUrlUploaded;
+            $updateData['featured_image_alt'] = $imageAlt;
+        } elseif (!empty($_FILES['featured_image']) && !empty($_FILES['featured_image']['tmp_name'])) {
+            // Traditional file upload
             $eventId = (int)$event['id'];
             $communityId = !empty($event['community_id']) ? (int)$event['community_id'] : null;
-            $imageAlt = trim((string)$request->input('featured_image_alt', ''));
             $imageValidation = $this->validateImageUpload(
                 $_FILES['featured_image'],
                 $imageAlt,

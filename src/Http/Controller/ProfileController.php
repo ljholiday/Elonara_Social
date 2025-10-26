@@ -134,28 +134,39 @@ final class ProfileController
      *   user?: array<string, mixed>,
      *   errors?: array<string, string>,
      *   input?: array<string, string>,
-     *   error?: string
+     *   error?: string,
+     *   success?: bool,
+     *   json?: bool
      * }
      */
     public function update(Request $request): array
     {
         try {
             $currentUserId = (int)($this->auth->currentUserId() ?? 0);
+            $isAjax = $request->expectsJson();
 
             if ($currentUserId <= 0) {
-                return ['error' => 'Please log in to update your profile.'];
+                $error = ['error' => 'Please log in to update your profile.'];
+                if ($isAjax) {
+                    $error['json'] = true;
+                }
+                return $error;
             }
 
             $user = $this->users->getById($currentUserId);
             if ($user === null) {
-                return ['error' => 'User not found.'];
+                $error = ['error' => 'User not found.'];
+                if ($isAjax) {
+                    $error['json'] = true;
+                }
+                return $error;
             }
 
             // Verify CSRF token
             $nonce = (string)$request->input('profile_nonce', '');
 
             if (!$this->security->verifyNonce($nonce, 'app_profile_update', $currentUserId)) {
-                return [
+                $response = [
                     'user' => $user,
                     'errors' => ['nonce' => 'Security verification failed. Please refresh and try again.'],
                     'input' => [
@@ -163,6 +174,10 @@ final class ProfileController
                         'bio' => (string)$request->input('bio', ''),
                     ],
                 ];
+                if ($isAjax) {
+                    $response['json'] = true;
+                }
+                return $response;
             }
 
             // Validate inputs
@@ -175,6 +190,7 @@ final class ProfileController
                 'bio' => $bioValidation['value'],
                 'avatar_alt' => (string)$request->input('avatar_alt', ''),
                 'cover_alt' => (string)$request->input('cover_alt', ''),
+                'avatar_preference' => (string)$request->input('avatar_preference', 'auto'),
             ];
 
             if (!$displayNameValidation['is_valid']) {
@@ -183,6 +199,12 @@ final class ProfileController
 
             if (!$bioValidation['is_valid']) {
                 $errors['bio'] = $bioValidation['errors'][0] ?? 'Bio must be 500 characters or less.';
+            }
+
+            // Validate avatar preference
+            $validPreferences = ['auto', 'custom', 'gravatar'];
+            if (!in_array($input['avatar_preference'], $validPreferences, true)) {
+                $input['avatar_preference'] = 'auto';
             }
 
             // Check for avatar upload
@@ -230,44 +252,75 @@ final class ProfileController
             }
 
             if ($errors) {
-                return [
+                $response = [
                     'user' => $user,
                     'errors' => $errors,
                     'input' => $input,
                 ];
+                if ($isAjax) {
+                    $response['json'] = true;
+                }
+                return $response;
             }
 
             // Update profile
             $updateData = [
                 'display_name' => $input['display_name'],
                 'bio' => $input['bio'],
+                'avatar_preference' => $input['avatar_preference'],
             ];
 
-            if ($hasAvatar) {
+            // Check for uploaded avatar URL from modal
+            $avatarUrlUploaded = (string)$request->input('avatar_url_uploaded', '');
+            if ($avatarUrlUploaded && $input['avatar_alt']) {
+                // Use the already-uploaded image
+                $updateData['avatar_url'] = $avatarUrlUploaded;
+            } elseif ($hasAvatar) {
+                // Traditional file upload
                 $updateData['avatar'] = $_FILES['avatar'];
                 $updateData['avatar_alt'] = $input['avatar_alt'];
             }
 
-            if ($hasCover) {
+            // Check for uploaded cover URL from modal
+            $coverUrlUploaded = (string)$request->input('cover_url_uploaded', '');
+            if ($coverUrlUploaded && $input['cover_alt']) {
+                // Use the already-uploaded image
+                $updateData['cover_url'] = $coverUrlUploaded;
+            } elseif ($hasCover) {
+                // Traditional file upload
                 $updateData['cover'] = $_FILES['cover'];
                 $updateData['cover_alt'] = $input['cover_alt'];
             }
 
             $this->users->updateProfile($currentUserId, $updateData);
 
-            // Redirect to profile page
+            // Get updated user data
             $updatedUser = $this->users->getById($currentUserId);
             $username = $updatedUser['username'] ?? 'user';
+
+            // Return JSON response for AJAX or redirect for traditional form
+            if ($isAjax) {
+                return [
+                    'success' => true,
+                    'json' => true,
+                    'user' => $updatedUser,
+                    'message' => 'Profile updated successfully.',
+                ];
+            }
 
             return ['redirect' => '/profile/' . urlencode($username) . '?updated=1'];
         } catch (\Throwable $e) {
             // Log error for debugging but don't expose details to user
             error_log("ProfileController::update exception: " . $e->getMessage());
-            return [
+            $response = [
                 'user' => $user ?? null,
                 'errors' => ['general' => 'An error occurred while updating your profile. Please try again.'],
                 'input' => $input ?? ['display_name' => '', 'bio' => '', 'avatar_alt' => ''],
             ];
+            if ($isAjax) {
+                $response['json'] = true;
+            }
+            return $response;
         }
     }
 }

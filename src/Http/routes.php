@@ -346,6 +346,32 @@ return static function (Router $router): void {
     $router->post('/profile/update', static function (Request $request) {
         try {
             $result = app_service('controller.profile')->update($request);
+
+            // Handle JSON response for AJAX requests
+            if (isset($result['json']) && $result['json']) {
+                header('Content-Type: application/json');
+                if (isset($result['success']) && $result['success']) {
+                    echo json_encode([
+                        'success' => true,
+                        'user' => $result['user'],
+                        'message' => $result['message'] ?? 'Profile updated successfully.',
+                    ]);
+                } elseif (isset($result['errors'])) {
+                    echo json_encode([
+                        'success' => false,
+                        'errors' => $result['errors'],
+                        'input' => $result['input'] ?? [],
+                    ]);
+                } elseif (isset($result['error'])) {
+                    echo json_encode([
+                        'success' => false,
+                        'error' => $result['error'],
+                    ]);
+                }
+                exit;
+            }
+
+            // Traditional form handling (redirect or re-render)
             if (isset($result['redirect'])) {
                 header('Location: ' . $result['redirect']);
                 exit;
@@ -391,6 +417,124 @@ return static function (Router $router): void {
         $result = app_service('controller.bluesky')->disconnect();
         header('Location: ' . ($result['redirect'] ?? '/profile/edit'));
         exit;
+    });
+
+    // API: Upload Image
+    $router->post('/api/images/upload', static function (Request $request) {
+        try {
+            $authService = app_service('auth.service');
+            $securityService = app_service('security.service');
+            $currentUserId = (int)($authService->currentUserId() ?? 0);
+
+            if ($currentUserId <= 0) {
+                http_response_code(401);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Not authenticated']);
+                return true;
+            }
+
+            // Verify CSRF token
+            $nonce = (string)$request->input('nonce', '');
+            if (!$securityService->verifyNonce($nonce, 'app_nonce', $currentUserId)) {
+                http_response_code(403);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Security verification failed']);
+                return true;
+            }
+
+            // Get image type and alt text
+            $imageType = (string)$request->input('image_type', 'post');
+            $altText = trim((string)$request->input('alt_text', ''));
+
+            if (empty($altText)) {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Alt-text is required for accessibility']);
+                return true;
+            }
+
+            // Check for file upload
+            if (empty($_FILES['image']) || empty($_FILES['image']['tmp_name'])) {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'No image file provided']);
+                return true;
+            }
+
+            $imageService = app_service('image.service');
+            $uploadResult = $imageService->upload(
+                file: $_FILES['image'],
+                altText: $altText,
+                imageType: $imageType,
+                entityType: 'user',
+                entityId: $currentUserId,
+                uploaderId: $currentUserId,
+                context: []
+            );
+
+            if (!$uploadResult['success']) {
+                http_response_code(400);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => $uploadResult['error'] ?? 'Upload failed']);
+                return true;
+            }
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'image_id' => $uploadResult['image_id'],
+                'urls' => $uploadResult['urls'],
+                'alt_text' => $altText,
+            ]);
+            return true;
+        } catch (\Throwable $e) {
+            error_log("Image upload API error: " . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Upload failed: ' . $e->getMessage()]);
+            return true;
+        }
+    });
+
+    // API: User Images
+    $router->get('/api/user/images', static function (Request $request) {
+        try {
+            $authService = app_service('auth.service');
+            $currentUserId = (int)($authService->currentUserId() ?? 0);
+
+            if ($currentUserId <= 0) {
+                http_response_code(401);
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Not authenticated']);
+                return true;
+            }
+
+            $imageService = app_service('image.service');
+            $imageType = $request->query('type');
+            $limit = min((int)$request->query('limit', 50), 100);
+            $offset = max((int)$request->query('offset', 0), 0);
+
+            $images = $imageService->getUserImages($currentUserId, $imageType, $limit, $offset);
+            $total = $imageService->getUserImagesCount($currentUserId, $imageType);
+
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'images' => $images,
+                'total' => $total,
+                'limit' => $limit,
+                'offset' => $offset,
+            ]);
+            return true;
+        } catch (\Throwable $e) {
+            error_log("User images API error: " . $e->getMessage());
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Failed to fetch images']);
+            return true;
+        }
     });
 
     // API: Bluesky

@@ -46,23 +46,21 @@ $profile_url = !empty($user->id)
     ? '/profile/' . (int)$user->id
     : '/profile';
 
-// Get avatar URL
+// Get avatar URL based on user preference
 $avatar_url = '';
 $has_custom_avatar = false;
+$avatar_preference = $user->avatar_preference ?? 'auto';
 
-if (!empty($user->avatar_url)) {
-    // User has uploaded avatar - try to get appropriate size
-    $avatarSize = match(true) {
-        $args['avatar_size'] >= 56 => 'medium',
-        $args['avatar_size'] <= 32 => 'small',
-        default => 'thumb'
-    };
-    $avatar_url = getImageUrl($user->avatar_url, $avatarSize, 'original');
-    $has_custom_avatar = !empty($avatar_url);
-}
+// Determine avatar size for custom images
+$avatarSize = match(true) {
+    $args['avatar_size'] >= 56 => 'medium',
+    $args['avatar_size'] <= 32 => 'small',
+    default => 'thumb'
+};
 
-// Fallback to Gravatar if no custom avatar
-if (!$has_custom_avatar) {
+// Handle avatar based on preference
+if ($avatar_preference === 'gravatar') {
+    // Force Gravatar only
     if (!empty($user->email)) {
         $hash = md5(strtolower(trim($user->email)));
         $avatar_url = "https://www.gravatar.com/avatar/{$hash}?s=" . intval($args['avatar_size']) . "&d=identicon";
@@ -70,6 +68,31 @@ if (!$has_custom_avatar) {
         $fallbackEmail = 'default@' . (string)app_config('app_domain', 'example.com');
         $fallback_hash = md5($fallbackEmail);
         $avatar_url = "https://www.gravatar.com/avatar/{$fallback_hash}?s=" . intval($args['avatar_size']) . "&d=identicon";
+    }
+} elseif ($avatar_preference === 'custom') {
+    // Custom only - no Gravatar fallback
+    if (!empty($user->avatar_url)) {
+        $avatar_url = getImageUrl($user->avatar_url, $avatarSize, 'original');
+        $has_custom_avatar = !empty($avatar_url);
+    }
+    // If no custom avatar, leave empty (will show placeholder)
+} else {
+    // Auto mode (default): try custom first, then Gravatar
+    if (!empty($user->avatar_url)) {
+        $avatar_url = getImageUrl($user->avatar_url, $avatarSize, 'original');
+        $has_custom_avatar = !empty($avatar_url);
+    }
+
+    // Fallback to Gravatar if no custom avatar
+    if (!$has_custom_avatar) {
+        if (!empty($user->email)) {
+            $hash = md5(strtolower(trim($user->email)));
+            $avatar_url = "https://www.gravatar.com/avatar/{$hash}?s=" . intval($args['avatar_size']) . "&d=identicon";
+        } else {
+            $fallbackEmail = 'default@' . (string)app_config('app_domain', 'example.com');
+            $fallback_hash = md5($fallbackEmail);
+            $avatar_url = "https://www.gravatar.com/avatar/{$fallback_hash}?s=" . intval($args['avatar_size']) . "&d=identicon";
+        }
     }
 }
 

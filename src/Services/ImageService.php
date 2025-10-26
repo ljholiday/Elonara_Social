@@ -536,4 +536,87 @@ final class ImageService
 
         $stmt->execute($params);
     }
+
+    /**
+     * Get images uploaded by a specific user
+     *
+     * @param int $userId User ID
+     * @param string|null $imageType Optional filter by image type (profile, cover, post, etc.)
+     * @param int $limit Maximum number of images to return
+     * @param int $offset Pagination offset
+     * @return array List of image records
+     */
+    public function getUserImages(int $userId, ?string $imageType = null, int $limit = 50, int $offset = 0): array
+    {
+        $pdo = $this->db->pdo();
+
+        $sql = "
+            SELECT
+                id, uploader_id, image_type, urls, alt_text, file_path,
+                file_size, mime_type, width, height,
+                community_id, event_id, conversation_id, reply_id,
+                is_community_cover, is_event_cover, is_profile_image, is_cover_image,
+                created_at
+            FROM images
+            WHERE uploader_id = :user_id
+                AND is_active = 1
+                AND deleted_at IS NULL
+        ";
+
+        $params = [':user_id' => $userId];
+
+        if ($imageType !== null) {
+            $sql .= " AND image_type = :image_type";
+            $params[':image_type'] = $imageType;
+        }
+
+        $sql .= " ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
+
+        $stmt = $pdo->prepare($sql);
+
+        // Bind limit and offset as integers
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        if ($imageType !== null) {
+            $stmt->bindValue(':image_type', $imageType, PDO::PARAM_STR);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get total count of images for a user
+     *
+     * @param int $userId User ID
+     * @param string|null $imageType Optional filter by image type
+     * @return int Total count
+     */
+    public function getUserImagesCount(int $userId, ?string $imageType = null): int
+    {
+        $pdo = $this->db->pdo();
+
+        $sql = "
+            SELECT COUNT(*) as total
+            FROM images
+            WHERE uploader_id = :user_id
+                AND is_active = 1
+                AND deleted_at IS NULL
+        ";
+
+        $params = [':user_id' => $userId];
+
+        if ($imageType !== null) {
+            $sql .= " AND image_type = :image_type";
+            $params[':image_type'] = $imageType;
+        }
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int)($result['total'] ?? 0);
+    }
 }

@@ -43,6 +43,8 @@ $csrf_token = $security->createNonce('app_nonce');
     </main>
 </div>
 
+<?php include __DIR__ . '/../partials/global-modals.php'; ?>
+
 <script src="<?= htmlspecialchars($assetBase . '/js/app.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script>
 if ('serviceWorker' in navigator) {

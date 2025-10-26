@@ -608,6 +608,7 @@ CREATE TABLE `users` (
   `display_name` varchar(250) COLLATE utf8mb4_unicode_ci NOT NULL,
   `bio` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `avatar_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `avatar_preference` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'auto' COMMENT 'Avatar source preference: auto, custom, gravatar',
   `cover_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `cover_alt` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `status` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'active',
@@ -619,7 +620,8 @@ CREATE TABLE `users` (
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `username` (`username`),
   KEY `status` (`status`),
-  KEY `role` (`role`)
+  KEY `role` (`role`),
+  KEY `idx_avatar_preference` (`avatar_preference`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

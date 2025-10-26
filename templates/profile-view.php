@@ -49,17 +49,37 @@ $activity = $recent_activity ?? [];
       <?php endif; ?>
 
       <div class="app-avatar-row">
-        <?php if (!empty($u->avatar_url)): ?>
-          <?php
-            $avatarUrl = getImageUrl($u->avatar_url, 'original', 'original');
-            if ($avatarUrl):
-          ?>
-            <img src="<?= e($avatarUrl) ?>" alt="<?= e($u->display_name ?? $u->username) ?>" class="app-profile-avatar" loading="eager">
-          <?php else: ?>
-            <div class="app-profile-avatar app-avatar-placeholder">
-              <?= strtoupper(substr($u->display_name ?? $u->username ?? 'U', 0, 1)) ?>
-            </div>
-          <?php endif; ?>
+        <?php
+          // Determine avatar URL based on preference
+          $avatarUrl = '';
+          $avatarPref = $u->avatar_preference ?? 'auto';
+
+          if ($avatarPref === 'gravatar') {
+              // Force Gravatar only
+              if (!empty($u->email)) {
+                  $hash = md5(strtolower(trim($u->email)));
+                  $avatarUrl = "https://www.gravatar.com/avatar/{$hash}?s=200&d=identicon";
+              }
+          } elseif ($avatarPref === 'custom') {
+              // Custom only - no Gravatar fallback
+              if (!empty($u->avatar_url)) {
+                  $avatarUrl = getImageUrl($u->avatar_url, 'original', 'original');
+              }
+          } else {
+              // Auto mode (default): try custom first, then Gravatar
+              if (!empty($u->avatar_url)) {
+                  $avatarUrl = getImageUrl($u->avatar_url, 'original', 'original');
+              }
+              // Fallback to Gravatar if no custom avatar
+              if (!$avatarUrl && !empty($u->email)) {
+                  $hash = md5(strtolower(trim($u->email)));
+                  $avatarUrl = "https://www.gravatar.com/avatar/{$hash}?s=200&d=identicon";
+              }
+          }
+        ?>
+
+        <?php if ($avatarUrl): ?>
+          <img src="<?= e($avatarUrl) ?>" alt="<?= e($u->display_name ?? $u->username) ?>" class="app-profile-avatar" loading="eager">
         <?php else: ?>
           <div class="app-profile-avatar app-avatar-placeholder">
             <?= strtoupper(substr($u->display_name ?? $u->username ?? 'U', 0, 1)) ?>

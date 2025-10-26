@@ -95,6 +95,27 @@ final class Request
     }
 
     /**
+     * Check if this is an AJAX request
+     *
+     * @return bool
+     */
+    public function isAjax(): bool
+    {
+        return strtolower((string)($this->server['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
+    }
+
+    /**
+     * Check if client expects JSON response
+     *
+     * @return bool
+     */
+    public function expectsJson(): bool
+    {
+        $accept = strtolower((string)($this->server['HTTP_ACCEPT'] ?? ''));
+        return $this->isAjax() || str_contains($accept, 'application/json');
+    }
+
+    /**
      * Attempt to parse the raw php://input stream when PHP does not populate $_POST.
      *
      * @return array<string, mixed>|null

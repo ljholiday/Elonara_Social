@@ -17,17 +17,21 @@ $input = $input ?? [];
   <?php if ($u): ?>
     <h1 class="app-heading app-mb-6">Edit Profile</h1>
 
-    <?php if (!empty($errors)): ?>
-      <div class="app-alert app-alert-error app-mb-4">
-        <ul>
-          <?php foreach ($errors as $message): ?>
-            <li><?= e($message) ?></li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-    <?php endif; ?>
+    <div id="profile-success"></div>
 
-    <form method="post" action="/profile/update" class="app-form app-stack" enctype="multipart/form-data">
+    <div id="profile-errors">
+      <?php if (!empty($errors)): ?>
+        <div class="app-alert app-alert-error app-mb-4">
+          <ul>
+            <?php foreach ($errors as $message): ?>
+              <li><?= e($message) ?></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+      <?php endif; ?>
+    </div>
+
+    <form method="post" action="/profile/update" class="app-form app-stack" enctype="multipart/form-data" id="profile-edit-form">
       <?php if (function_exists('app_service')): ?>
         <?php echo app_service('security.service')->nonceField('app_profile_update', 'profile_nonce'); ?>
       <?php endif; ?>
@@ -66,7 +70,41 @@ $input = $input ?? [];
       </div>
 
       <div class="app-field">
-        <label class="app-label" for="avatar">Avatar</label>
+        <label class="app-label">Avatar Source</label>
+        <div class="app-radio-group app-mb-3">
+          <?php $avatarPref = $u->avatar_preference ?? 'auto'; ?>
+          <label class="app-radio-label">
+            <input
+              type="radio"
+              name="avatar_preference"
+              value="auto"
+              <?= $avatarPref === 'auto' ? 'checked' : '' ?>
+            >
+            <span>Auto (use custom if available, otherwise Gravatar)</span>
+          </label>
+          <label class="app-radio-label">
+            <input
+              type="radio"
+              name="avatar_preference"
+              value="custom"
+              <?= $avatarPref === 'custom' ? 'checked' : '' ?>
+            >
+            <span>Custom avatar only</span>
+          </label>
+          <label class="app-radio-label">
+            <input
+              type="radio"
+              name="avatar_preference"
+              value="gravatar"
+              <?= $avatarPref === 'gravatar' ? 'checked' : '' ?>
+            >
+            <span>Gravatar only</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="app-field">
+        <label class="app-label">Avatar Image</label>
         <div class="app-mb-3" id="avatar-preview-container">
           <?php if (!empty($u->avatar_url)): ?>
             <?php
@@ -81,43 +119,27 @@ $input = $input ?? [];
               </div>
             <?php endif; ?>
           <?php else: ?>
-            <div class="app-avatar app-avatar-lg app-avatar-placeholder" id="avatar-preview" style="display: none;">
+            <div class="app-avatar app-avatar-lg app-avatar-placeholder" id="avatar-preview">
               <?= strtoupper(substr($u->display_name ?? $u->username ?? 'U', 0, 1)) ?>
             </div>
           <?php endif; ?>
         </div>
-        <input
-          type="file"
-          class="app-input<?= isset($errors['avatar']) ? ' is-invalid' : '' ?>"
-          id="avatar"
-          name="avatar"
-          accept="image/jpeg,image/png,image/gif,image/webp"
-          data-preview="avatar-preview"
-        >
-        <small class="app-help-text">Upload a new avatar. Maximum 10MB. JPEG, PNG, GIF, or WebP format.</small>
+        <button type="button" class="app-btn app-btn-primary" onclick="window.appOpenImageLibrary({ imageType: 'profile', targetPreview: 'avatar-preview', targetAltInput: 'avatar-alt', targetUrlInput: 'avatar-url' })">
+          Select Image
+        </button>
+        <input type="hidden" id="avatar-alt" name="avatar_alt" value="<?= e($input['avatar_alt'] ?? '') ?>">
+        <input type="hidden" id="avatar-url" name="avatar_url_uploaded" value="">
+        <small class="app-help-text" style="display: block; margin-top: 0.5rem;">Click to upload a new image or choose from your library.</small>
         <?php if (isset($errors['avatar'])): ?>
           <div class="app-field-error"><?= e($errors['avatar']) ?></div>
         <?php endif; ?>
-      </div>
-
-      <div class="app-field">
-        <label class="app-label" for="avatar-alt">Avatar description</label>
-        <input
-          type="text"
-          class="app-input<?= isset($errors['avatar_alt']) ? ' is-invalid' : '' ?>"
-          id="avatar-alt"
-          name="avatar_alt"
-          placeholder="Describe your avatar for accessibility"
-          value="<?= e($input['avatar_alt'] ?? '') ?>"
-        >
-        <small class="app-help-text">Required if uploading a new avatar. Describe what's in the image for screen reader users.</small>
         <?php if (isset($errors['avatar_alt'])): ?>
           <div class="app-field-error"><?= e($errors['avatar_alt']) ?></div>
         <?php endif; ?>
       </div>
 
       <div class="app-field">
-        <label class="app-label" for="cover">Cover Image</label>
+        <label class="app-label">Cover Image</label>
         <div class="app-mb-3" id="cover-preview-container">
           <?php if (!empty($u->cover_url)): ?>
             <?php
@@ -131,31 +153,15 @@ $input = $input ?? [];
             <img src="" alt="Cover preview" class="app-img" style="max-width: 400px; display: none;" id="cover-preview">
           <?php endif; ?>
         </div>
-        <input
-          type="file"
-          class="app-input<?= isset($errors['cover']) ? ' is-invalid' : '' ?>"
-          id="cover"
-          name="cover"
-          accept="image/jpeg,image/png,image/gif,image/webp"
-          data-preview="cover-preview"
-        >
-        <small class="app-help-text">Upload a cover image. Maximum 10MB. JPEG, PNG, GIF, or WebP format. Recommended size: 1200x400px.</small>
+        <button type="button" class="app-btn app-btn-primary" onclick="window.appOpenImageLibrary({ imageType: 'cover', targetPreview: 'cover-preview', targetAltInput: 'cover-alt', targetUrlInput: 'cover-url' })">
+          Select Image
+        </button>
+        <input type="hidden" id="cover-alt" name="cover_alt" value="<?= e($input['cover_alt'] ?? '') ?>">
+        <input type="hidden" id="cover-url" name="cover_url_uploaded" value="">
+        <small class="app-help-text" style="display: block; margin-top: 0.5rem;">Click to upload a cover image or choose from your library. Recommended size: 1200x400px.</small>
         <?php if (isset($errors['cover'])): ?>
           <div class="app-field-error"><?= e($errors['cover']) ?></div>
         <?php endif; ?>
-      </div>
-
-      <div class="app-field">
-        <label class="app-label" for="cover-alt">Cover image description</label>
-        <input
-          type="text"
-          class="app-input<?= isset($errors['cover_alt']) ? ' is-invalid' : '' ?>"
-          id="cover-alt"
-          name="cover_alt"
-          placeholder="Describe your cover image for accessibility"
-          value="<?= e($input['cover_alt'] ?? '') ?>"
-        >
-        <small class="app-help-text">Required if uploading a cover image. Describe what's in the image for screen reader users.</small>
         <?php if (isset($errors['cover_alt'])): ?>
           <div class="app-field-error"><?= e($errors['cover_alt']) ?></div>
         <?php endif; ?>
@@ -260,3 +266,11 @@ $input = $input ?? [];
     </div>
   <?php endif; ?>
 </section>
+
+<?php if ($u): ?>
+  <?php
+  // Load profile edit JavaScript
+  $assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
+  ?>
+  <script src="<?= htmlspecialchars($assetBase . '/js/profile-edit.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+<?php endif; ?>

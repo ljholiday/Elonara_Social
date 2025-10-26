@@ -90,8 +90,23 @@ final class UserService
             $params[':bio'] = $bio !== '' ? $bio : null;
         }
 
-        // Handle avatar upload
-        if ($this->imageService && !empty($data['avatar']) && !empty($data['avatar']['tmp_name'])) {
+        // Update avatar preference
+        if (isset($data['avatar_preference'])) {
+            $validPreferences = ['auto', 'custom', 'gravatar'];
+            $preference = $data['avatar_preference'];
+            if (in_array($preference, $validPreferences, true)) {
+                $updates[] = 'avatar_preference = :avatar_preference';
+                $params[':avatar_preference'] = $preference;
+            }
+        }
+
+        // Handle avatar URL (from modal upload)
+        if (isset($data['avatar_url']) && is_string($data['avatar_url']) && $data['avatar_url'] !== '') {
+            $updates[] = 'avatar_url = :avatar_url';
+            $params[':avatar_url'] = $data['avatar_url'];
+        }
+        // Handle avatar upload (traditional file upload)
+        elseif ($this->imageService && !empty($data['avatar']) && !empty($data['avatar']['tmp_name'])) {
             $avatarAlt = trim((string)($data['avatar_alt'] ?? ''));
             if ($avatarAlt === '') {
                 throw new \RuntimeException('Avatar alt-text is required for accessibility.');
@@ -127,8 +142,19 @@ final class UserService
             }
         }
 
-        // Handle cover image upload
-        if ($this->imageService && !empty($data['cover']) && !empty($data['cover']['tmp_name'])) {
+        // Handle cover URL (from modal upload)
+        if (isset($data['cover_url']) && is_string($data['cover_url']) && $data['cover_url'] !== '') {
+            $updates[] = 'cover_url = :cover_url';
+            $params[':cover_url'] = $data['cover_url'];
+
+            // Also update cover_alt if provided
+            if (isset($data['cover_alt'])) {
+                $updates[] = 'cover_alt = :cover_alt';
+                $params[':cover_alt'] = trim((string)$data['cover_alt']);
+            }
+        }
+        // Handle cover image upload (traditional file upload)
+        elseif ($this->imageService && !empty($data['cover']) && !empty($data['cover']['tmp_name'])) {
             $coverAlt = trim((string)($data['cover_alt'] ?? ''));
             if ($coverAlt === '') {
                 throw new \RuntimeException('Cover image alt-text is required for accessibility.');
