@@ -53,15 +53,22 @@ $conversations = $conversations ?? [];
             <?php if (!empty($c->content)): ?>
               <p class="app-card-desc"><?= e(mb_substr($c->content, 0, 200)) ?><?= mb_strlen($c->content) > 200 ? '...' : '' ?></p>
             <?php endif; ?>
-            <div class="app-card-meta">
-              <span><?= e($c->author_name ?? 'Unknown') ?></span>
-              <?php if (!empty($c->created_at)): ?>
-                <span> · <?= e(date_fmt($c->created_at)) ?></span>
-              <?php endif; ?>
-              <?php if (!empty($c->reply_count)): ?>
-                <span> · <?= e((string)$c->reply_count) ?> replies</span>
-              <?php endif; ?>
-            </div>
+            <?php
+              $conversationMetaItems = [];
+              if (!empty($c->author_name)) {
+                  $conversationMetaItems[] = ['text' => 'Started by ' . $c->author_name];
+              }
+              if (!empty($c->created_at)) {
+                  $conversationMetaItems[] = ['text' => date_fmt($c->created_at)];
+              }
+              if (!empty($c->reply_count)) {
+                  $conversationMetaItems[] = ['text' => number_format((int)$c->reply_count) . ' replies'];
+              }
+              if ($conversationMetaItems !== []) {
+                  $items = $conversationMetaItems;
+                  include __DIR__ . '/partials/meta-row.php';
+              }
+            ?>
           </article>
         <?php endforeach; ?>
       </div>

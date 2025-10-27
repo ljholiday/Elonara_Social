@@ -95,9 +95,18 @@ $activity = $recent_activity ?? [];
           <p class="app-mt-3"><?= nl2br(e($u->bio)) ?></p>
         <?php endif; ?>
 
-        <div class="app-card-meta app-mt-3">
-          <span>Joined <?= date_fmt($u->created_at) ?></span>
-        </div>
+        <?php
+          $identityMetaItems = [];
+          if (!empty($u->created_at)) {
+              $identityMetaItems[] = ['text' => 'Joined ' . date_fmt($u->created_at)];
+          }
+          if ($identityMetaItems !== []):
+              $items = $identityMetaItems;
+        ?>
+          <div class="app-mt-3">
+            <?php include __DIR__ . '/partials/meta-row.php'; ?>
+          </div>
+        <?php endif; ?>
 
         <?php if ($is_own): ?>
           <div class="app-mt-4">
@@ -109,20 +118,16 @@ $activity = $recent_activity ?? [];
 
     <!-- Stats -->
     <div class="app-card app-mb-6">
-      <h2 class="app-heading-sm app-mb-3">Stats</h2>
-      <div class="app-flex app-gap-6">
-        <div class="app-stat">
-          <div class="app-stat-number"><?= e($stats['conversations']) ?></div>
-          <div class="app-stat-label">Conversations</div>
-        </div>
-        <div class="app-stat">
-          <div class="app-stat-number"><?= e($stats['replies']) ?></div>
-          <div class="app-stat-label">Replies</div>
-        </div>
-        <div class="app-stat">
-          <div class="app-stat-number"><?= e($stats['communities']) ?></div>
-          <div class="app-stat-label">Communities</div>
-        </div>
+      <div class="app-card-body">
+        <?php
+          $profileStatsItems = [
+              ['value' => (int)($stats['conversations'] ?? 0), 'label' => 'Conversations'],
+              ['value' => (int)($stats['replies'] ?? 0), 'label' => 'Replies'],
+              ['value' => (int)($stats['communities'] ?? 0), 'label' => 'Communities'],
+          ];
+          $items = $profileStatsItems;
+          include __DIR__ . '/partials/stats-row.php';
+        ?>
       </div>
     </div>
 

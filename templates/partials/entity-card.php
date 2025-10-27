@@ -107,38 +107,45 @@ switch ($entity_type) {
             </div>
         <?php endif; ?>
 
-        <!-- Stats and Actions -->
-        <div class="app-flex app-flex-between app-items-center">
-            <!-- Stats -->
-            <?php if (!empty($stats)) : ?>
-                <div class="app-flex app-gap-4">
-                    <?php foreach ($stats as $stat) : ?>
-                        <div class="app-stat">
-                            <div class="app-stat-number app-text-primary">
-                                <?php if (!empty($stat['icon'])) : ?>
-                                    <?php echo $stat['icon']; ?>
-                                <?php endif; ?>
-                                <?php echo htmlspecialchars($stat['value'] ?? '0'); ?>
-                            </div>
-                            <div class="app-stat-label app-text-muted">
-                                <?php echo htmlspecialchars($stat['label'] ?? ''); ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+        <?php
+            $statItems = [];
+            if (!empty($stats)) {
+                foreach ($stats as $stat) {
+                    if (!is_array($stat)) {
+                        continue;
+                    }
+                    $value = $stat['value'] ?? null;
+                    if ($value === null || trim((string)$value) === '') {
+                        continue;
+                    }
 
-            <!-- Actions -->
-            <?php if (!empty($actions)) : ?>
-                <div class="app-flex app-gap-2">
-                    <?php foreach ($actions as $action) : ?>
-                        <a href="<?php echo htmlspecialchars($action['url'] ?? '#'); ?>"
-                           class="app-btn app-btn-sm <?php echo htmlspecialchars($action['class'] ?? ''); ?>">
-                            <?php echo htmlspecialchars($action['label'] ?? ''); ?>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
+                    $statItems[] = [
+                        'value' => $value,
+                        'label' => $stat['label'] ?? '',
+                        'icon' => $stat['icon'] ?? '',
+                    ];
+                }
+            }
+        ?>
+
+        <?php if ($statItems !== []) : ?>
+            <div class="app-mb-4">
+                <?php
+                    $items = $statItems;
+                    include __DIR__ . '/stats-row.php';
+                ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($actions)) : ?>
+            <div class="app-flex app-gap-2 app-flex-wrap">
+                <?php foreach ($actions as $action) : ?>
+                    <a href="<?php echo htmlspecialchars($action['url'] ?? '#'); ?>"
+                       class="app-btn app-btn-sm <?php echo htmlspecialchars($action['class'] ?? ''); ?>">
+                        <?php echo htmlspecialchars($action['label'] ?? ''); ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
     </div>
 </div>

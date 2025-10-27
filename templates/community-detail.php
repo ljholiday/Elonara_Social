@@ -62,40 +62,18 @@ $status = $status ?? (empty($community) ? 404 : 200);
       <p class="app-body"><?= e($c->description) ?></p>
     <?php endif; ?>
 
-    <ul class="app-metadata">
-      <?php if (isset($c->member_count)): ?>
-        <li><strong><?= e((string)$c->member_count) ?></strong> members</li>
-      <?php endif; ?>
-      <?php if (isset($c->event_count)): ?>
-        <li><strong><?= e((string)$c->event_count) ?></strong> events</li>
-      <?php endif; ?>
-    </ul>
-
-    <?php if (!empty($circle_context) && is_array($circle_context)): ?>
-      <section class="app-circle-summary app-mt-4">
-        <h2 class="app-heading-sm">Your circles</h2>
-        <dl class="app-definition-grid">
-          <?php foreach (['inner' => 'Inner circle', 'trusted' => 'Trusted circle', 'extended' => 'Extended circle'] as $key => $label): ?>
-            <?php
-              $communities = $circle_context[$key]['communities'] ?? [];
-              $creators = $circle_context[$key]['creators'] ?? [];
-            ?>
-            <div>
-              <dt><?= e($label) ?></dt>
-              <dd>
-                <?= e(count($communities)) ?> communities ·
-                <?= e(count($creators)) ?> creators
-              </dd>
-            </div>
-          <?php endforeach; ?>
-        </dl>
-      </section>
-    <?php endif; ?>
-
-    <?php if ($privacy === 'public' && !($viewer['is_member'] ?? false)): ?>
-      <div class="app-banner app-mt-4">
-        <p class="app-text-muted">Interested in joining? Ask a member for an invitation to participate.</p>
-      </div>
-    <?php endif; ?>
+    <?php
+      $communityMetaItems = [];
+      if (isset($c->member_count)) {
+          $communityMetaItems[] = ['text' => number_format((int)$c->member_count) . ' members'];
+      }
+      if (isset($c->event_count)) {
+          $communityMetaItems[] = ['text' => number_format((int)$c->event_count) . ' events'];
+      }
+      if ($communityMetaItems !== []) {
+          $items = $communityMetaItems;
+          include __DIR__ . '/partials/meta-row.php';
+      }
+    ?>
   <?php endif; ?>
 </section>

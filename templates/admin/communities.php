@@ -67,22 +67,17 @@ $currentQuery = $searchQuery !== '' ? ['q' => $searchQuery] : [];
         $badge = app_visibility_badge($privacy);
         ?>
         <div style="background:#f8faff; border-radius:10px; padding:1.25rem; border:1px solid #e0e7ff;">
-          <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:1rem;">
-            <div>
-              <h4 style="margin:0 0 0.5rem 0; font-size:1.1rem;">
-                <a href="<?= htmlspecialchars($communityUrl); ?>" class="app-link" target="_blank">
-                  <?= htmlspecialchars($name); ?>
-                </a>
-              </h4>
-              <?php if (!empty($badge['label'])): ?>
-                <span class="<?= htmlspecialchars($badge['class']); ?>" style="font-size:0.7rem;">
-                  <?= htmlspecialchars($badge['label']); ?>
-                </span>
-              <?php endif; ?>
-            </div>
-            <div style="text-align:right; font-size:0.85rem; color:#6b748a;">
-              <div><strong>ID:</strong> <?= $id; ?></div>
-            </div>
+          <div style="margin-bottom:1rem;">
+            <h4 style="margin:0 0 0.5rem 0; font-size:1.1rem;">
+              <a href="<?= htmlspecialchars($communityUrl); ?>" class="app-link" target="_blank">
+                <?= htmlspecialchars($name); ?>
+              </a>
+            </h4>
+            <?php if (!empty($badge['label'])): ?>
+              <span class="<?= htmlspecialchars($badge['class']); ?>" style="font-size:0.7rem;">
+                <?= htmlspecialchars($badge['label']); ?>
+              </span>
+            <?php endif; ?>
           </div>
 
           <?php if ($description !== ''): ?>
@@ -91,17 +86,20 @@ $currentQuery = $searchQuery !== '' ? ['q' => $searchQuery] : [];
             </div>
           <?php endif; ?>
 
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem; font-size:0.9rem; color:#495267;">
-            <div>
-              <strong style="color:#10162f;">Members:</strong> <?= number_format($memberCount); ?>
-            </div>
-            <div>
-              <strong style="color:#10162f;">Creator:</strong> <?= htmlspecialchars($creatorName); ?>
-            </div>
-            <div>
-              <strong style="color:#10162f;">Created:</strong> <?= htmlspecialchars($formattedDate); ?>
-            </div>
-          </div>
+          <?php
+            $communityMetaItems = [
+                ['text' => number_format($memberCount) . ' members'],
+            ];
+            if ($creatorName !== '') {
+                $communityMetaItems[] = ['text' => 'Creator ' . $creatorName];
+            }
+            if ($formattedDate !== 'Unknown') {
+                $communityMetaItems[] = ['text' => 'Created ' . $formattedDate];
+            }
+            $communityMetaItems[] = ['text' => 'ID ' . (string)$id];
+            $items = $communityMetaItems;
+            include __DIR__ . '/../partials/meta-row.php';
+          ?>
 
           <div style="margin-top:1rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
             <a href="<?= htmlspecialchars($communityUrl); ?>" class="app-btn app-btn-sm" target="_blank">View Community</a>

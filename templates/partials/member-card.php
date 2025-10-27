@@ -7,6 +7,7 @@
  *   'title_url' => string|null,
  *   'subtitle' => string|null,
  *   'meta' => string|null,
+ *   'meta_items' => array<int,array<string,mixed>>|null,
  *   'body_html' => string|null, // sanitized html snippet (optional)
  *   'badges' => array<int,array{label:string,class?:string}>,
  *   'actions' => array<int,string>, // sanitized html buttons/links
@@ -25,6 +26,10 @@ $title = (string)($card['title'] ?? '');
 $titleUrl = array_key_exists('title_url', $card) ? $card['title_url'] : null;
 $subtitle = (string)($card['subtitle'] ?? '');
 $meta = (string)($card['meta'] ?? '');
+$metaItems = $card['meta_items'] ?? [];
+if (!is_array($metaItems)) {
+    $metaItems = [];
+}
 $bodyHtml = (string)($card['body_html'] ?? '');
 
 $attrString = '';
@@ -61,7 +66,12 @@ if ($extraClass !== '') {
       </div>
     <?php endif; ?>
 
-    <?php if ($meta !== ''): ?>
+    <?php if ($metaItems !== []): ?>
+      <?php
+        $items = $metaItems;
+        include __DIR__ . '/meta-row.php';
+      ?>
+    <?php elseif ($meta !== ''): ?>
       <small class="app-text-muted">
         <?= htmlspecialchars($meta, ENT_QUOTES, 'UTF-8'); ?>
       </small>

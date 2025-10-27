@@ -72,43 +72,42 @@ $currentQuery = $searchQuery !== '' ? ['q' => $searchQuery] : [];
         $badge = app_visibility_badge($privacy);
         ?>
         <div style="background:#f8faff; border-radius:10px; padding:1.25rem; border:1px solid #e0e7ff;">
-          <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:1rem;">
-            <div>
-              <h4 style="margin:0 0 0.5rem 0; font-size:1.1rem;">
-                <a href="<?= htmlspecialchars($eventUrl); ?>" class="app-link" target="_blank">
-                  <?= htmlspecialchars($title); ?>
-                </a>
-              </h4>
-              <?php if (!empty($badge['label'])): ?>
-                <span class="<?= htmlspecialchars($badge['class']); ?>" style="font-size:0.7rem;">
-                  <?= htmlspecialchars($badge['label']); ?>
-                </span>
-              <?php endif; ?>
-            </div>
-            <div style="text-align:right; font-size:0.85rem; color:#6b748a;">
-              <div><strong>ID:</strong> <?= $id; ?></div>
-            </div>
-          </div>
-
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem; font-size:0.9rem; color:#495267;">
-            <div>
-              <strong style="color:#10162f;">Date:</strong> <?= htmlspecialchars($formattedDate); ?>
-              <?php if ($formattedEndDate !== ''): ?>
-                <br><strong style="color:#10162f;">End:</strong> <?= htmlspecialchars($formattedEndDate); ?>
-              <?php endif; ?>
-            </div>
-            <div>
-              <strong style="color:#10162f;">Host:</strong> <?= htmlspecialchars($hostName); ?>
-            </div>
-            <?php if ($communityName !== ''): ?>
-              <div>
-                <strong style="color:#10162f;">Community:</strong>
-                <a href="/communities/<?= htmlspecialchars($communitySlug); ?>" class="app-link" target="_blank">
-                  <?= htmlspecialchars($communityName); ?>
-                </a>
-              </div>
+          <div style="margin-bottom:1rem;">
+            <h4 style="margin:0 0 0.5rem 0; font-size:1.1rem;">
+              <a href="<?= htmlspecialchars($eventUrl); ?>" class="app-link" target="_blank">
+                <?= htmlspecialchars($title); ?>
+              </a>
+            </h4>
+            <?php if (!empty($badge['label'])): ?>
+              <span class="<?= htmlspecialchars($badge['class']); ?>" style="font-size:0.7rem;">
+                <?= htmlspecialchars($badge['label']); ?>
+              </span>
             <?php endif; ?>
           </div>
+
+          <?php
+            $eventMetaItems = [];
+            if ($formattedDate !== '') {
+                $eventMetaItems[] = ['text' => $formattedDate];
+            }
+            if ($formattedEndDate !== '') {
+                $eventMetaItems[] = ['text' => 'Ends ' . $formattedEndDate];
+            }
+            if ($hostName !== '') {
+                $eventMetaItems[] = ['text' => 'Host ' . $hostName];
+            }
+            if ($communityName !== '' && $communitySlug !== '') {
+                $eventMetaItems[] = [
+                    'text' => 'Community ' . $communityName,
+                    'href' => '/communities/' . $communitySlug,
+                ];
+            } elseif ($communityName !== '') {
+                $eventMetaItems[] = ['text' => 'Community ' . $communityName];
+            }
+            $eventMetaItems[] = ['text' => 'ID ' . (string)$id];
+            $items = $eventMetaItems;
+            include __DIR__ . '/../partials/meta-row.php';
+          ?>
 
           <div style="margin-top:1rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
             <a href="<?= htmlspecialchars($eventUrl); ?>" class="app-btn app-btn-sm" target="_blank">View Event</a>

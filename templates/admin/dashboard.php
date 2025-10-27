@@ -8,18 +8,28 @@ $recentCommunities = $recentCommunities ?? [];
 
 <div class="admin-card">
   <h3 style="font-size:1.1rem; margin-bottom:1rem;">System Status</h3>
-  <div style="display:flex; flex-wrap:wrap; gap:1rem;">
-    <?php foreach ($stats as $stat): ?>
-      <div style="flex:1 1 200px; background:#f8faff; border-radius:10px; padding:1rem;">
-        <div style="font-size:0.85rem; color:#495267; text-transform:uppercase; letter-spacing:0.04em;">
-          <?= htmlspecialchars($stat['label']); ?>
-        </div>
-        <div style="font-size:1.5rem; font-weight:700; color:#10162f;">
-          <?= htmlspecialchars((string)$stat['value']); ?>
-        </div>
-      </div>
-    <?php endforeach; ?>
-  </div>
+  <?php
+    $dashboardStatsItems = [];
+    foreach ($stats as $stat) {
+        if (!is_array($stat)) {
+            continue;
+        }
+        $value = $stat['value'] ?? null;
+        if ($value === null || trim((string)$value) === '') {
+            continue;
+        }
+        $dashboardStatsItems[] = [
+            'value' => $value,
+            'label' => $stat['label'] ?? '',
+        ];
+    }
+    if ($dashboardStatsItems !== []) {
+        $items = $dashboardStatsItems;
+        include __DIR__ . '/../partials/stats-row.php';
+    } else {
+        echo '<p style="color:#6b748a;">No stats available.</p>';
+    }
+  ?>
 </div>
 
 <div style="display:grid; gap:1.5rem; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));">
@@ -30,8 +40,18 @@ $recentCommunities = $recentCommunities ?? [];
     <?php else: ?>
       <ul style="list-style:none; margin:0; padding:0;">
         <?php foreach ($recentEvents as $event): ?>
+          <?php
+            $eventTitle = $event['context_label'] ?? $event['title'] ?? 'Untitled event';
+            $eventMetaItems = [];
+            if (!empty($event['host'])) {
+                $eventMetaItems[] = ['text' => 'Host ' . (string)$event['host']];
+            }
+            if (!empty($event['id'])) {
+                $eventMetaItems[] = ['text' => 'ID ' . (string)$event['id']];
+            }
+          ?>
           <li style="margin-bottom:0.75rem;">
-            <strong><?= htmlspecialchars($event['context_label'] ?? $event['title'] ?? 'Untitled event'); ?></strong>
+            <strong><?= htmlspecialchars($eventTitle); ?></strong>
             <?php
               $badge = app_visibility_badge($event['privacy'] ?? null, $event['community_privacy'] ?? null);
               if (!empty($badge['label'])):
@@ -40,8 +60,14 @@ $recentCommunities = $recentCommunities ?? [];
                 <?= htmlspecialchars($badge['label']); ?>
               </span>
             <?php endif; ?>
-            <br>
-            <small style="color:#6b748a;">ID <?= htmlspecialchars((string)($event['id'] ?? '')); ?> · Host <?= htmlspecialchars($event['host'] ?? ''); ?></small>
+            <?php if ($eventMetaItems !== []): ?>
+              <div style="margin-top:0.25rem;">
+                <?php
+                  $items = $eventMetaItems;
+                  include __DIR__ . '/../partials/meta-row.php';
+                ?>
+              </div>
+            <?php endif; ?>
           </li>
         <?php endforeach; ?>
       </ul>
@@ -55,8 +81,18 @@ $recentCommunities = $recentCommunities ?? [];
     <?php else: ?>
       <ul style="list-style:none; margin:0; padding:0;">
         <?php foreach ($recentCommunities as $community): ?>
+          <?php
+            $communityName = $community['name'] ?? 'Untitled community';
+            $communityMetaItems = [];
+            if (!empty($community['member_count'])) {
+                $communityMetaItems[] = ['text' => number_format((int)$community['member_count']) . ' members'];
+            }
+            if (!empty($community['id'])) {
+                $communityMetaItems[] = ['text' => 'ID ' . (string)$community['id']];
+            }
+          ?>
           <li style="margin-bottom:0.75rem;">
-            <strong><?= htmlspecialchars($community['name'] ?? 'Untitled community'); ?></strong>
+            <strong><?= htmlspecialchars($communityName); ?></strong>
             <?php
               $badge = app_visibility_badge($community['privacy'] ?? null);
               if (!empty($badge['label'])):
@@ -65,8 +101,14 @@ $recentCommunities = $recentCommunities ?? [];
                 <?= htmlspecialchars($badge['label']); ?>
               </span>
             <?php endif; ?>
-            <br>
-            <small style="color:#6b748a;">ID <?= htmlspecialchars((string)($community['id'] ?? '')); ?> · Members <?= htmlspecialchars((string)($community['member_count'] ?? 0)); ?></small>
+            <?php if ($communityMetaItems !== []): ?>
+              <div style="margin-top:0.25rem;">
+                <?php
+                  $items = $communityMetaItems;
+                  include __DIR__ . '/../partials/meta-row.php';
+                ?>
+              </div>
+            <?php endif; ?>
           </li>
         <?php endforeach; ?>
       </ul>

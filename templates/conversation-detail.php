@@ -15,36 +15,34 @@
         </span>
       <?php endif; ?>
     </h1>
-    <div class="app-sub app-flex app-gap">
-      <?php
-      if (!empty($c->author_username) || !empty($c->author_display_name)) {
-          echo '<span>Started by</span>';
-          $user = (object)[
-              'id' => $c->author_id ?? null,
-              'username' => $c->author_username ?? null,
-              'display_name' => $c->author_display_name ?? $c->author_name ?? 'Unknown',
-              'email' => $c->author_email ?? null,
-              'avatar_url' => $c->author_avatar_url ?? null
-          ];
-          $args = ['avatar_size' => 24, 'class' => 'app-member-display-inline'];
-          include __DIR__ . '/partials/member-display.php';
+    <?php
+      $conversationHeaderMeta = [];
+      $authorName = $c->author_display_name ?? $c->author_name ?? $c->author_username ?? '';
+      if ($authorName !== '') {
+          $conversationHeaderMeta[] = ['text' => 'Started by ' . $authorName];
       }
       if (!empty($c->created_at)) {
-          echo '<span> · ' . e(date_fmt($c->created_at)) . '</span>';
+          $conversationHeaderMeta[] = ['text' => date_fmt($c->created_at)];
       }
-      ?>
-    </div>
+      if ($conversationHeaderMeta !== []) {
+          $items = $conversationHeaderMeta;
+          include __DIR__ . '/partials/meta-row.php';
+      }
+    ?>
     <?php if (!empty($c->content)): ?>
       <div class="app-body app-mt-4">
         <?= nl2br(e($c->content)) ?>
       </div>
     <?php endif; ?>
-    <div class="app-card-meta app-mt-4">
-      <span><?= e((string)($c->reply_count ?? 0)) ?> replies</span>
-      <?php if (!empty($c->last_reply_date)): ?>
-        <span>Last reply <?= e(date_fmt($c->last_reply_date)) ?></span>
-      <?php endif; ?>
-    </div>
+    <?php
+      $conversationStatsMeta = [];
+      $conversationStatsMeta[] = ['text' => number_format((int)($c->reply_count ?? 0)) . ' replies'];
+      if (!empty($c->last_reply_date)) {
+          $conversationStatsMeta[] = ['text' => 'Last reply ' . date_fmt($c->last_reply_date)];
+      }
+      $items = $conversationStatsMeta;
+      include __DIR__ . '/partials/meta-row.php';
+    ?>
 
     <section class="app-section app-mt-6">
       <h2 class="app-heading-sm">Replies</h2>

@@ -113,7 +113,9 @@ $blueskyActionNonce = $securityService->createNonce('app_bluesky_action', $viewe
                     'badges' => $badges,
                     'title' => $displayName,
                     'subtitle' => $email !== '' ? $email : null,
-                    'meta' => $joinedAt ? 'Joined ' . date('M j, Y', strtotime((string)$joinedAt)) : null,
+                    'meta_items' => $joinedAt
+                        ? [['text' => 'Joined ' . date('M j, Y', strtotime((string)$joinedAt))]]
+                        : [],
                     'actions' => $actions,
                 ];
                 include __DIR__ . '/partials/member-card.php';

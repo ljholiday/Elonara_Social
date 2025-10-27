@@ -76,35 +76,30 @@ $currentQuery = $searchQuery !== '' ? ['q' => $searchQuery] : [];
                 <span class="admin-user-status"><?= htmlspecialchars(strtoupper($status)); ?></span>
               <?php endif; ?>
             </div>
-            <div>
-              <div class="admin-user-field is-right">
-                <span>ID:</span> <?= $id; ?>
-              </div>
-              <div class="admin-user-field is-right">
-                <span>Role:</span> <?= htmlspecialchars($role); ?>
-              </div>
-            </div>
           </div>
-          <div class="admin-user-meta">
-            <div class="admin-user-field">
-              <span>Username:</span> <?= $username !== '' ? htmlspecialchars($username) : '—'; ?>
-            </div>
-            <div class="admin-user-field">
-              <span>Email:</span> <?= htmlspecialchars($email); ?>
-            </div>
-            <div class="admin-user-field">
-              <span>Bluesky:</span> <?= $blueskyHandle !== '' ? htmlspecialchars($blueskyHandle) : '—'; ?>
-            </div>
-            <div class="admin-user-field">
-              <span>DID:</span> <?= $did !== '' ? htmlspecialchars($did) : '—'; ?>
-            </div>
-            <div class="admin-user-field">
-              <span>Verification:</span> <?= htmlspecialchars($verificationLabel); ?>
-            </div>
-            <div class="admin-user-field">
-              <span>Account Verified:</span>
-              <span class="admin-user-verified <?= $verifiedClass; ?>"><?= $verifiedLabel; ?></span>
-            </div>
+          <?php
+            $userMetaItems = [
+                ['text' => 'ID ' . (string)$id],
+                ['text' => 'Role ' . ($role !== '' ? ucfirst($role) : 'Member')],
+            ];
+            $userMetaItems[] = ['text' => 'Email ' . ($email !== '' ? $email : '—')];
+            if ($username !== '') {
+                $userMetaItems[] = ['text' => 'Username ' . $username];
+            }
+            if ($blueskyHandle !== '') {
+                $userMetaItems[] = ['text' => 'Bluesky ' . $blueskyHandle];
+            }
+            if ($did !== '') {
+                $userMetaItems[] = ['text' => 'DID ' . $did];
+            }
+            $userMetaItems[] = ['text' => 'Verification ' . $verificationLabel];
+            $userMetaItems[] = ['text' => 'Verified ' . $verifiedLabel];
+          ?>
+          <div style="margin-top:0.75rem;">
+            <?php
+              $items = $userMetaItems;
+              include __DIR__ . '/../partials/meta-row.php';
+            ?>
           </div>
           <div class="admin-user-actions">
             <form method="post" action="/admin/users/<?= $id; ?>/reset-password">

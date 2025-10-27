@@ -53,14 +53,19 @@ $events = $events ?? [];
             <?php if (!empty($ev->description)): ?>
               <p class="app-card-desc"><?= e(mb_substr($ev->description, 0, 200)) ?><?= mb_strlen($ev->description) > 200 ? '...' : '' ?></p>
             <?php endif; ?>
-            <div class="app-card-meta">
-              <?php if (!empty($ev->event_date)): ?>
-                <span><?= e(date_fmt($ev->event_date)) ?></span>
-              <?php endif; ?>
-              <?php if (!empty($ev->location)): ?>
-                <span> · <?= e($ev->location) ?></span>
-              <?php endif; ?>
-            </div>
+            <?php
+              $eventMetaItems = [];
+              if (!empty($ev->event_date)) {
+                  $eventMetaItems[] = ['text' => date_fmt($ev->event_date)];
+              }
+              if (!empty($ev->location)) {
+                  $eventMetaItems[] = ['text' => $ev->location];
+              }
+              if ($eventMetaItems !== []) {
+                  $items = $eventMetaItems;
+                  include __DIR__ . '/partials/meta-row.php';
+              }
+            ?>
           </article>
         <?php endforeach; ?>
       </div>

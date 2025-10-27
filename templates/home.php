@@ -14,31 +14,21 @@ $conversations = $recent_conversations ?? [];
   <div class="app-container app-stack app-gap-6">
     <header class="app-card">
       <div class="app-card-body app-flex app-flex-between app-flex-wrap app-gap-4">
-        <div class="app-flex app-flex-column app-gap-2">
+        <div class="app-flex app-flex-column app-gap-2 app-flex-1">
           <h1 class="app-heading app-heading-lg">Welcome back, <?= $viewerName; ?></h1>
           <p class="app-text-muted app-text-lg">
             Plan events, keep up with your communities, and jump into the conversations that matter.
           </p>
+          <?php
+          $homeStats = [
+              ['value' => count($events), 'label' => 'Events'],
+              ['value' => count($communities), 'label' => 'Communities'],
+              ['value' => count($conversations), 'label' => 'Conversations'],
+          ];
+          $items = $homeStats;
+          include __DIR__ . '/partials/stats-row.php';
+          ?>
         </div>
-        <aside class="app-card app-max-w-sm">
-          <div class="app-card-body app-stack app-gap-2">
-            <h2 class="app-heading app-heading-sm app-text-muted">Quick stats</h2>
-            <div class="app-flex app-gap-4">
-              <div>
-                <div class="app-heading app-heading-md"><?= count($events); ?></div>
-                <div class="app-text-muted app-text-sm">Upcoming events</div>
-              </div>
-              <div>
-                <div class="app-heading app-heading-md"><?= count($communities); ?></div>
-                <div class="app-text-muted app-text-sm">Communities</div>
-              </div>
-              <div>
-                <div class="app-heading app-heading-md"><?= count($conversations); ?></div>
-                <div class="app-text-muted app-text-sm">New conversations</div>
-              </div>
-            </div>
-          </div>
-        </aside>
       </div>
     </header>
 
@@ -123,14 +113,17 @@ $conversations = $recent_conversations ?? [];
                   $badges[] = ['label' => $badge['label'], 'class' => $badge['class']];
               }
 
-              $metaBits = [];
+              $metaItems = [];
               if (isset($community['member_count'])) {
-                  $metaBits[] = (string)$community['member_count'] . ' members';
+                  $metaItems[] = [
+                      'text' => number_format((int)$community['member_count']) . ' members',
+                  ];
               }
               if (isset($community['event_count'])) {
-                  $metaBits[] = (string)$community['event_count'] . ' events';
+                  $metaItems[] = [
+                      'text' => number_format((int)$community['event_count']) . ' events',
+                  ];
               }
-              $metaText = $metaBits !== [] ? implode(' • ', $metaBits) : '';
 
               $bodyHtml = $communityDescription !== ''
                   ? '<div class="app-text-muted app-text-sm">' . htmlspecialchars($communityDescription, ENT_QUOTES, 'UTF-8') . '</div>'
@@ -148,7 +141,7 @@ $conversations = $recent_conversations ?? [];
                   'title' => $communityName,
                   'title_url' => $communityUrl,
                   'body_html' => $bodyHtml,
-                  'meta' => $metaText,
+                  'meta_items' => $metaItems,
                   'actions' => $actions,
               ];
               include __DIR__ . '/partials/member-card.php';

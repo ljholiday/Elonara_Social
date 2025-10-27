@@ -26,21 +26,41 @@ $pagination = $pagination ?? ['page' => 1, 'per_page' => 20, 'has_more' => false
               <span class="<?= e($badge['class']) ?>" style="margin-left:0.5rem;"><?= e($badge['label']) ?></span>
             <?php endif; ?>
           </h3>
-          <?php if (!empty($item->author_name)): ?>
-            <div class="app-card-sub">Started by <?= e($item->author_name) ?><?php if (!empty($item->created_at)): ?> · <?= e(date_fmt($item->created_at)) ?><?php endif; ?></div>
+          <?php
+            $conversationIntroMeta = [];
+            if (!empty($item->author_name)) {
+                $conversationIntroMeta[] = ['text' => 'Started by ' . (string)$item->author_name];
+            }
+            if (!empty($item->created_at)) {
+                $conversationIntroMeta[] = ['text' => date_fmt($item->created_at)];
+            }
+          ?>
+          <?php if ($conversationIntroMeta !== []): ?>
+            <div class="app-card-sub">
+              <?php
+                $items = $conversationIntroMeta;
+                include __DIR__ . '/partials/meta-row.php';
+              ?>
+            </div>
           <?php endif; ?>
           <?php if (!empty($item->content)): ?>
             <p class="app-card-desc"><?= e(substr(strip_tags((string)$item->content), 0, 160)) ?><?= strlen(strip_tags((string)$item->content)) > 160 ? '…' : '' ?></p>
           <?php endif; ?>
-          <div class="app-card-meta">
-            <span><?= e((string)($item->reply_count ?? 0)) ?> replies</span>
-            <?php if (!empty($item->last_reply_date)): ?>
-              <span>Updated <?= e(date_fmt($item->last_reply_date)) ?></span>
-            <?php endif; ?>
-          </div>
-          <?php if (!empty($item->community_name)): ?>
-            <div class="app-card-meta">In <?= e($item->community_name) ?></div>
-          <?php endif; ?>
+          <?php
+            $conversationMetaItems = [];
+            $replyCount = (int)($item->reply_count ?? 0);
+            $conversationMetaItems[] = ['text' => number_format($replyCount) . ' replies'];
+            if (!empty($item->last_reply_date)) {
+                $conversationMetaItems[] = ['text' => 'Updated ' . date_fmt($item->last_reply_date)];
+            }
+            if (!empty($item->community_name)) {
+                $conversationMetaItems[] = ['text' => 'In ' . (string)$item->community_name];
+            }
+            if ($conversationMetaItems !== []) {
+                $items = $conversationMetaItems;
+                include __DIR__ . '/partials/meta-row.php';
+            }
+          ?>
         </article>
       <?php endforeach; ?>
     </div>
