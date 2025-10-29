@@ -153,22 +153,30 @@ final class CircleService
         }
 
         if ($circle === 'trusted') {
+            // Get Inner communities (cumulative)
+            $innerCommunities = $this->getCommunityScope($viewerId, 'inner') ?? [];
+
+            // Get communities created by Inner circle users
             $innerUsers = $context['inner'] ?? [];
-            if ($innerUsers === []) {
-                return [];
-            }
-            return $this->fetchCommunitiesByCreator($innerUsers);
+            $trustedCreated = $innerUsers === [] ? [] : $this->fetchCommunitiesByCreator($innerUsers);
+
+            // Merge and return
+            return $this->uniqueInts(array_merge($innerCommunities, $trustedCreated));
         }
 
         if ($circle === 'extended') {
+            // Get Trusted communities (which includes Inner)
+            $trustedCommunities = $this->getCommunityScope($viewerId, 'trusted') ?? [];
+
+            // Get communities created by Trusted circle users
             $trustedUsers = $this->uniqueInts(array_merge(
                 $context['inner'] ?? [],
                 $context['trusted'] ?? []
             ));
-            if ($trustedUsers === []) {
-                return [];
-            }
-            return $this->fetchCommunitiesByCreator($trustedUsers);
+            $extendedCreated = $trustedUsers === [] ? [] : $this->fetchCommunitiesByCreator($trustedUsers);
+
+            // Merge and return
+            return $this->uniqueInts(array_merge($trustedCommunities, $extendedCreated));
         }
 
         return [];
