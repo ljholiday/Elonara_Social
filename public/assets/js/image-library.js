@@ -369,6 +369,17 @@
                 body: formData,
             });
 
+            // Handle 413 (file too large) before trying to parse JSON
+            if (response.status === 413) {
+                throw new Error('Image file is too large. Please choose a smaller file (max 10MB).');
+            }
+
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server returned an error. Please try again.');
+            }
+
             const data = await response.json();
 
             if (data.success) {
