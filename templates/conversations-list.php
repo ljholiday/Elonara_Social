@@ -10,69 +10,85 @@ $pagination = $pagination ?? ['page' => 1, 'per_page' => 20, 'has_more' => false
   <h1 class="app-heading">Conversations</h1>
 
   <?php if (!empty($conversations)): ?>
-    <div class="app-stack">
+    <div id="app-convo-list" class="app-stack">
       <?php foreach ($conversations as $row):
-        $item = (object)$row;
-        ?>
-        <article class="app-card">
-          <h3 class="app-card-title">
-            <a class="app-link" href="/conversations/<?= e($item->slug ?? (string)($item->id ?? '')) ?>">
-              <?= e($item->context_label ?? $item->title ?? '') ?>
-            </a>
-            <?php
-              $badge = app_visibility_badge($item->privacy ?? $item->community_privacy ?? null);
-              if (!empty($badge['label'])):
-            ?>
-              <span class="<?= e($badge['class']) ?>" style="margin-left:0.5rem;"><?= e($badge['label']) ?></span>
-            <?php endif; ?>
-          </h3>
-          <?php
-            $conversationIntroMeta = [];
-            if (!empty($item->author_name)) {
-                $conversationIntroMeta[] = ['text' => 'Started by ' . (string)$item->author_name];
-            }
-            if (!empty($item->created_at)) {
-                $conversationIntroMeta[] = ['text' => date_fmt($item->created_at)];
-            }
-          ?>
-          <?php if ($conversationIntroMeta !== []): ?>
-            <div class="app-card-sub">
-              <?php
-                $items = $conversationIntroMeta;
-                include __DIR__ . '/partials/meta-row.php';
-              ?>
-            </div>
-          <?php endif; ?>
-          <?php if (!empty($item->content)): ?>
-            <p class="app-card-desc"><?= e(substr(strip_tags((string)$item->content), 0, 160)) ?><?= strlen(strip_tags((string)$item->content)) > 160 ? '…' : '' ?></p>
-          <?php endif; ?>
-          <?php
-            $conversationMetaItems = [];
-            $replyCount = (int)($item->reply_count ?? 0);
-            $conversationMetaItems[] = ['text' => number_format($replyCount) . ' replies'];
-            if (!empty($item->last_reply_date)) {
-                $conversationMetaItems[] = ['text' => 'Updated ' . date_fmt($item->last_reply_date)];
-            }
-            if (!empty($item->community_name)) {
-                $conversationMetaItems[] = ['text' => 'In ' . (string)$item->community_name];
-            }
-            if ($conversationMetaItems !== []) {
-                $items = $conversationMetaItems;
-                include __DIR__ . '/partials/meta-row.php';
-            }
-          ?>
-        </article>
+        $slug = (string)($row['slug'] ?? '');
+        if ($slug === '') {
+            continue;
+        }
+
+        $privacy = strtolower((string)($row['privacy'] ?? 'public'));
+        if ($privacy === '') {
+            $privacy = 'public';
+        }
+
+        $entity = (object)[
+            'id' => (int)($row['id'] ?? 0),
+            'title' => (string)($row['title'] ?? ''),
+            'slug' => $slug,
+            'created_at' => $row['created_at'] ?? null,
+            'privacy' => $privacy,
+        ];
+
+        $entity_type = 'conversation';
+
+        $badges = [];
+        if (!empty($row['event_title'])) {
+            $badges[] = [
+                'label' => 'Event: ' . (string)$row['event_title'],
+                'class' => 'app-badge-secondary',
+            ];
+        } elseif (!empty($row['community_name'])) {
+            $badges[] = [
+                'label' => 'Community: ' . (string)$row['community_name'],
+                'class' => 'app-badge-secondary',
+            ];
+        } else {
+            $badges[] = [
+                'label' => 'General Discussion',
+                'class' => 'app-badge-secondary',
+            ];
+        }
+
+        $badges[] = [
+            'label' => ucfirst($privacy),
+            'class' => $privacy === 'private' ? 'app-badge-secondary' : 'app-badge-success',
+        ];
+
+        $replyCount = (int)($row['reply_count'] ?? 0);
+        $stats = $replyCount >= 0 ? [
+            [
+                'value' => $replyCount,
+                'label' => 'Replies',
+            ],
+        ] : [];
+
+        $actions = [
+            [
+                'label' => 'View',
+                'url' => '/conversations/' . $slug,
+                'class' => 'app-btn-secondary',
+            ],
+        ];
+
+        $description = $row['content'] ?? '';
+        $truncate_length = 35;
+
+        include __DIR__ . '/partials/entity-card.php';
+      ?>
       <?php endforeach; ?>
     </div>
   <?php else: ?>
-    <div class="app-card">
-      <div class="app-card-body app-text-center app-stack app-gap-3">
-        <p class="app-text-muted">No conversations found. Start a discussion and connect with your community!</p>
-        <div class="app-flex app-gap-2 app-justify-center app-flex-wrap">
-          <a class="app-btn app-btn-primary" href="/conversations/create">Start Conversation</a>
-          <?php if ($circle !== 'all'): ?>
-            <a class="app-btn app-btn-outline" href="/conversations?circle=all">Browse All Conversations</a>
-          <?php endif; ?>
+    <div id="app-convo-list">
+      <div class="app-card">
+        <div class="app-card-body app-text-center app-stack app-gap-3">
+          <p class="app-text-muted">No conversations found. Start a discussion and connect with your community!</p>
+          <div class="app-flex app-gap-2 app-justify-center app-flex-wrap">
+            <a class="app-btn app-btn-primary" href="/conversations/create">Start Conversation</a>
+            <?php if ($circle !== 'all'): ?>
+              <a class="app-btn app-btn-outline" href="/conversations?circle=all">Browse All Conversations</a>
+            <?php endif; ?>
+          </div>
         </div>
       </div>
     </div>

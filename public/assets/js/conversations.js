@@ -5,7 +5,7 @@
 (function() {
 	'use strict';
 
-	const nav = document.querySelector('.app-conversation-filters');
+	const nav = document.querySelector('.app-nav');
 	const list = document.getElementById('app-convo-list');
 	const circleStatus = document.getElementById('app-circle-status');
 
@@ -50,7 +50,8 @@
 		// Make AJAX request
 		fetch('/api/conversations', {
 			method: 'POST',
-			body: formData
+			body: formData,
+			credentials: 'same-origin'
 		})
 		.then(response => response.json())
 		.then(data => {
@@ -93,57 +94,29 @@
 		});
 	}
 
-	// Handle circle button clicks
+	// Intercept circle navigation links
 	nav.addEventListener('click', function(e) {
-		const circleButton = e.target.closest('button[data-circle]');
-		const filterButton = e.target.closest('button[data-filter]');
+		const link = e.target.closest('a.app-nav-item');
+		if (!link) return;
 
-		if (circleButton) {
+		const url = new URL(link.href);
+		const circle = url.searchParams.get('circle');
+
+		// Only intercept circle filter links
+		if (circle && ['all', 'inner', 'trusted', 'extended'].includes(circle)) {
 			e.preventDefault();
-			const circle = circleButton.dataset.circle;
 
-			// Update circle button states
-			nav.querySelectorAll('button[data-circle]').forEach(btn => {
-				btn.classList.remove('is-active');
-				btn.setAttribute('aria-selected', 'false');
+			// Update active states
+			nav.querySelectorAll('a.app-nav-item').forEach(item => {
+				item.classList.remove('active');
 			});
+			link.classList.add('active');
 
-			circleButton.classList.add('is-active');
-			circleButton.setAttribute('aria-selected', 'true');
-
-			// Clear event filters when clicking circles
-			nav.querySelectorAll('button[data-filter]').forEach(btn => {
-				btn.classList.remove('is-active');
-			});
-
-			// Load conversations for selected circle without filters
+			// Load conversations for selected circle
 			loadConversations({ circle: circle, filter: '' });
-		} else if (filterButton) {
-			e.preventDefault();
-			const filter = filterButton.dataset.filter;
 
-			// Event filters don't toggle - they stay on when clicked
-			// Only switch between event filters or turn them off via circle buttons
-			const isEventFilter = (filter === 'my-events' || filter === 'all-events');
-
-			// Update filter button state
-			nav.querySelectorAll('button[data-filter]').forEach(btn => {
-				btn.classList.remove('is-active');
-			});
-			filterButton.classList.add('is-active');
-
-			// Event filters are independent of circles - deactivate all circle buttons
-			if (isEventFilter) {
-				nav.querySelectorAll('button[data-circle]').forEach(btn => {
-					btn.classList.remove('is-active');
-					btn.setAttribute('aria-selected', 'false');
-				});
-				// Load event conversations without circle filtering
-				loadConversations({ circle: 'all', filter: filter });
-			} else {
-				// Other filters - keep current circle
-				loadConversations({ circle: currentCircle, filter: filter });
-			}
+			// Update URL without reload
+			history.pushState({ circle: circle }, '', url);
 		}
 	});
 

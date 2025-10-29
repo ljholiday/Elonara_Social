@@ -46,19 +46,17 @@ final class ConversationApiController
         $page = max(1, (int)$request->input('page', 1));
 
         $context = $this->circles->buildContext($viewerId);
-        $allowedCommunities = $this->circles->resolveCommunitiesForCircle($context, $circle);
-        $memberCommunities = $this->circles->memberCommunities($context);
+        $allowedUsers = $this->circles->resolveUsersForCircle($context, $circle);
+        $memberCommunities = $this->circles->memberCommunities($viewerId);
 
-        $feed = $this->conversations->listByCircle(
+        $feed = $this->conversations->listByAuthorHop(
             $viewerId,
-            $circle,
-            $allowedCommunities,
+            $allowedUsers,
             $memberCommunities,
             [
                 'page' => $page,
                 'per_page' => 20,
                 'filter' => $filter,
-                'viewer_email' => $this->auth->currentUserEmail(),
             ]
         );
 

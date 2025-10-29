@@ -34,6 +34,8 @@ use App\Services\CommunityService;
 use App\Services\CommunityMemberService;
 use App\Services\ConversationService;
 use App\Services\CircleService;
+use App\Services\FeedService;
+use App\Services\UserInvitationService;
 use App\Services\AuthService;
 use App\Services\MailService;
 use App\Services\SanitizerService;
@@ -354,12 +356,30 @@ if (!function_exists('app_container')) {
                     $c->get('database.connection'),
                     $c->get('image.service'),
                     $c->get('embed.service'),
-                    $c->get('search.service')
+                    $c->get('search.service'),
+                    $c->get('circle.service')
                 );
             });
 
             $container->register('circle.service', static function (AppContainer $c): CircleService {
                 return new CircleService($c->get('database.connection'));
+            });
+
+            $container->register('feed.service', static function (AppContainer $c): FeedService {
+                return new FeedService(
+                    $c->get('circle.service'),
+                    $c->get('conversation.service')
+                );
+            });
+
+            $container->register('user.invitation.service', static function (AppContainer $c): UserInvitationService {
+                return new UserInvitationService(
+                    $c->get('database.connection'),
+                    $c->get('auth.service'),
+                    $c->get('mail.service'),
+                    $c->get('circle.service'),
+                    $c->get('sanitizer.service')
+                );
             });
 
             $container->register('sanitizer.service', static function (): SanitizerService {
@@ -496,7 +516,8 @@ if (!function_exists('app_container')) {
                     $c->get('sanitizer.service'),
                     $c->get('event.guest.service'),
                     $c->get('community.member.service'),
-                    $c->get('bluesky.service')
+                    $c->get('bluesky.service'),
+                    $c->get('circle.service')
                 );
             });
 
@@ -599,7 +620,8 @@ if (!function_exists('app_container')) {
                     $c->get('validator.service'),
                     $c->get('security.service'),
                     $c->get('community.service'),
-                    $c->get('event.service')
+                    $c->get('event.service'),
+                    $c->get('feed.service')
                 );
             }, false);
 

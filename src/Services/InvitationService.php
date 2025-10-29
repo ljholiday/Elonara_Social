@@ -24,7 +24,8 @@ final class InvitationService
         private SanitizerService $sanitizer,
         private EventGuestService $eventGuests,
         private CommunityMemberService $communityMembers,
-        private BlueskyService $bluesky
+        private BlueskyService $bluesky,
+        private CircleService $circles
     ) {
     }
 
@@ -402,7 +403,7 @@ final class InvitationService
         }
 
         $stmt = $this->database->pdo()->prepare(
-            "SELECT id, community_id, invited_email, invited_user_id, expires_at
+            "SELECT id, community_id, invited_email, invited_user_id, invited_by_member_id, expires_at
              FROM community_invitations
              WHERE invitation_token = :token AND status = 'pending'
              LIMIT 1"
@@ -520,6 +521,14 @@ final class InvitationService
         }
 
         $this->updateCommunityInvitation($invitationId, 'accepted', $viewerId, true);
+
+        $invitedByMemberId = (int)($invitation['invited_by_member_id'] ?? 0);
+        if ($invitedByMemberId > 0) {
+            $inviterUserId = $this->getInviterUserId($invitedByMemberId);
+            if ($inviterUserId > 0 && $inviterUserId !== $viewerId) {
+                $this->circles->createLink($viewerId, $inviterUserId);
+            }
+        }
 
         if ($isBlueskyInvite && $invitedDid !== '') {
             $stmt = $this->database->pdo()->prepare(
@@ -890,6 +899,20 @@ final class InvitationService
         $sql = 'UPDATE community_invitations SET ' . implode(', ', $parts) . ' WHERE id = :id';
         $stmt = $this->database->pdo()->prepare($sql);
         $stmt->execute($params);
+    }
+
+    /**
+     * Get inviter's user_id from community_members table.
+     */
+    private function getInviterUserId(int $memberId): int
+    {
+        $stmt = $this->database->pdo()->prepare(
+            "SELECT user_id FROM community_members WHERE id = ? LIMIT 1"
+        );
+        $stmt->execute([$memberId]);
+        $result = $stmt->fetchColumn();
+
+        return $result !== false ? (int)$result : 0;
     }
 
     /**

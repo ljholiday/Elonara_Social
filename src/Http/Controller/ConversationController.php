@@ -27,7 +27,8 @@ final class ConversationController
         private ValidatorService $validator,
         private SecurityService $security,
         private CommunityService $communities,
-        private EventService $events
+        private EventService $events,
+        private \App\Services\FeedService $feed
     ) {
     }
 
@@ -46,25 +47,14 @@ final class ConversationController
         $filter = $this->normalizeFilter($request->query('filter'));
 
         $viewerId = (int)($this->auth->currentUserId() ?? 0);
-        $viewerEmail = $this->auth->currentUserEmail();
-        $context = $this->circles->buildContext($viewerId);
-        $allowedCommunities = $this->circles->resolveCommunitiesForCircle($context, $circle);
-        $memberCommunities = $this->circles->memberCommunities($context);
 
         $options = [
             'page' => max(1, (int)$request->query('page', 1)),
             'per_page' => 20,
             'filter' => $filter,
-            'viewer_email' => $viewerEmail,
         ];
 
-        $feed = $this->conversations->listByCircle(
-            $viewerId,
-            $circle,
-            $allowedCommunities,
-            $memberCommunities,
-            $options
-        );
+        $feedData = $this->feed->getGlobalFeed($viewerId, $circle, $options);
 
         $conversations = array_map(function (array $conversation): array {
             $path = ContextBuilder::conversation($conversation, $this->communities, $this->events);
@@ -75,14 +65,16 @@ final class ConversationController
             $conversation['context_label'] = $plain !== '' ? $plain : (string)($conversation['title'] ?? '');
             $conversation['context_label_html'] = $html !== '' ? $html : htmlspecialchars((string)($conversation['title'] ?? ''), ENT_QUOTES, 'UTF-8');
             return $conversation;
-        }, $feed['conversations']);
+        }, $feedData['conversations']);
+
+        $context = $this->circles->buildContext($viewerId);
 
         return [
             'conversations' => $conversations,
-            'circle' => $circle,
+            'circle' => $feedData['circle'],
             'circle_context' => $context,
             'filter' => $filter,
-            'pagination' => $feed['pagination'],
+            'pagination' => $feedData['pagination'],
         ];
     }
 

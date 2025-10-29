@@ -12,7 +12,8 @@ final class ConversationService
         private Database $db,
         private ?ImageService $imageService = null,
         private ?EmbedService $embedService = null,
-        private ?SearchService $search = null
+        private ?SearchService $search = null,
+        private ?CircleService $circles = null
     ) {
     }
 
@@ -227,145 +228,6 @@ final class ConversationService
         return $slug;
     }
 
-    /**
-     * @return array{conversations: array<int, array<string, mixed>>, pagination: array{page:int, per_page:int, has_more:bool, next_page:int|null}}
-     */
-    public function listByCircle(int $viewerId, string $circle, ?array $allowedCommunities, array $memberCommunities, array $options = []): array
-    {
-        $options = array_merge(['page' => 1, 'per_page' => 20, 'filter' => '', 'viewer_email' => null], $options);
-        $page = max(1, (int)$options['page']);
-        $perPage = max(1, (int)$options['per_page']);
-        $offset = ($page - 1) * $perPage;
-        $fetchLimit = $perPage + 1;
-        $filter = strtolower((string)$options['filter']);
-        $viewerEmail = is_string($options['viewer_email']) ? trim($options['viewer_email']) : null;
-
-        $allowedCommunities = $allowedCommunities === null ? null : $this->uniqueInts($allowedCommunities);
-        $memberCommunities = $this->uniqueInts($memberCommunities);
-
-        if ($allowedCommunities !== null && $allowedCommunities === []) {
-            return [
-                'conversations' => [],
-                'pagination' => [
-                    'page' => $page,
-                    'per_page' => $perPage,
-                    'has_more' => false,
-                    'next_page' => null,
-                ],
-            ];
-        }
-
-        $conditions = [];
-        $params = [];
-
-        if ($allowedCommunities === null) {
-            $privacyParts = ["com.privacy = 'public'"];
-            if ($memberCommunities !== []) {
-                $privacyParts[] = 'conv.community_id IN (' . $this->placeholderList(count($memberCommunities)) . ')';
-                $params = array_merge($params, $memberCommunities);
-            }
-            $conditions[] = '(' . implode(' OR ', $privacyParts) . ')';
-        } else {
-            $conditions[] = 'conv.community_id IN (' . $this->placeholderList(count($allowedCommunities)) . ')';
-            $params = array_merge($params, $allowedCommunities);
-
-            $privacyParts = ["com.privacy = 'public'"];
-            if ($memberCommunities !== []) {
-                $privacyParts[] = 'conv.community_id IN (' . $this->placeholderList(count($memberCommunities)) . ')';
-                $params = array_merge($params, $memberCommunities);
-            }
-            $conditions[] = '(' . implode(' OR ', $privacyParts) . ')';
-        }
-
-        $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
-
-        if ($filter === 'my-events') {
-            $eventIds = $this->lookupViewerEventIds($viewerId, $viewerEmail);
-            if ($eventIds === []) {
-                return [
-                    'conversations' => [],
-                    'pagination' => [
-                        'page' => $page,
-                        'per_page' => $perPage,
-                        'has_more' => false,
-                        'next_page' => null,
-                        'total' => 0,
-                    ],
-                ];
-            }
-            $where .= ($where ? ' AND ' : 'WHERE ') . 'conv.event_id IN (' . $this->placeholderList(count($eventIds)) . ')';
-            $params = array_merge($params, $eventIds);
-        } elseif ($filter === 'all-events') {
-            $where .= ($where ? ' AND ' : 'WHERE ') . 'conv.event_id IS NOT NULL';
-        } elseif ($filter === 'communities') {
-            $where .= ($where ? ' AND ' : 'WHERE ') . 'conv.community_id IS NOT NULL';
-        }
-
-        $sql = "SELECT
-                conv.id,
-                conv.title,
-                conv.slug,
-                conv.content,
-                conv.author_name,
-                conv.created_at,
-                COALESCE(replies.reply_total, conv.reply_count) AS reply_count,
-                conv.last_reply_date,
-                conv.privacy,
-                conv.community_id,
-                conv.event_id,
-                com.name AS community_name,
-                com.slug AS community_slug,
-                com.privacy AS community_privacy,
-                evt.title AS event_title,
-                evt.slug AS event_slug
-            FROM conversations conv
-            LEFT JOIN (
-                SELECT conversation_id, COUNT(*) AS reply_total
-                FROM conversation_replies
-                GROUP BY conversation_id
-            ) replies ON replies.conversation_id = conv.id
-            LEFT JOIN communities com ON conv.community_id = com.id
-            LEFT JOIN events evt ON conv.event_id = evt.id
-            $where
-            ORDER BY COALESCE(conv.updated_at, conv.created_at) DESC
-            LIMIT $fetchLimit OFFSET $offset";
-
-        $countSql = "SELECT COUNT(*)
-            FROM conversations conv
-            LEFT JOIN communities com ON conv.community_id = com.id
-            LEFT JOIN events evt ON conv.event_id = evt.id
-            $where";
-
-        $countStmt = $this->db->pdo()->prepare($countSql);
-        foreach ($params as $index => $value) {
-            $countStmt->bindValue($index + 1, (int)$value, PDO::PARAM_INT);
-        }
-        $countStmt->execute();
-        $total = (int)$countStmt->fetchColumn();
-
-        $stmt = $this->db->pdo()->prepare($sql);
-        foreach ($params as $index => $value) {
-            $stmt->bindValue($index + 1, (int)$value, PDO::PARAM_INT);
-        }
-        $stmt->execute();
-
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $hasMore = count($rows) > $perPage;
-        if ($hasMore) {
-            $rows = array_slice($rows, 0, $perPage);
-        }
-
-        return [
-            'conversations' => $rows,
-            'pagination' => [
-                'page' => $page,
-                'per_page' => $perPage,
-                'has_more' => $hasMore,
-                'next_page' => $hasMore ? $page + 1 : null,
-                'total' => $total,
-            ],
-        ];
-    }
 
     /**
      * @param array<int|string> $values
@@ -608,6 +470,16 @@ final class ConversationService
             }
         }
 
+        // Conversation linking: "Speaking is connecting" (per trust.xml v1.1 section 7)
+        if ($this->circles && $authorId > 0) {
+            try {
+                $this->linkConversationParticipants($conversationId, $authorId);
+            } catch (\Throwable $e) {
+                // Silently ignore linking errors - the reply was created successfully
+                // Linking is a trust-building feature, not a requirement
+            }
+        }
+
         return $replyId;
     }
 
@@ -731,34 +603,275 @@ final class ConversationService
     }
 
     /**
-     * @return array<int, array<string,mixed>>
+     * List conversations filtered by author hop distance (global feed).
+     * Per trust.xml Section 5: "Author hop distance only."
+     *
+     * @param array<int>|null $allowedUsers User IDs within N hops, or null for 'all'
+     * @param array<int> $memberCommunities Communities viewer is member of
+     * @param array{page?: int, per_page?: int, filter?: string} $options
+     * @return array{conversations: array<int, array<string, mixed>>, pagination: array}
      */
-    public function listByCommunity(int $communityId, int $limit = 50): array
+    public function listByAuthorHop(int $viewerId, ?array $allowedUsers, array $memberCommunities, array $options = []): array
     {
-        if ($communityId <= 0) {
-            return [];
+        $options = array_merge(['page' => 1, 'per_page' => 20, 'filter' => ''], $options);
+        $page = max(1, (int)$options['page']);
+        $perPage = max(1, (int)$options['per_page']);
+        $offset = ($page - 1) * $perPage;
+        $fetchLimit = $perPage + 1;
+        $filter = strtolower((string)$options['filter']);
+
+        $allowedUsers = $allowedUsers === null ? null : $this->uniqueInts($allowedUsers);
+        $memberCommunities = $this->uniqueInts($memberCommunities);
+
+        // Always include viewer's own content in their circles
+        if ($allowedUsers !== null && $viewerId > 0) {
+            $allowedUsers[] = $viewerId;
+            $allowedUsers = $this->uniqueInts($allowedUsers);
         }
 
-        $pdo = $this->db->pdo();
-        $stmt = $pdo->prepare('
-            SELECT c.id, c.title, c.slug, c.content, c.author_id, c.event_id, c.community_id,
-                   c.created_at, c.reply_count, c.last_reply_date, c.privacy,
-                   u.username AS author_name,
-                   com.name AS community_name, com.slug AS community_slug,
-                   e.title AS event_title, e.slug AS event_slug
-            FROM conversations c
-            LEFT JOIN users u ON c.author_id = u.id
-            LEFT JOIN communities com ON c.community_id = com.id
-            LEFT JOIN events e ON c.event_id = e.id
-            WHERE c.community_id = :community_id
-            ORDER BY c.created_at DESC
-            LIMIT :limit
-        ');
-        $stmt->bindValue(':community_id', $communityId, \PDO::PARAM_INT);
-        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        if ($allowedUsers !== null && $allowedUsers === []) {
+            return [
+                'conversations' => [],
+                'pagination' => [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'has_more' => false,
+                    'next_page' => null,
+                ],
+            ];
+        }
+
+        $conditions = [];
+        $params = [];
+
+        if ($allowedUsers !== null) {
+            $conditions[] = 'conv.author_id IN (' . $this->placeholderList(count($allowedUsers)) . ')';
+            $params = array_merge($params, $allowedUsers);
+        }
+
+        $privacyParts = ["com.privacy = 'public'"];
+        if ($memberCommunities !== []) {
+            $privacyParts[] = 'conv.community_id IN (' . $this->placeholderList(count($memberCommunities)) . ')';
+            $params = array_merge($params, $memberCommunities);
+        }
+        $conditions[] = '(' . implode(' OR ', $privacyParts) . ')';
+
+        if ($filter === 'my-events') {
+            $eventIds = $this->lookupViewerEventIds($viewerId, null);
+            if ($eventIds === []) {
+                return [
+                    'conversations' => [],
+                    'pagination' => ['page' => $page, 'per_page' => $perPage, 'has_more' => false, 'next_page' => null],
+                ];
+            }
+            $conditions[] = 'conv.event_id IN (' . $this->placeholderList(count($eventIds)) . ')';
+            $params = array_merge($params, $eventIds);
+        } elseif ($filter === 'all-events') {
+            $conditions[] = 'conv.event_id IS NOT NULL';
+        } elseif ($filter === 'communities') {
+            $conditions[] = 'conv.community_id IS NOT NULL';
+        }
+
+        $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
+        $sql = "SELECT
+                conv.id,
+                conv.title,
+                conv.slug,
+                conv.content,
+                conv.author_name,
+                conv.created_at,
+                COALESCE(replies.reply_total, conv.reply_count) AS reply_count,
+                conv.last_reply_date,
+                conv.privacy,
+                conv.community_id,
+                conv.event_id,
+                com.name AS community_name,
+                com.slug AS community_slug,
+                com.privacy AS community_privacy,
+                evt.title AS event_title,
+                evt.slug AS event_slug
+            FROM conversations conv
+            LEFT JOIN (
+                SELECT conversation_id, COUNT(*) AS reply_total
+                FROM conversation_replies
+                GROUP BY conversation_id
+            ) replies ON replies.conversation_id = conv.id
+            LEFT JOIN communities com ON conv.community_id = com.id
+            LEFT JOIN events evt ON conv.event_id = evt.id
+            $where
+            ORDER BY COALESCE(conv.updated_at, conv.created_at) DESC
+            LIMIT $fetchLimit OFFSET $offset";
+
+        $stmt = $this->db->pdo()->prepare($sql);
+        foreach ($params as $index => $value) {
+            $stmt->bindValue($index + 1, (int)$value, PDO::PARAM_INT);
+        }
         $stmt->execute();
 
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $hasMore = count($rows) > $perPage;
+        if ($hasMore) {
+            $rows = array_slice($rows, 0, $perPage);
+        }
+
+        return [
+            'conversations' => $rows,
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'has_more' => $hasMore,
+                'next_page' => $hasMore ? $page + 1 : null,
+            ],
+        ];
+    }
+
+    /**
+     * List conversations by a specific author (personal feed).
+     *
+     * @param array<int> $memberCommunities
+     * @param array{page?: int, per_page?: int} $options
+     * @return array{conversations: array, pagination: array}
+     */
+    public function listByAuthor(int $authorId, int $viewerId, array $memberCommunities, array $options = []): array
+    {
+        $options = array_merge(['page' => 1, 'per_page' => 20], $options);
+        $page = max(1, (int)$options['page']);
+        $perPage = max(1, (int)$options['per_page']);
+        $offset = ($page - 1) * $perPage;
+        $fetchLimit = $perPage + 1;
+
+        $memberCommunities = $this->uniqueInts($memberCommunities);
+
+        $params = [$authorId];
+        $conditions = ['conv.author_id = ?'];
+
+        $privacyParts = ["com.privacy = 'public'"];
+        if ($memberCommunities !== []) {
+            $privacyParts[] = 'conv.community_id IN (' . $this->placeholderList(count($memberCommunities)) . ')';
+            $params = array_merge($params, $memberCommunities);
+        }
+        $conditions[] = '(' . implode(' OR ', $privacyParts) . ')';
+
+        $where = 'WHERE ' . implode(' AND ', $conditions);
+
+        $sql = "SELECT
+                conv.id,
+                conv.title,
+                conv.slug,
+                conv.content,
+                conv.author_name,
+                conv.created_at,
+                COALESCE(replies.reply_total, conv.reply_count) AS reply_count,
+                conv.last_reply_date,
+                conv.privacy,
+                conv.community_id,
+                conv.event_id,
+                com.name AS community_name,
+                com.slug AS community_slug
+            FROM conversations conv
+            LEFT JOIN (
+                SELECT conversation_id, COUNT(*) AS reply_total
+                FROM conversation_replies
+                GROUP BY conversation_id
+            ) replies ON replies.conversation_id = conv.id
+            LEFT JOIN communities com ON conv.community_id = com.id
+            $where
+            ORDER BY conv.created_at DESC
+            LIMIT $fetchLimit OFFSET $offset";
+
+        $stmt = $this->db->pdo()->prepare($sql);
+        foreach ($params as $index => $value) {
+            $stmt->bindValue($index + 1, (int)$value, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $hasMore = count($rows) > $perPage;
+        if ($hasMore) {
+            $rows = array_slice($rows, 0, $perPage);
+        }
+
+        return [
+            'conversations' => $rows,
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'has_more' => $hasMore,
+                'next_page' => $hasMore ? $page + 1 : null,
+            ],
+        ];
+    }
+
+    /**
+     * List all conversations in a community (community feed).
+     * Per trust.xml Section 5: Shows all member content if community is accessible.
+     *
+     * @param array{page?: int, per_page?: int} $options
+     * @return array{conversations: array, pagination: array}
+     */
+    public function listByCommunity(int $communityId, int $viewerId, array $options = []): array
+    {
+        if ($communityId <= 0) {
+            return [
+                'conversations' => [],
+                'pagination' => ['page' => 1, 'per_page' => 20, 'has_more' => false, 'next_page' => null],
+            ];
+        }
+
+        $options = array_merge(['page' => 1, 'per_page' => 20], $options);
+        $page = max(1, (int)$options['page']);
+        $perPage = max(1, (int)$options['per_page']);
+        $offset = ($page - 1) * $perPage;
+        $fetchLimit = $perPage + 1;
+
+        $sql = "SELECT
+                conv.id,
+                conv.title,
+                conv.slug,
+                conv.content,
+                conv.author_name,
+                conv.author_id,
+                conv.created_at,
+                COALESCE(replies.reply_total, conv.reply_count) AS reply_count,
+                conv.last_reply_date,
+                conv.privacy,
+                conv.community_id,
+                conv.event_id,
+                com.name AS community_name,
+                com.slug AS community_slug,
+                evt.title AS event_title,
+                evt.slug AS event_slug
+            FROM conversations conv
+            LEFT JOIN (
+                SELECT conversation_id, COUNT(*) AS reply_total
+                FROM conversation_replies
+                GROUP BY conversation_id
+            ) replies ON replies.conversation_id = conv.id
+            LEFT JOIN communities com ON conv.community_id = com.id
+            LEFT JOIN events evt ON conv.event_id = evt.id
+            WHERE conv.community_id = ?
+            ORDER BY COALESCE(conv.updated_at, conv.created_at) DESC
+            LIMIT $fetchLimit OFFSET $offset";
+
+        $stmt = $this->db->pdo()->prepare($sql);
+        $stmt->execute([$communityId]);
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $hasMore = count($rows) > $perPage;
+        if ($hasMore) {
+            $rows = array_slice($rows, 0, $perPage);
+        }
+
+        return [
+            'conversations' => $rows,
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'has_more' => $hasMore,
+                'next_page' => $hasMore ? $page + 1 : null,
+            ],
+        ];
     }
 
     private function slugify(string $title): string
@@ -891,5 +1004,50 @@ final class ConversationService
         $pdo = $this->db->pdo();
         $stmt = $pdo->prepare('DELETE FROM conversation_replies WHERE id = :id');
         return $stmt->execute([':id' => $replyId]);
+    }
+
+    /**
+     * Link conversation participants per trust.xml v1.1 section 7.
+     * Creates mutual user_links between the author and all other participants.
+     */
+    private function linkConversationParticipants(int $conversationId, int $authorId): void
+    {
+        if (!$this->circles || $authorId <= 0) {
+            return;
+        }
+
+        // Get the conversation to find its author
+        $conversation = $this->getBySlugOrId((string)$conversationId);
+        if ($conversation === null) {
+            return;
+        }
+
+        $conversationAuthorId = isset($conversation['author_id']) ? (int)$conversation['author_id'] : 0;
+
+        // Collect all participant IDs (conversation author + all repliers)
+        $participants = [];
+
+        // Add conversation author
+        if ($conversationAuthorId > 0 && $conversationAuthorId !== $authorId) {
+            $participants[] = $conversationAuthorId;
+        }
+
+        // Get all unique author_ids from replies to this conversation
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT DISTINCT author_id FROM conversation_replies WHERE conversation_id = ? AND author_id > 0 AND author_id != ?'
+        );
+        $stmt->execute([$conversationId, $authorId]);
+        $replyAuthors = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        foreach ($replyAuthors as $replyAuthorId) {
+            $participants[] = (int)$replyAuthorId;
+        }
+
+        // Create links between current author and all participants
+        foreach ($participants as $participantId) {
+            if ($participantId > 0 && $participantId !== $authorId) {
+                $this->circles->createLink($authorId, $participantId);
+            }
+        }
     }
 }

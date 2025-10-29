@@ -45,7 +45,7 @@ final class HomeController
             : [];
 
         $context = $this->circles->buildContext($viewerId);
-        $memberCommunities = $this->circles->memberCommunities($context);
+        $memberCommunities = $this->circles->memberCommunities($viewerId);
         $communities = $memberCommunities !== []
             ? $this->communities->listByIds(array_slice($memberCommunities, 0, 6))
             : [];

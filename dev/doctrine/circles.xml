@@ -1,176 +1,97 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<circles_of_trust>
-    <description>
-        Elonara Social's core anti-algorithm social filtering system.
-        Replaces traditional algorithmic feeds with relationship-based content visibility.
-    </description>
+<doctrine name="Circles Relationship Engine" version="1.0">
 
-    <core_concept>
-        <principle>Human-curated trust networks over algorithmic manipulation</principle>
-        <goal>Users see content based on real social relationships, not engagement metrics</goal>
-        <differentiator>Primary competitive advantage over traditional social platforms</differentiator>
-    </core_concept>
+  <summary>
+    Circles in Elonara Social are modeled as a bidirectional graph of users.
+    Only direct ("Inner") relationships are stored.
+    Higher-level circles (Trusted, Extended) are derived dynamically by hop distance.
+    This replaces all prior static circle field logic.
+  </summary>
 
-    <circle_definitions>
-        <inner_circle>
-            <description>Content from communities you're a member of</description>
-            <relationship>Direct relationships</relationship>
-            <trust_level>Highest</trust_level>
-            <content_scope>Communities where user has membership</content_scope>
-        </inner_circle>
+  <principles>
+    <rule id="CIR-001">All circle relationships are bi-directional.</rule>
+    <rule id="CIR-002">Only direct (1-hop) relationships are stored in the database.</rule>
+    <rule id="CIR-003">Trusted and Extended circles are computed using hop traversal.</rule>
+    <rule id="CIR-004">Circle depth is a numeric score (hop distance), not a field value.</rule>
+    <rule id="CIR-005">Visibility and access are determined by hop score thresholds.</rule>
+    <rule id="CIR-006">Circle cache generation is optional and asynchronous.</rule>
+  </principles>
 
-        <trusted_circle>
-            <description>Inner Circle + content from communities created by members of your communities</description>
-            <relationship>Friend-of-friend</relationship>
-            <trust_level>Medium</trust_level>
-            <content_scope>Inner Circle + communities created by people you trust</content_scope>
-        </trusted_circle>
+  <schema>
+    <table name="user_links" purpose="Stores all direct mutual Inner relationships.">
+      <field name="user_id" type="INT" required="true"/>
+      <field name="peer_id" type="INT" required="true"/>
+      <field name="created_at" type="TIMESTAMP" default="CURRENT_TIMESTAMP"/>
+      <primary key="user_id,peer_id"/>
+      <constraint type="bidirectional">For every (user_id, peer_id), an inverse (peer_id, user_id) must exist.</constraint>
+    </table>
 
-        <extended_circle>
-            <description>Trusted Circle + content from the broader network</description>
-            <relationship>Friend-of-friend-of-friend</relationship>
-            <trust_level>Lower</trust_level>
-            <content_scope>Trusted Circle + public content from extended network</content_scope>
-        </extended_circle>
-    </circle_definitions>
+    <table name="user_circle_cache" purpose="Optional cache of computed circles.">
+      <field name="user_id" type="INT" required="true"/>
+      <field name="circle_json" type="JSON" required="true"
+             example='{"inner":[2,3],"trusted":[4,5],"extended":[6]}'/>
+      <field name="updated_at" type="TIMESTAMP" default="CURRENT_TIMESTAMP"/>
+      <primary key="user_id"/>
+    </table>
+  </schema>
 
-    <implementation_requirements>
-        <mandatory_components>
-            <component name="VT_Conversation_Feed::list()">
-                <purpose>Core filtering engine for all conversation content</purpose>
-                <parameters>user_id, circle, options</parameters>
-                <requirement>MUST be used for all conversation filtering</requirement>
-            </component>
+  <logic>
+    <concept name="hop_distance">
+      <definition>
+        Hop distance is the minimum number of edges between two users in the user_links graph.
+        Inner = 1, Trusted = 2, Extended = 3.
+      </definition>
+      <formula>
+        circle_level = {
+          if (hops <= 1) then 'inner';
+          if (hops == 2) then 'trusted';
+          if (hops == 3) then 'extended';
+        }
+      </formula>
+    </concept>
 
-            <component name="Circle Filter UI">
-                <elements>
-                    <button data-circle="inner">Inner</button>
-                    <button data-circle="trusted">Trusted</button>
-                    <button data-circle="extended">Extended</button>
-                </elements>
-                <requirement>MUST be present on all content listing pages</requirement>
-            </component>
+    <process name="circle_resolution" purpose="Calculate visible members up to a hop depth.">
+      <input>user_id, max_hops (default=3)</input>
+      <output>peer_id => hop_distance map</output>
+      <algorithm type="breadth_first_search">
+        <step>Start with queue [user_id, depth=0]</step>
+        <step>For each peer connected to current node, if not visited, set depth+1</step>
+        <step>Stop traversal when depth >= max_hops</step>
+      </algorithm>
+    </process>
 
-            <component name="Educational UI">
-                <purpose>Explain anti-algorithm concept to users</purpose>
-                <requirement>Help users understand the value of relationship-based filtering</requirement>
-            </component>
-        </mandatory_components>
+    <process name="circle_cache_refresh" purpose="Regenerate cache JSON for affected users.">
+      <trigger>Insert or delete in user_links.</trigger>
+      <action>Recompute hops up to depth 3 and persist JSON to user_circle_cache.</action>
+      <frequency>Async background task, max once per user per minute.</frequency>
+    </process>
+  </logic>
 
-        <backend_requirements>
-            <database_queries>
-                <rule>All content queries MUST respect circle membership</rule>
-                <rule>Query optimization MUST consider circle filtering first</rule>
-                <rule>Privacy controls MUST be enforced at database level</rule>
-            </database_queries>
+  <queries>
+    <query name="find_inner" sql="SELECT peer_id FROM user_links WHERE user_id=:id"/>
+    <query name="find_trusted" sql="
+      SELECT DISTINCT l2.peer_id
+      FROM user_links l1
+      JOIN user_links l2 ON l1.peer_id = l2.user_id
+      WHERE l1.user_id=:id AND l2.peer_id!=:id"/>
+    <query name="find_extended" sql="
+      SELECT DISTINCT l3.peer_id
+      FROM user_links l1
+      JOIN user_links l2 ON l1.peer_id = l2.user_id
+      JOIN user_links l3 ON l2.peer_id = l3.user_id
+      WHERE l1.user_id=:id AND l3.peer_id!=:id"/>
+  </queries>
 
-            <api_endpoints>
-                <parameter name="circle" required="true">
-                    <values>inner, trusted, extended</values>
-                    <validation>Must be validated against allowed_circles array</validation>
-                </parameter>
-                <parameter name="filter" optional="true">
-                    <values>events, communities, "" (all)</values>
-                    <purpose>Secondary filtering within circle results</purpose>
-                </parameter>
-            </api_endpoints>
-        </backend_requirements>
+  <performance>
+    <metric name="write_overhead" value="O(1)" note="Only direct link insertions."/>
+    <metric name="read_complexity" value="O(n × d)" note="n = peers, d = hop depth ≤ 3."/>
+    <metric name="cache_hit_ratio" value="0.9" note="Once warmed, cached lookups dominate."/>
+  </performance>
 
-        <frontend_requirements>
-            <javascript_patterns>
-                <ajax_calls>
-                    <requirement>MUST include circle parameter in all content requests</requirement>
-                    <requirement>MUST update UI based on selected circle</requirement>
-                    <requirement>MUST provide visual feedback for circle changes</requirement>
-                </ajax_calls>
+  <integration>
+    <usage module="Conversations">Resolve participants dynamically by hop score, no DB writes on reply.</usage>
+    <usage module="Invitations">When accepted, insert mutual user_links pairs (1-hop Inner).</usage>
+    <usage module="Communities">Restrict visibility and membership options by hop threshold.</usage>
+  </integration>
 
-                <ui_states>
-                    <active_circle>Visual indication of currently selected circle</active_circle>
-                    <loading_states>Show loading during circle transitions</loading_states>
-                    <empty_states>Explain why no content exists for selected circle</empty_states>
-                </ui_states>
-            </javascript_patterns>
-        </frontend_requirements>
-    </implementation_requirements>
+</doctrine>
 
-    <anti_patterns>
-        <never_do>
-            <item>Implement content filtering without circle integration</item>
-            <item>Create conversation listings that bypass VT_Conversation_Feed</item>
-            <item>Use direct database queries for conversation content</item>
-            <item>Ignore circle parameter in AJAX endpoints</item>
-            <item>Create algorithmic content ranking or sorting</item>
-        </never_do>
-
-        <warning_signs>
-            <item>Content queries that don't check community membership</item>
-            <item>UI without circle filter buttons</item>
-            <item>AJAX calls missing circle parameter</item>
-            <item>Direct VT_Conversation_Manager usage without circle filtering</item>
-        </warning_signs>
-    </anti_patterns>
-
-    <user_experience_goals>
-        <transparency>
-            <goal>Users understand why they see specific content</goal>
-            <implementation>Clear labeling of content sources and relationships</implementation>
-        </transparency>
-
-        <control>
-            <goal>Users control their content experience through trust relationships</goal>
-            <implementation>Easy circle switching and relationship management</implementation>
-        </control>
-
-        <education>
-            <goal>Users understand the anti-algorithm philosophy</goal>
-            <implementation>Contextual explanations and helpful UI guidance</implementation>
-        </education>
-
-        <privacy>
-            <goal>Content visibility respects community privacy settings</goal>
-            <implementation>Server-side enforcement of privacy rules</implementation>
-        </privacy>
-    </user_experience_goals>
-
-    <technical_architecture>
-        <data_flow>
-            <step>1. User selects circle (Inner/Trusted/Extended)</step>
-            <step>2. Frontend sends AJAX request with circle parameter</step>
-            <step>3. Backend calls VT_Conversation_Feed::list() with circle</step>
-            <step>4. VT_Conversation_Feed queries community memberships</step>
-            <step>5. Content filtered based on relationship network</step>
-            <step>6. Results returned with circle context metadata</step>
-            <step>7. Frontend renders content with relationship explanations</step>
-        </data_flow>
-
-        <performance_considerations>
-            <caching>Circle-based content can be cached per user per circle</caching>
-            <optimization>Community membership queries should be optimized</optimization>
-            <pagination>Large circle results need pagination support</pagination>
-        </performance_considerations>
-    </technical_architecture>
-
-    <validation_checklist>
-        <backend>
-            <item>VT_Conversation_Feed::list() used for all conversation filtering</item>
-            <item>Circle parameter validated in all AJAX endpoints</item>
-            <item>Community membership queries respect privacy settings</item>
-            <item>Error handling for invalid circles</item>
-        </backend>
-
-        <frontend>
-            <item>Circle filter buttons present and functional</item>
-            <item>Active circle visually indicated</item>
-            <item>AJAX calls include circle parameter</item>
-            <item>Loading states during circle transitions</item>
-            <item>Educational content explains anti-algorithm concept</item>
-        </frontend>
-
-        <user_experience>
-            <item>Content sources clearly labeled</item>
-            <item>Empty states explain missing content</item>
-            <item>Circle switching is smooth and responsive</item>
-            <item>Users understand why they see specific content</item>
-        </user_experience>
-    </validation_checklist>
-</circles_of_trust>

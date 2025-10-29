@@ -44,13 +44,17 @@ final class CommunityController
         $circle = $this->normalizeCircle($request->query('circle'));
         $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $context = $this->circles->buildContext($viewerId);
-        $allowed = $this->circles->resolveCommunitiesForCircle($context, $circle);
-        $memberCommunities = $this->circles->memberCommunities($context);
+        $allowed = $this->circles->getCommunityScope($viewerId, $circle);
+        $memberCommunities = $this->circles->memberCommunities($viewerId);
 
-        $communities = $this->communities->listByCircle($allowed, $memberCommunities);
+        $result = $this->communities->listByCircle($allowed, $memberCommunities, [
+            'page' => max(1, (int)$request->query('page', 1)),
+            'per_page' => 20,
+        ]);
 
         return [
-            'communities' => $communities,
+            'communities' => $result['communities'] ?? [],
+            'pagination' => $result['pagination'] ?? [],
             'circle' => $circle,
             'circle_context' => $context,
         ];
@@ -68,7 +72,7 @@ final class CommunityController
     {
         $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $context = $this->circles->buildContext($viewerId);
-        $memberCommunities = $this->circles->memberCommunities($context);
+        $memberCommunities = $this->circles->memberCommunities($viewerId);
 
         $community = $this->communities->getBySlugOrId($slugOrId);
         if ($community === null) {
@@ -474,8 +478,9 @@ final class CommunityController
         }
 
         $communityId = (int)($community['id'] ?? 0);
-        $conversations = $communityId > 0 ? $this->conversations->listByCommunity($communityId) : [];
         $viewerId = (int)($this->auth->currentUserId() ?? 0);
+        $result = $communityId > 0 ? $this->conversations->listByCommunity($communityId, $viewerId, []) : ['conversations' => [], 'pagination' => []];
+        $conversations = $result['conversations'] ?? [];
         $canCreateConversation = $communityId > 0 && $this->authz->canCreateConversationInCommunity($communityId, $viewerId);
 
         $conversations = array_map(function (array $conversation): array {

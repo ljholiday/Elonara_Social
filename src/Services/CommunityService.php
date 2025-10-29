@@ -173,15 +173,35 @@ final class CommunityService
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * List communities filtered by circle scope (creator hop distance).
+     * Per trust.xml Section 4: Communities created by users within N hops.
+     *
+     * @param array<int>|null $allowedCommunities Community IDs from CircleService.getCommunityScope()
+     * @param array<int> $memberCommunities Communities viewer is member of
+     * @param array{page?: int, per_page?: int} $options
+     * @return array{communities: array<int, array<string, mixed>>, pagination: array}
      */
-    public function listByCircle(?array $allowedCommunities, array $memberCommunities, int $limit = 20): array
+    public function listByCircle(?array $allowedCommunities, array $memberCommunities, array $options = []): array
     {
+        $options = array_merge(['page' => 1, 'per_page' => 20], $options);
+        $page = max(1, (int)$options['page']);
+        $perPage = max(1, (int)$options['per_page']);
+        $offset = ($page - 1) * $perPage;
+        $fetchLimit = $perPage + 1;
+
         $allowedCommunities = $allowedCommunities === null ? null : $this->uniqueInts($allowedCommunities);
         $memberCommunities = $this->uniqueInts($memberCommunities);
 
         if ($allowedCommunities !== null && $allowedCommunities === []) {
-            return [];
+            return [
+                'communities' => [],
+                'pagination' => [
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'has_more' => false,
+                    'next_page' => null,
+                ],
+            ];
         }
 
         $conditions = [];
@@ -211,11 +231,13 @@ final class CommunityService
                     created_at,
                     privacy,
                     member_count,
-                    event_count
+                    event_count,
+                    creator_id
                 FROM communities
                 $where
+                AND is_active = 1
                 ORDER BY COALESCE(created_at, id) DESC
-                LIMIT $limit";
+                LIMIT $fetchLimit OFFSET $offset";
 
         $pdo = $this->db->pdo();
         $stmt = $pdo->prepare($sql);
@@ -240,7 +262,21 @@ final class CommunityService
 
         $stmt->execute();
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $hasMore = count($rows) > $perPage;
+        if ($hasMore) {
+            $rows = array_slice($rows, 0, $perPage);
+        }
+
+        return [
+            'communities' => $rows,
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'has_more' => $hasMore,
+                'next_page' => $hasMore ? $page + 1 : null,
+            ],
+        ];
     }
 
     /** @return array<string,mixed>|null */
