@@ -48,19 +48,27 @@ if ($class !== '') {
       $statClass = trim((string)($item['class'] ?? ''));
       $statClassAttr = $statClass !== '' ? ' ' . htmlspecialchars($statClass, ENT_QUOTES, 'UTF-8') : '';
     ?>
+
+
     <div class="app-stat<?= $statClassAttr ?>">
+
       <div class="app-stat-number">
         <?php if ($icon !== ''): ?>
           <span class="app-stat-icon"><?= $icon ?></span>
         <?php endif; ?>
         <?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>
       </div>
+
       <?php if ($label !== ''): ?>
         <div class="app-stat-label"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></div>
       <?php endif; ?>
+
       <?php if ($hint !== ''): ?>
         <div class="app-stat-hint"><?= htmlspecialchars($hint, ENT_QUOTES, 'UTF-8'); ?></div>
       <?php endif; ?>
+
     </div>
+
+
   <?php endforeach; ?>
 </div>
