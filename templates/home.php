@@ -12,7 +12,8 @@ $conversations = $recent_conversations ?? [];
 
 <section class="app-section app-dashboard">
   <div class="app-container app-stack app-gap-6">
-    <header class="app-card">
+<!--
+    <header class="app-card" style="background: green;">
       <div class="app-card-body app-flex app-flex-between app-flex-wrap app-gap-4">
         <div class="app-flex app-flex-column app-gap-2 app-flex-1">
           <h1 class="app-heading app-heading-lg">Welcome back, <?= $viewerName; ?></h1>
@@ -31,6 +32,7 @@ $conversations = $recent_conversations ?? [];
         </div>
       </div>
     </header>
+-->
 
     <section class="app-stack app-gap-3">
       <div class="app-flex app-flex-between app-items-center">
