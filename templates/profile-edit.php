@@ -260,6 +260,23 @@ $input = $input ?? [];
       <?php endif; ?>
     </section>
 
+    <hr class="app-divider app-my-6">
+
+    <section class="app-section">
+      <h2 class="app-heading app-heading-md app-mb-4">Privacy & Blocking</h2>
+      <p class="app-text-muted app-mb-4">
+        Manage users you've blocked from interacting with you.
+      </p>
+
+      <?php
+      // Get blocked users for current user
+      $blockService = function_exists('app_service') ? app_service('block.service') : null;
+      $blocked_users = $blockService && isset($u->id) ? $blockService->getBlockedUsers((int)$u->id) : [];
+      ?>
+
+      <?php include __DIR__ . '/partials/blocked-users-list.php'; ?>
+    </section>
+
   <?php else: ?>
     <div class="app-alert app-alert-error">
       Please log in to edit your profile.

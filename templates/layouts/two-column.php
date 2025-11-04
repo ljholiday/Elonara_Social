@@ -118,6 +118,7 @@ $csrf_token = $security->createNonce('app_nonce', $userId);
 <?php if (str_contains($current_path, '/communities') || str_contains($current_path, '/events')): ?>
 <script src="<?= htmlspecialchars($assetBase . '/js/membership.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 <?php endif; ?>
+<script src="<?= htmlspecialchars($assetBase . '/js/block.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script>
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

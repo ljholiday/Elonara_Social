@@ -790,6 +790,23 @@ return static function (Router $router): void {
         return true;
     });
 
+    // API: Block/Unblock Users
+    $router->post('/api/block', static function (Request $request) {
+        $response = app_service('controller.block')->block();
+        http_response_code($response['status'] ?? 200);
+        header('Content-Type: application/json');
+        echo json_encode($response['body']);
+        return true;
+    });
+
+    $router->post('/api/unblock', static function (Request $request) {
+        $response = app_service('controller.block')->unblock();
+        http_response_code($response['status'] ?? 200);
+        header('Content-Type: application/json');
+        echo json_encode($response['body']);
+        return true;
+    });
+
     $router->get('/api/communities/{id}/members', static function (Request $request, string $id) {
         $response = app_service('controller.invitations')->listCommunityMembers((int)$id);
         http_response_code($response['status'] ?? 200);

@@ -1799,6 +1799,12 @@ body.app-modal-open {
     font-weight: 600;
 }
 
+.app-member-actions {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+}
+
 /* Standardized Member/Invite Cards */
 
 .app-invitation-item {

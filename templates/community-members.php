@@ -30,9 +30,10 @@ $members = $members ?? [];
               'username' => $member['username'] ?? null,
               'display_name' => $member['display_name'] ?? $member['username'] ?? 'Unknown',
               'email' => $member['email'] ?? null,
-              'avatar_url' => $member['avatar_url'] ?? null
+              'avatar_url' => $member['avatar_url'] ?? null,
+              'avatar_preference' => $member['avatar_preference'] ?? 'auto'
           ];
-          $args = ['avatar_size' => 48];
+          $args = ['avatar_size' => 48, 'show_actions' => true];
           ?>
           <div class="app-card">
             <?php include __DIR__ . '/partials/member-display.php'; ?>

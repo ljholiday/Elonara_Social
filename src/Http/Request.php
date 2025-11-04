@@ -32,10 +32,21 @@ final class Request
     {
         $server = $_SERVER;
         $method = strtoupper((string)($server['REQUEST_METHOD'] ?? 'GET'));
+        $contentType = (string)($server['CONTENT_TYPE'] ?? '');
 
         $body = $_POST;
+
+        // Parse JSON body for POST requests with application/json content type
+        if ($body === [] && $method === 'POST' && stripos($contentType, 'application/json') !== false) {
+            $parsedBody = self::parseInputStream($contentType);
+            if ($parsedBody !== null) {
+                $body = $parsedBody;
+            }
+        }
+
+        // Parse body for other methods that don't populate $_POST
         if ($body === [] && in_array($method, ['PUT', 'PATCH', 'DELETE', 'OPTIONS'], true)) {
-            $parsedBody = self::parseInputStream((string)($server['CONTENT_TYPE'] ?? ''));
+            $parsedBody = self::parseInputStream($contentType);
             if ($parsedBody !== null) {
                 $body = $parsedBody;
             }

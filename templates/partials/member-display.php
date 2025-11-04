@@ -15,6 +15,7 @@
  *   - 'show_avatar' => true (bool): Whether to show avatar
  *   - 'show_name' => true (bool): Whether to show name
  *   - 'link_profile' => true (bool): Whether to make it clickable
+ *   - 'show_actions' => false (bool): Whether to show action buttons (connect/message/block)
  *   - 'class' => 'app-member-display' (string): CSS classes
  */
 
@@ -26,6 +27,7 @@ $defaults = [
     'show_avatar'    => true,
     'show_name'      => true,
     'link_profile'   => true,
+    'show_actions'   => false,
     'class'          => 'app-member-display',
 ];
 
@@ -120,13 +122,52 @@ if ($args['avatar_size'] >= 56) {
         <?php endif; ?>
     <?php endif; ?>
 
-    <?php if ($args['show_name']): ?>
-        <?php if ($args['link_profile'] && $profile_url): ?>
-            <a href="<?= htmlspecialchars($profile_url, ENT_QUOTES, 'UTF-8') ?>" class="app-member-name app-link">
-                <?= htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8') ?>
-            </a>
-        <?php else: ?>
-            <span class="app-member-name"><?= htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8') ?></span>
+    <div>
+        <?php if ($args['show_name']): ?>
+            <?php if ($args['link_profile'] && $profile_url): ?>
+                <a href="<?= htmlspecialchars($profile_url, ENT_QUOTES, 'UTF-8') ?>" class="app-member-name app-link">
+                    <?= htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8') ?>
+                </a>
+            <?php else: ?>
+                <span class="app-member-name"><?= htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8') ?></span>
+            <?php endif; ?>
         <?php endif; ?>
-    <?php endif; ?>
+
+        <?php if ($args['show_actions']): ?>
+            <?php
+            // Get current viewer to check if actions should be shown
+            $viewer = function_exists('app_service') ? app_service('auth.service')->getCurrentUser() : null;
+            $viewerId = $viewer ? (int)$viewer->id : 0;
+            $targetUserId = (int)($user->id ?? 0);
+
+            // Don't show actions for the viewer's own profile
+            if ($viewerId > 0 && $viewerId !== $targetUserId):
+            ?>
+                <div class="app-member-actions" style="margin-top: 0.5rem;">
+                    <button type="button" class="app-btn-icon" title="Connect (coming soon)" disabled style="opacity: 0.5; cursor: not-allowed;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                            <line x1="20" y1="8" x2="20" y2="14"></line>
+                            <line x1="23" y1="11" x2="17" y2="11"></line>
+                        </svg>
+                    </button>
+                    <button type="button" class="app-btn-icon" title="Message (coming soon)" disabled style="opacity: 0.5; cursor: not-allowed;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </button>
+                    <button type="button" class="app-btn-icon" title="Block this user"
+                        data-user-id="<?= $targetUserId ?>"
+                        data-user-name="<?= htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8') ?>"
+                        onclick="blockUser(<?= $targetUserId ?>, '<?= htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8') ?>')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                        </svg>
+                    </button>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
 </div>

@@ -339,17 +339,27 @@ final class ConversationService
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function listReplies(int $conversationId): array
+    public function listReplies(int $conversationId, ?int $viewerId = null): array
     {
-        $stmt = $this->db->pdo()->prepare(
-            'SELECT r.id, r.conversation_id, r.parent_reply_id, r.content, r.image_url, r.image_alt, r.author_name, r.created_at, r.depth_level,
-                    u.id AS author_id, u.username AS author_username, u.display_name AS author_display_name, u.email AS author_email, u.avatar_url AS author_avatar_url
+        $sql = 'SELECT r.id, r.conversation_id, r.parent_reply_id, r.content, r.image_url, r.image_alt, r.author_name, r.created_at, r.depth_level,
+                    u.id AS author_id, u.username AS author_username, u.display_name AS author_display_name, u.email AS author_email, u.avatar_url AS author_avatar_url, u.avatar_preference AS author_avatar_preference
              FROM conversation_replies r
-             LEFT JOIN users u ON r.author_id = u.id
-             WHERE r.conversation_id = :cid
-             ORDER BY r.created_at DESC'
-        );
-        $stmt->execute([':cid' => $conversationId]);
+             LEFT JOIN users u ON r.author_id = u.id';
+
+        // Exclude replies from blocked users
+        if ($viewerId !== null && $viewerId > 0) {
+            $sql .= ' LEFT JOIN user_blocks ub ON ub.blocked_user_id = r.author_id AND ub.blocker_user_id = :viewer_id
+                      WHERE r.conversation_id = :cid AND ub.id IS NULL';
+            $params = [':cid' => $conversationId, ':viewer_id' => $viewerId];
+        } else {
+            $sql .= ' WHERE r.conversation_id = :cid';
+            $params = [':cid' => $conversationId];
+        }
+
+        $sql .= ' ORDER BY r.created_at DESC';
+
+        $stmt = $this->db->pdo()->prepare($sql);
+        $stmt->execute($params);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

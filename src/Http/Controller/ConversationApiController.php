@@ -118,7 +118,7 @@ final class ConversationApiController
             'author_email' => isset($viewer->email) ? (string)$viewer->email : '',
         ]);
 
-        $replies = $this->conversations->listReplies((int)$conversation['id']);
+        $replies = $this->conversations->listReplies((int)$conversation['id'], $viewerId);
         $html = $this->renderReplyCards($replies);
 
         return $this->success([

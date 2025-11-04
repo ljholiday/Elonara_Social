@@ -354,7 +354,7 @@ final class CommunityController
         }
 
         $tab = $this->normalizeManageTab($this->request()->query('tab'));
-        $members = $this->members->listMembers($communityId);
+        $members = $this->members->listMembers($communityId, $viewerId);
 
         $shareLink = '';
         $shareVisibility = '';
@@ -516,8 +516,9 @@ final class CommunityController
             ];
         }
 
+        $viewerId = (int)($this->auth->currentUserId() ?? 0);
         $communityId = (int)($community['id'] ?? 0);
-        $members = $communityId > 0 ? $this->members->listMembers($communityId) : [];
+        $members = $communityId > 0 ? $this->members->listMembers($communityId, $viewerId) : [];
 
         return [
             'community' => $community,

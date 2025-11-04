@@ -102,7 +102,7 @@ final class ConversationController
             ];
         }
 
-        $replies = $this->conversations->listReplies((int)$conversation['id']);
+        $replies = $this->conversations->listReplies((int)$conversation['id'], $viewerId);
         $contextPath = $this->buildConversationContextPath($conversation);
         $contextLabelPlain = $contextPath !== [] ? ContextLabel::renderPlain($contextPath) : (string)($conversation['title'] ?? '');
         $contextLabelHtml = $contextPath !== [] ? ContextLabel::render($contextPath) : htmlspecialchars((string)($conversation['title'] ?? ''), ENT_QUOTES, 'UTF-8');
@@ -369,7 +369,7 @@ final class ConversationController
         if (!$this->authz->canReplyToConversation($conversation, $viewerId, $memberCommunities)) {
             return [
                 'conversation' => $conversation,
-                'replies' => $this->conversations->listReplies((int)$conversation['id']),
+                'replies' => $this->conversations->listReplies((int)$conversation['id'], $viewerId),
                 'reply_errors' => ['auth' => 'You cannot reply to this conversation.'],
                 'reply_input' => ['content' => ''],
             ];
@@ -380,7 +380,7 @@ final class ConversationController
         if (!$this->verifyNonce($nonce, 'app_conversation_reply')) {
             return [
                 'conversation' => $conversation,
-                'replies' => $this->conversations->listReplies((int)$conversation['id']),
+                'replies' => $this->conversations->listReplies((int)$conversation['id'], $viewerId),
                 'reply_errors' => ['nonce' => 'Security verification failed. Please refresh and try again.'],
                 'reply_input' => ['content' => (string)$request->input('content', '')],
             ];
@@ -410,7 +410,7 @@ final class ConversationController
         if ($errors) {
             return [
                 'conversation' => $conversation,
-                'replies' => $this->conversations->listReplies((int)$conversation['id']),
+                'replies' => $this->conversations->listReplies((int)$conversation['id'], $viewerId),
                 'reply_errors' => $errors,
                 'reply_input' => $input,
             ];

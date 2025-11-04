@@ -561,7 +561,7 @@ final class InvitationApiController
 
     private function renderCommunityMembers(int $communityId, int $viewerId): string
     {
-        $members = $this->communityMembers->listMembers($communityId);
+        $members = $this->communityMembers->listMembers($communityId, $viewerId);
         $viewerRole = $viewerId > 0 ? $this->communityMembers->getMemberRole($communityId, $viewerId) : null;
 
         if ($members === []) {

@@ -24,29 +24,40 @@ final class CommunityMemberService
      *
      * @return array<int, array<string, mixed>>
      */
-    public function listMembers(int $communityId): array
+    public function listMembers(int $communityId, ?int $viewerId = null): array
     {
-        $stmt = $this->database->pdo()->prepare(
-            "SELECT
-                id,
-                community_id,
-                user_id,
-                email,
-                display_name,
-                role,
-                status,
-                joined_at
-             FROM community_members
-             WHERE community_id = :community_id AND status = 'active'
-             ORDER BY
-                CASE WHEN display_name IS NULL OR display_name = '' THEN 1 ELSE 0 END,
-                display_name ASC,
-                email ASC"
-        );
+        $sql = "SELECT
+                cm.id,
+                cm.community_id,
+                cm.user_id,
+                cm.email,
+                cm.display_name,
+                cm.role,
+                cm.status,
+                cm.joined_at,
+                u.username,
+                u.avatar_url,
+                u.avatar_preference
+             FROM community_members cm
+             LEFT JOIN users u ON cm.user_id = u.id";
 
-        $stmt->execute([
-            ':community_id' => $communityId,
-        ]);
+        // Exclude blocked users
+        if ($viewerId !== null && $viewerId > 0) {
+            $sql .= " LEFT JOIN user_blocks ub ON ub.blocked_user_id = cm.user_id AND ub.blocker_user_id = :viewer_id
+                      WHERE cm.community_id = :community_id AND cm.status = 'active' AND ub.id IS NULL";
+            $params = [':community_id' => $communityId, ':viewer_id' => $viewerId];
+        } else {
+            $sql .= " WHERE cm.community_id = :community_id AND cm.status = 'active'";
+            $params = [':community_id' => $communityId];
+        }
+
+        $sql .= " ORDER BY
+                CASE WHEN cm.display_name IS NULL OR cm.display_name = '' THEN 1 ELSE 0 END,
+                cm.display_name ASC,
+                cm.email ASC";
+
+        $stmt = $this->database->pdo()->prepare($sql);
+        $stmt->execute($params);
 
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         return is_array($rows) ? $rows : [];

@@ -28,6 +28,7 @@ use App\Http\Controller\BlueskyController;
 use App\Http\Controller\BlueskyInvitationController;
 use App\Http\Controller\SearchController;
 use App\Http\Controller\ProfileController;
+use App\Http\Controller\BlockController;
 use App\Http\Request;
 use App\Services\EventService;
 use App\Services\CommunityService;
@@ -52,6 +53,7 @@ use App\Services\SearchService;
 use App\Services\BlueskyService;
 use App\Services\BlueskyInvitationService;
 use App\Services\DefaultCommunityService;
+use App\Services\BlockService;
 use PHPMailer\PHPMailer\PHPMailer;
 
 
@@ -521,6 +523,10 @@ if (!function_exists('app_container')) {
                 );
             });
 
+            $container->register('block.service', static function (AppContainer $c): BlockService {
+                return new BlockService($c->get('database.connection'));
+            });
+
             $container->register('controller.auth', static function (AppContainer $c): AuthController {
                 return new AuthController(
                     $c->get('auth.service'),
@@ -649,6 +655,14 @@ if (!function_exists('app_container')) {
                     $c->get('auth.service'),
                     $c->get('user.service'),
                     $c->get('validator.service'),
+                    $c->get('security.service')
+                );
+            }, false);
+
+            $container->register('controller.block', static function (AppContainer $c): BlockController {
+                return new BlockController(
+                    $c->get('block.service'),
+                    $c->get('auth.service'),
                     $c->get('security.service')
                 );
             }, false);
