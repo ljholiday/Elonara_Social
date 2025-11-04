@@ -568,6 +568,24 @@ a:focus {
 }
 
 /* Buttons */
+.app-btn-banner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 1.25rem;
+    width: 100%;
+    border: 0.125rem solid var(--app-primary);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--app-primary);
+    color: white;
+}
+
+
 .app-btn {
     display: inline-flex;
     align-items: center;
@@ -871,14 +889,6 @@ a:focus {
     padding: 1rem;
     border-bottom: 0.0625rem solid var(--app-border);
     background: var(--app-background);
-}
-
-.app-card-header h1 {
-    margin: .125rem;
-}
-
-.app-card-header {
-    padding: 0;
 }
 
 .app-card-body {

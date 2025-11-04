@@ -14,34 +14,11 @@ $conversations = $recent_conversations ?? [];
   <div class="app-container app-stack app-gap-6">
 
 
-    <header class="app-card" >
+    <header>
 
-
-          <a href="https://elonara.com/how-to-elonara/" target="_blank" class="app-btn" > <h1>Learn How To Elonara</h1> </a>
-
+          <a href="https://elonara.com/how-to-elonara/" target="_blank" class="app-btn-banner " >Learn How To Elonara</a>
 
     </header>
-<!--
-    <header class="app-card" style="background: green;">
-      <div class="app-card-body app-flex app-flex-between app-flex-wrap app-gap-4">
-        <div class="app-flex app-flex-column app-gap-2 app-flex-1">
-          <h1 class="app-heading app-heading-lg">Welcome back, <?= $viewerName; ?></h1>
-          <p class="app-text-muted app-text-lg">
-            Plan events, keep up with your communities, and jump into the conversations that matter.
-          </p>
-          <?php
-          $homeStats = [
-              ['value' => count($events), 'label' => 'Events'],
-              ['value' => count($communities), 'label' => 'Communities'],
-              ['value' => count($conversations), 'label' => 'Conversations'],
-          ];
-          $items = $homeStats;
-          include __DIR__ . '/partials/stats-row.php';
-          ?>
-        </div>
-      </div>
-    </header>
--->
 
     <section class="app-stack app-gap-3">
       <div class="app-flex app-flex-between app-items-center">
