@@ -12,6 +12,15 @@ $conversations = $recent_conversations ?? [];
 
 <section class="app-section app-dashboard">
   <div class="app-container app-stack app-gap-6">
+
+
+    <header class="app-card" >
+
+
+          <a href="https://elonara.com/how-to-elonara/" target="_blank" class="app-btn" > <h1>Learn How To Elonara</h1> </a>
+
+
+    </header>
 <!--
     <header class="app-card" style="background: green;">
       <div class="app-card-body app-flex app-flex-between app-flex-wrap app-gap-4">

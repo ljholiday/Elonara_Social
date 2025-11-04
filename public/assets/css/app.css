@@ -22,7 +22,7 @@
 
 /* Dev trick. Gives every container a green border */
 /*
- {
+* {
     border: solid .5px green;
 }
 */
@@ -73,6 +73,9 @@ html, body {
     line-height: 1;
     color: var(--app-text);
     background-color: var(--app-background);
+}
+
+h1 {
 }
 
 a {
@@ -870,6 +873,14 @@ a:focus {
     background: var(--app-background);
 }
 
+.app-card-header h1 {
+    margin: .125rem;
+}
+
+.app-card-header {
+    padding: 0;
+}
+
 .app-card-body {
     padding: 1rem;
 }
@@ -1124,7 +1135,8 @@ a:focus {
 .app-flex-wrap { flex-wrap: wrap; }
 .app-flex-column { flex-direction: column; }
 .app-gap,
-.app-gap-4 { gap: 1rem; }
+/* Was 1rem */
+.app-gap-4 { gap: .25rem; }
 
 .app-grid { display: grid; }
 .app-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
