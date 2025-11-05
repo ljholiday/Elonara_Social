@@ -98,7 +98,18 @@
 
 		// Show existing image if present
 		if (imageUrl && existingImagePreview && existingImage) {
-			existingImage.src = imageUrl;
+			// Parse JSON if needed to extract actual URL
+			let displayUrl = imageUrl;
+			try {
+				const parsed = JSON.parse(imageUrl);
+				// Prefer thumb, then small, then mobile, then original
+				displayUrl = parsed.thumb || parsed.small || parsed.mobile || parsed.original || imageUrl;
+			} catch (e) {
+				// Not JSON, use as-is
+				displayUrl = imageUrl;
+			}
+
+			existingImage.src = displayUrl;
 			existingImage.alt = imageAlt || '';
 			if (existingImageAlt) {
 				existingImageAlt.textContent = imageAlt ? 'Alt text: ' + imageAlt : '';
