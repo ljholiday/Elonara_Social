@@ -935,12 +935,21 @@ final class ConversationService
             throw new \RuntimeException('Reply content is required.');
         }
 
-        // Handle image upload if provided
+        // Handle image - either from library URL or new upload
         $imageUrl = null;
         $imageAlt = null;
         $updateImage = false;
 
-        if ($this->imageService && !empty($data['image']) && !empty($data['image']['tmp_name'])) {
+        if (!empty($data['image_url'])) {
+            // Image selected from library - use existing URL
+            $imageUrl = $data['image_url'];
+            $imageAlt = trim((string)($data['image_alt'] ?? ''));
+            if ($imageAlt === '') {
+                throw new \RuntimeException('Image alt-text is required for accessibility.');
+            }
+            $updateImage = true;
+        } elseif ($this->imageService && !empty($data['image']) && !empty($data['image']['tmp_name'])) {
+            // New file upload
             $imageAlt = trim((string)($data['image_alt'] ?? ''));
             if ($imageAlt === '') {
                 throw new \RuntimeException('Image alt-text is required for accessibility.');

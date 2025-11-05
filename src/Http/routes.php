@@ -608,9 +608,22 @@ return static function (Router $router): void {
             $content = $request->input('content');
             $updateData = ['content' => $content];
 
-            // Check for image upload
-            $hasImage = !empty($_FILES['reply_image']) && !empty($_FILES['reply_image']['tmp_name']);
-            if ($hasImage) {
+            // Check for image from library (URL) or new upload
+            $imageFromLibrary = trim((string)$request->input('reply_image_url', ''));
+            $hasImageUpload = !empty($_FILES['reply_image']) && !empty($_FILES['reply_image']['tmp_name']);
+
+            if ($imageFromLibrary !== '') {
+                // Image selected from library - use existing uploaded image
+                $imageAlt = trim((string)$request->input('image_alt', ''));
+                if ($imageAlt === '') {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'Image alt-text is required for accessibility.']);
+                    return true;
+                }
+                $updateData['image_url'] = $imageFromLibrary;
+                $updateData['image_alt'] = $imageAlt;
+            } elseif ($hasImageUpload) {
+                // New file upload
                 $imageAlt = trim((string)$request->input('image_alt', ''));
                 if ($imageAlt === '') {
                     http_response_code(400);

@@ -58,17 +58,23 @@ $shouldAutoOpen = $reply_errors !== [];
             <textarea class="app-form-textarea<?= isset($reply_errors['content']) ? ' is-invalid' : '' ?>" id="reply-content" name="content" rows="4" required><?= e($reply_input['content'] ?? '') ?></textarea>
           </div>
           <div class="app-form-group">
-            <label class="app-form-label" for="reply-image">Image (optional)</label>
-            <input type="file" class="app-form-input<?= isset($reply_errors['image_alt']) ? ' is-invalid' : '' ?>" id="reply-image" name="reply_image" accept="image/jpeg,image/png,image/gif,image/webp">
-            <small class="app-form-help">Maximum 10MB. JPEG, PNG, GIF, or WebP format.</small>
-          </div>
-          <div class="app-form-group">
-            <label class="app-form-label" for="image-alt">Image description</label>
-            <input type="text" class="app-form-input<?= isset($reply_errors['image_alt']) ? ' is-invalid' : '' ?>" id="image-alt" name="image_alt" placeholder="Describe the image for accessibility" value="<?= e($reply_input['image_alt'] ?? '') ?>">
-            <small class="app-form-help">Required if uploading an image. Describe what's in the image for screen reader users.</small>
-            <?php if (isset($reply_errors['image_alt'])): ?>
-              <div class="app-form-error"><?= e($reply_errors['image_alt']) ?></div>
-            <?php endif; ?>
+            <label class="app-form-label">Image (optional)</label>
+            <div id="reply-image-preview-container" style="display: none; margin-bottom: 1rem;">
+              <img id="reply-image-preview" src="" alt="" style="max-width: 200px; height: auto; border-radius: 4px; margin-bottom: 0.5rem;">
+              <p id="reply-image-alt-display" class="app-text-muted" style="font-size: 0.875rem;"></p>
+            </div>
+            <button type="button" class="app-btn app-btn-secondary" id="select-reply-image-btn"
+              onclick="window.appOpenImageLibrary({
+                imageType: 'reply',
+                targetPreview: 'reply-image-preview',
+                targetAltInput: 'reply-image-alt-hidden',
+                targetUrlInput: 'reply-image-url-hidden'
+              })">
+              Select Image
+            </button>
+            <input type="hidden" id="reply-image-url-hidden" name="reply_image_url" value="">
+            <input type="hidden" id="reply-image-alt-hidden" name="image_alt" value="<?= e($reply_input['image_alt'] ?? '') ?>">
+            <small class="app-form-help">Click to upload a new image or select from your library.</small>
           </div>
         </div>
       </div>

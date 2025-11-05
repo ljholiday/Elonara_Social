@@ -20,6 +20,10 @@
 	const existingImagePreview = document.getElementById('existing-image-preview');
 	const existingImage = document.getElementById('existing-image');
 	const existingImageAlt = document.getElementById('existing-image-alt');
+	const replyImagePreview = document.getElementById('reply-image-preview');
+	const replyImagePreviewContainer = document.getElementById('reply-image-preview-container');
+	const replyImageAltDisplay = document.getElementById('reply-image-alt-display');
+	const replyImageAltHidden = document.getElementById('reply-image-alt-hidden');
 
 	function openModal() {
 		modal.style.display = 'block';
@@ -50,6 +54,9 @@
 		}
 		if (existingImagePreview) {
 			existingImagePreview.style.display = 'none';
+		}
+		if (replyImagePreviewContainer) {
+			replyImagePreviewContainer.style.display = 'none';
 		}
 		// Reset form action to create endpoint
 		const conversationSlug = modal.dataset.conversationSlug;
@@ -178,6 +185,26 @@
 			closeModal();
 		}
 	});
+
+	// Watch for image library updates
+	if (replyImagePreview && replyImagePreviewContainer && replyImageAltHidden && replyImageAltDisplay) {
+		// Use MutationObserver to watch when image library updates the preview
+		const observer = new MutationObserver(() => {
+			if (replyImagePreview.src && replyImagePreview.src !== '') {
+				replyImagePreviewContainer.style.display = 'block';
+				const altText = replyImageAltHidden.value;
+				replyImageAltDisplay.textContent = altText ? 'Alt: ' + altText : '';
+			}
+		});
+		observer.observe(replyImagePreview, { attributes: true, attributeFilter: ['src'] });
+
+		// Also watch for changes to alt text input
+		const altObserver = new MutationObserver(() => {
+			const altText = replyImageAltHidden.value;
+			replyImageAltDisplay.textContent = altText ? 'Alt: ' + altText : '';
+		});
+		altObserver.observe(replyImageAltHidden, { attributes: true, attributeFilter: ['value'] });
+	}
 
 	if (modal.dataset.autoOpen === '1') {
 		openModal();
