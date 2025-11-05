@@ -195,7 +195,7 @@ final class ImageService
         if (extension_loaded('imagick')) {
             try {
                 $image = new \Imagick($file['tmp_name']);
-                $image->autoOrientImage();
+                $image->autoOrient();
                 $image->stripImage(); // removes EXIF data
                 $image->writeImage($file['tmp_name']);
                 $image->destroy();
