@@ -191,6 +191,19 @@ final class ImageService
             return ['success' => false, 'error' => 'No size configurations found for image type.'];
         }
 
+        // Fix EXIF orientation before processing with GD
+        if (extension_loaded('imagick')) {
+            try {
+                $image = new \Imagick($file['tmp_name']);
+                $image->autoOrientImage();
+                $image->stripImage(); // removes EXIF data
+                $image->writeImage($file['tmp_name']);
+                $image->destroy();
+            } catch (\Exception $e) {
+                // Silently fail - proceed with original if Imagick fails
+            }
+        }
+
         $sourceImage = $this->loadImage($file['tmp_name']);
         if ($sourceImage === false) {
             return ['success' => false, 'error' => 'Failed to load source image.'];
