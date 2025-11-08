@@ -248,7 +248,7 @@ final class BlueskyOAuthService
     {
         $parEndpoint = $metadata['par_endpoint'] ?? null;
         if ($parEndpoint !== null) {
-            $parResult = $this->pushAuthorizationRequest($parEndpoint, $requestParams);
+            $parResult = $this->pushAuthorizationRequest($metadata, $requestParams);
             if (!$parResult['success']) {
                 return [
                     'success' => false,
@@ -284,15 +284,16 @@ final class BlueskyOAuthService
      * @param array<string,string> $requestParams
      * @return array{success:bool,request_uri?:string,message?:string}
      */
-    private function pushAuthorizationRequest(string $endpoint, array $requestParams): array
+    private function pushAuthorizationRequest(array $metadata, array $requestParams): array
     {
+        $endpoint = (string)($metadata['par_endpoint'] ?? '');
         $form = $requestParams;
         $options = [
             'headers' => ['Accept' => 'application/json'],
         ];
 
         try {
-            $this->applyClientAuthentication($options, $form, $endpoint);
+            $this->applyClientAuthentication($options, $form, (string)$metadata['token_endpoint']);
         } catch (RuntimeException $e) {
             return [
                 'success' => false,
