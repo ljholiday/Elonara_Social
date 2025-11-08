@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Database\Database;
+use App\Support\BlueskyLogger;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use RuntimeException;
@@ -617,7 +618,7 @@ final class BlueskyService
 
     private function logCredentialIssue(string $context, int $userId, string $message): void
     {
-        error_log(sprintf('[BlueskyService] %s user_id=%d message=%s', $context, $userId, $message));
+        BlueskyLogger::log(sprintf('[BlueskyService] %s user_id=%d message=%s', $context, $userId, $message));
     }
 
     /**
@@ -688,7 +689,7 @@ final class BlueskyService
                     ]);
 
                     $data = json_decode((string)$response->getBody(), true);
-                    error_log(sprintf('[BlueskyService] createPost success user_id=%d uri=%s', $userId, $data['uri'] ?? 'unknown'));
+                    BlueskyLogger::log(sprintf('[BlueskyService] createPost success user_id=%d uri=%s', $userId, $data['uri'] ?? 'unknown'));
 
                     return [
                         'success' => true,
@@ -703,7 +704,7 @@ final class BlueskyService
                     }
 
                     $message = $this->formatBlueskyError($e);
-                    error_log(sprintf('[BlueskyService] createPost error user_id=%d message=%s', $userId, $message));
+                    BlueskyLogger::log(sprintf('[BlueskyService] createPost error user_id=%d message=%s', $userId, $message));
 
                     return [
                         'success' => false,
@@ -712,7 +713,7 @@ final class BlueskyService
                 }
             }
         } catch (RuntimeException $e) {
-            error_log(sprintf('[BlueskyService] createPost dpop_error user_id=%d message=%s', $userId, $e->getMessage()));
+            BlueskyLogger::log(sprintf('[BlueskyService] createPost dpop_error user_id=%d message=%s', $userId, $e->getMessage()));
             return [
                 'success' => false,
                 'message' => 'Unable to sign Bluesky request: ' . $e->getMessage(),

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Database\Database;
+use App\Support\BlueskyLogger;
 
 final class BlueskyInvitationService
 {
@@ -73,7 +74,7 @@ final class BlueskyInvitationService
                         $postResult = $this->bluesky->createPost($viewerId, $postText, [
                             ['handle' => $handle, 'did' => $did],
                         ]);
-                        error_log(sprintf('[BlueskyInvitationService] invite event user=%d follower=%s result=%s', $viewerId, $did, json_encode($postResult)));
+                        BlueskyLogger::log(sprintf('[BlueskyInvitationService] invite event user=%d follower=%s result=%s', $viewerId, $did, json_encode($postResult)));
                         if ($postResult['success']) {
                             $posted++;
                         } elseif ($postResult['needs_reauth'] ?? false) {
@@ -170,7 +171,7 @@ final class BlueskyInvitationService
                         $postResult = $this->bluesky->createPost($viewerId, $postText, [
                             ['handle' => $handle, 'did' => $did],
                         ]);
-                        error_log(sprintf('[BlueskyInvitationService] invite community user=%d follower=%s result=%s', $viewerId, $did, json_encode($postResult)));
+                        BlueskyLogger::log(sprintf('[BlueskyInvitationService] invite community user=%d follower=%s result=%s', $viewerId, $did, json_encode($postResult)));
                         if ($postResult['success']) {
                             $posted++;
                         } elseif ($postResult['needs_reauth'] ?? false) {
