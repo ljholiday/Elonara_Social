@@ -86,3 +86,4 @@ migrate.php
 .local/
 
 config/database.php
+.env
