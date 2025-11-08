@@ -1001,6 +1001,15 @@ final class BlueskyOAuthService
         ];
     }
 
+    public function buildResourceProof(string $url, string $method, ?string $nonce = null): string
+    {
+        if (!$this->isEnabled()) {
+            throw new RuntimeException('Bluesky OAuth is not enabled.');
+        }
+
+        return $this->buildDpopProof($url, $method, $nonce);
+    }
+
     private function buildDpopProof(string $url, string $method, ?string $nonce = null): string
     {
         $privateKey = (string)($this->config['client_private_key'] ?? '');

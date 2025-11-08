@@ -6,6 +6,7 @@ namespace App\Services;
 use App\Database\Database;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use RuntimeException;
 
 /**
  * Bluesky AT Protocol Service
@@ -672,44 +673,82 @@ final class BlueskyService
                 $record['facets'] = $facets;
             }
 
-            $response = $this->client->post(self::BSKY_SOCIAL_BASE . '/xrpc/com.atproto.repo.createRecord', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $credentials['accessJwt'],
-                ],
-                'json' => [
-                    'repo' => $credentials['did'],
-                    'collection' => 'app.bsky.feed.post',
-                    'record' => $record,
-                ],
-            ]);
+            $endpoint = self::BSKY_SOCIAL_BASE . '/xrpc/com.atproto.repo.createRecord';
+            $nonce = null;
 
-            $data = json_decode((string)$response->getBody(), true);
-            error_log(sprintf('[BlueskyService] createPost success user_id=%d uri=%s', $userId, $data['uri'] ?? 'unknown'));
+            for ($attempt = 0; $attempt < 2; $attempt++) {
+                try {
+                    $response = $this->client->post($endpoint, [
+                        'headers' => $this->buildResourceRequestHeaders($credentials, $endpoint, 'POST', $nonce),
+                        'json' => [
+                            'repo' => $credentials['did'],
+                            'collection' => 'app.bsky.feed.post',
+                            'record' => $record,
+                        ],
+                    ]);
 
-            return [
-                'success' => true,
-                'uri' => $data['uri'] ?? null,
-                'cid' => $data['cid'] ?? null,
-            ];
+                    $data = json_decode((string)$response->getBody(), true);
+                    error_log(sprintf('[BlueskyService] createPost success user_id=%d uri=%s', $userId, $data['uri'] ?? 'unknown'));
 
-        } catch (GuzzleException $e) {
-            $message = $e->getMessage();
+                    return [
+                        'success' => true,
+                        'uri' => $data['uri'] ?? null,
+                        'cid' => $data['cid'] ?? null,
+                    ];
+                } catch (GuzzleException $e) {
+                    $newNonce = $e->hasResponse() ? $e->getResponse()->getHeaderLine('DPoP-Nonce') : '';
+                    if ($nonce === null && $newNonce !== '') {
+                        $nonce = $newNonce;
+                        continue;
+                    }
 
-            // Check for expired token in response
-            if ($e->hasResponse()) {
-                $body = (string)$e->getResponse()->getBody();
-                $decoded = json_decode($body, true);
-                if (isset($decoded['error'])) {
-                    $message = $decoded['error'] . ': ' . ($decoded['message'] ?? '');
+                    $message = $this->formatBlueskyError($e);
+                    error_log(sprintf('[BlueskyService] createPost error user_id=%d message=%s', $userId, $message));
+
+                    return [
+                        'success' => false,
+                        'message' => $message,
+                    ];
                 }
             }
-
-            error_log(sprintf('[BlueskyService] createPost error user_id=%d message=%s', $userId, $message));
-
+        } catch (RuntimeException $e) {
+            error_log(sprintf('[BlueskyService] createPost dpop_error user_id=%d message=%s', $userId, $e->getMessage()));
             return [
                 'success' => false,
-                'message' => $message,
+                'message' => 'Unable to sign Bluesky request: ' . $e->getMessage(),
             ];
         }
+    }
+
+    private function formatBlueskyError(GuzzleException $e): string
+    {
+        $message = $e->getMessage();
+
+        if ($e->hasResponse()) {
+            $body = (string)$e->getResponse()->getBody();
+            $decoded = json_decode($body, true);
+            if (isset($decoded['error'])) {
+                $message = $decoded['error'] . ': ' . ($decoded['message'] ?? '');
+            }
+        }
+
+        return $message;
+    }
+
+    private function buildResourceRequestHeaders(array $credentials, string $url, string $method, ?string $nonce = null): array
+    {
+        $headers = [
+            'Authorization' => 'Bearer ' . $credentials['accessJwt'],
+        ];
+
+        if (($credentials['authSource'] ?? '') === 'oauth') {
+            if ($this->oauth === null) {
+                throw new RuntimeException('OAuth service not available for DPoP signing.');
+            }
+
+            $headers['DPoP'] = $this->oauth->buildResourceProof($url, $method, $nonce);
+        }
+
+        return $headers;
     }
 }
