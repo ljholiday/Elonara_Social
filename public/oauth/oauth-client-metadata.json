@@ -18,7 +18,7 @@
     "support@elonara.com"
   ],
   "logo_uri": "https://social.elonara.com/assets/img/logo.png",
-  "tls_client_certificate_bound_access_tokens": true,
+  "tls_client_certificate_bound_access_tokens": false,
   "client_uri": "https://social.elonara.com/",
   "policy_uri": "https://social.elonara.com/policies/privacy",
   "tos_uri": "https://social.elonara.com/policies/terms"
