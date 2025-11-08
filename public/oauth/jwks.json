@@ -1,0 +1,12 @@
+{
+    "keys": [
+        {
+            "kty": "RSA",
+            "use": "sig",
+            "kid": "elonara-social-key-1",
+            "alg": "RS256",
+            "n": "vge3I_Vu7-rxaHTIji8BGuEBxX_5GO2RlvJV8M_DkX9EuEIKWm_wLJf5Y3HPTMa_ykzjJp3M1p54ZAWIZsEo2C11tlzR4u3eQfKoFb7rBJYA_E02ZF4SUKr_N4zCVAH7W_Z1Q_0boHTfG8B5c8gR3fJFUFJDtu8C5-ka_WwKFEalqe4HdyVH-3mt52lTJLBvQOwmS2d6mWxx4nZQ46QBXtZmtxtk7EsB5Jj0fFEbBneWF67TFoIuvphT1smsOKqXZZLzbG0nN3WyuKzmueY5NQ97JeYTx_Evyi5TwRFe-Nyowt5M65B0aQHajO8_RjISBsrX3Civ3wQrZpULCDCAww",
+            "e": "AQAB"
+        }
+    ]
+}
