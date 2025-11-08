@@ -1363,10 +1363,25 @@ return static function (Router $router): void {
             $oauthService = app_service('bluesky.oauth.service');
             $viewerId = (int)($authService->currentUserId() ?? 0);
             if ($viewerId <= 0 && $oauthService->shouldForceOAuthForInvite()) {
-                $_SESSION['pending_invitation_token'] = $token;
+                $pendingStore = app_service('pending.invite.store');
+                $redirectPath = '/rsvp/' . rawurlencode($token);
+                $currentQuery = parse_url($request->uri(), PHP_URL_QUERY);
+                if (is_string($currentQuery) && $currentQuery !== '') {
+                    $redirectPath .= '?' . $currentQuery;
+                }
+
+                $pendingStore->captureEvent($token, $redirectPath, [
+                    'channel' => 'event',
+                    'metadata' => [
+                        'source' => 'guest.rsvp',
+                        'query' => $request->allQuery(),
+                    ],
+                ]);
+
                 $redirectQuery = http_build_query([
-                    'redirect' => '/rsvp/' . rawurlencode($token),
+                    'redirect' => $redirectPath,
                     'event_token' => $token,
+                    'invite_channel' => 'event',
                 ]);
                 header('Location: /auth/bluesky/start?' . $redirectQuery);
                 exit;

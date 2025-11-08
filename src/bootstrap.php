@@ -55,6 +55,7 @@ use App\Services\BlueskyInvitationService;
 use App\Services\BlueskyOAuthService;
 use App\Services\DefaultCommunityService;
 use App\Services\BlockService;
+use App\Services\PendingInviteSessionStore;
 use App\Security\TokenEncryptor;
 use PHPMailer\PHPMailer\PHPMailer;
 
@@ -487,6 +488,10 @@ if (!function_exists('app_container')) {
                 return new SecurityService();
             });
 
+            $container->register('pending.invite.store', static function (): PendingInviteSessionStore {
+                return new PendingInviteSessionStore();
+            });
+
             $container->register('security.token_encryptor', static function (): TokenEncryptor {
                 $key = app_config('bluesky.encryption.key');
                 $cipher = app_config('bluesky.encryption.cipher');
@@ -573,7 +578,8 @@ if (!function_exists('app_container')) {
                     $c->get('bluesky.service'),
                     $c->get('security.service'),
                     $c->get('bluesky.oauth.service'),
-                    $c->get('invitation.service')
+                    $c->get('invitation.service'),
+                    $c->get('pending.invite.store')
                 );
             }, false);
 
@@ -680,7 +686,8 @@ if (!function_exists('app_container')) {
                     $c->get('invitation.service'),
                     $c->get('security.service'),
                     $c->get('community.member.service'),
-                    $c->get('bluesky.oauth.service')
+                    $c->get('bluesky.oauth.service'),
+                    $c->get('pending.invite.store')
                 );
             }, false);
 

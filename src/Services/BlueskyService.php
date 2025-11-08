@@ -151,33 +151,8 @@ final class BlueskyService
      */
     public function getCredentials(int $userId): ?array
     {
-        if ($this->oauth !== null) {
-            $tokenResult = $this->oauth->getAccessToken($userId);
-            if ($tokenResult['success'] ?? false) {
-                return [
-                    'did' => (string)$tokenResult['did'],
-                    'handle' => (string)$tokenResult['handle'],
-                    'accessJwt' => (string)$tokenResult['access_token'],
-                    'authSource' => 'oauth',
-                ];
-            }
-        }
-
-        $pdo = $this->database->pdo();
-        $stmt = $pdo->prepare('
-            SELECT did, handle, access_jwt as accessJwt, refresh_jwt as refreshJwt
-            FROM member_identities
-            WHERE user_id = ? AND is_verified = 1
-        ');
-        $stmt->execute([$userId]);
-        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-        if ($result === false) {
-            return null;
-        }
-
-        $result['authSource'] = 'legacy';
-        return $result;
+        $resolved = $this->resolveCredentials($userId);
+        return $resolved['success'] ? $resolved['credentials'] : null;
     }
 
     /**
@@ -377,13 +352,16 @@ final class BlueskyService
      */
     public function syncFollowers(int $userId): array
     {
-        $credentials = $this->getCredentials($userId);
-        if ($credentials === null) {
+        $credentialResult = $this->resolveCredentials($userId);
+        if (!$credentialResult['success']) {
             return [
                 'success' => false,
-                'message' => 'Bluesky account not connected',
+                'message' => $credentialResult['message'] ?? 'Bluesky account not connected',
+                'needs_reauth' => $credentialResult['needs_reauth'] ?? false,
             ];
         }
+
+        $credentials = $credentialResult['credentials'];
 
         $allFollowers = [];
         $cursor = null;
@@ -410,6 +388,7 @@ final class BlueskyService
             'success' => true,
             'count' => count($allFollowers),
             'followers' => $allFollowers,
+            'auth_source' => $credentials['authSource'] ?? 'legacy',
         ];
     }
 
@@ -512,13 +491,16 @@ final class BlueskyService
      */
     public function createPost(int $userId, string $text, array $mentions = []): array
     {
-        $credentials = $this->getCredentials($userId);
-        if ($credentials === null) {
+        $credentialResult = $this->resolveCredentials($userId);
+        if (!$credentialResult['success']) {
             return [
                 'success' => false,
-                'message' => 'Bluesky account not connected',
+                'message' => $credentialResult['message'] ?? 'Bluesky account not connected',
+                'needs_reauth' => $credentialResult['needs_reauth'] ?? false,
             ];
         }
+
+        $credentials = $credentialResult['credentials'];
 
         // Try to create post, refresh token if expired
         $result = $this->attemptCreatePost($userId, $credentials, $text, $mentions);
@@ -553,6 +535,88 @@ final class BlueskyService
         }
 
         return $result;
+    }
+
+    /**
+     * @return array{
+     *   success:bool,
+     *   credentials?:array{
+     *     did:string,
+     *     handle:string,
+     *     accessJwt:string,
+     *     refreshJwt?:string,
+     *     authSource:string
+     *   },
+     *   needs_reauth?:bool,
+     *   message?:string
+     * }
+     */
+    private function resolveCredentials(int $userId): array
+    {
+        $oauthEnabled = $this->oauth !== null && $this->oauth->isEnabled();
+        $fallbackAllowed = !$oauthEnabled || $this->oauth->allowLegacyFallback();
+        $lastError = null;
+
+        if ($oauthEnabled) {
+            $tokenResult = $this->oauth->getAccessToken($userId);
+            if ($tokenResult['success'] ?? false) {
+                return [
+                    'success' => true,
+                    'credentials' => [
+                        'did' => (string)$tokenResult['did'],
+                        'handle' => (string)$tokenResult['handle'],
+                        'accessJwt' => (string)$tokenResult['access_token'],
+                        'authSource' => 'oauth',
+                    ],
+                ];
+            }
+
+            if (($tokenResult['needs_reauth'] ?? false) === true) {
+                $lastError = $tokenResult['message'] ?? 'Bluesky authorization expired. Please reauthorize.';
+                if (!$fallbackAllowed) {
+                    $this->logCredentialIssue('oauth_needs_reauth', $userId, $lastError);
+                    return [
+                        'success' => false,
+                        'needs_reauth' => true,
+                        'message' => $lastError,
+                    ];
+                }
+            } else {
+                $lastError = $tokenResult['message'] ?? 'Unable to retrieve Bluesky OAuth credentials.';
+            }
+        }
+
+        $pdo = $this->database->pdo();
+        $stmt = $pdo->prepare('
+            SELECT did, handle, access_jwt as accessJwt, refresh_jwt as refreshJwt
+            FROM member_identities
+            WHERE user_id = ? AND is_verified = 1
+        ');
+        $stmt->execute([$userId]);
+        $legacy = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($legacy !== false && (string)($legacy['accessJwt'] ?? '') !== '' && $fallbackAllowed) {
+            $legacy['authSource'] = 'legacy';
+            if ($oauthEnabled) {
+                $this->logCredentialIssue('legacy_fallback', $userId, 'Using app-password credentials for Bluesky jobs.');
+            }
+            return [
+                'success' => true,
+                'credentials' => $legacy,
+            ];
+        }
+
+        $message = $lastError ?? 'Bluesky account not connected.';
+        return [
+            'success' => false,
+            'needs_reauth' => $oauthEnabled,
+            'message' => $message,
+        ];
+    }
+
+    private function logCredentialIssue(string $context, int $userId, string $message): void
+    {
+        error_log(sprintf('[BlueskyService] %s user_id=%d message=%s', $context, $userId, $message));
     }
 
     /**

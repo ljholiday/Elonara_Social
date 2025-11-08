@@ -11,6 +11,7 @@
     }
 
     const isConnected = modal.dataset.connected === '1';
+    let needsReauth = modal.dataset.needsReauth === '1';
     const entityType = modal.dataset.entityType || 'community';
     const entityId = parseInt(modal.dataset.entityId || '0', 10);
 
@@ -189,10 +190,36 @@
         });
     }
 
+    function extractNeedsReauth(payload) {
+        if (!payload) {
+            return false;
+        }
+        if (payload.needs_reauth) {
+            return true;
+        }
+        if (payload.data && payload.data.needs_reauth) {
+            return true;
+        }
+        return false;
+    }
+
+    function promptReauthorize(message) {
+        const fullMessage = `${message}\n\nWould you like to open your profile settings to reauthorize now?`;
+        if (window.confirm(fullMessage)) {
+            window.open('/profile/edit#bluesky', '_blank');
+        }
+        needsReauth = true;
+    }
+
     if (syncBtn) {
         syncBtn.addEventListener('click', async () => {
             if (!isConnected) {
                 window.open('/profile/edit#bluesky', '_blank');
+                return;
+            }
+
+            if (needsReauth) {
+                promptReauthorize('Please reauthorize your Bluesky account before syncing.');
                 return;
             }
 
@@ -216,7 +243,10 @@
                     body: JSON.stringify({ nonce }),
                 });
                 const data = await response.json();
-                if (!data.success) {
+                if (!response.ok || !data.success) {
+                    if (extractNeedsReauth(data)) {
+                        promptReauthorize(data.message || 'Your Bluesky session expired.');
+                    }
                     throw new Error(data.message || 'Failed to sync followers');
                 }
                 if (data.nonce) {
@@ -278,7 +308,10 @@
                 });
 
                 const data = await response.json();
-                if (!data.success) {
+                if (!response.ok || !data.success) {
+                    if (extractNeedsReauth(data)) {
+                        promptReauthorize(data.message || 'Please reauthorize your Bluesky account.');
+                    }
                     throw new Error(data.message || 'Failed to send invitations');
                 }
 
@@ -306,7 +339,8 @@
             selectedCountEl.textContent = String(selectedFollowers.size);
         }
         if (inviteBtn) {
-            inviteBtn.disabled = !isConnected || selectedFollowers.size === 0;
+            const disabledReason = !isConnected || selectedFollowers.size === 0 || needsReauth;
+            inviteBtn.disabled = disabledReason;
         }
     }
 

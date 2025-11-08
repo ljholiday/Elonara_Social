@@ -220,6 +220,44 @@ Log anonymized invitation acceptance journeys to verify traction goals and feed 
 
 ---
 
+## 12. Implementation Backlog (Next Iteration)
+
+### 12.1 Invitation OAuth Completion
+
+- **Session capture + redirect**:  
+  - Add `PendingInviteSessionStore` helper around `SessionStorageService` so `/invitation/accept` and `/rsvp/{token}` can persist `invite_token`, `invite_channel`, and `post_auth_redirect`.  
+  - Apply middleware that checks for `bluesky_invite_required` and routes anonymous users through `/auth/bluesky/start` with the invite context embedded in `state`.
+- **Callback attach + metrics**:  
+  - Extend `AuthController::blueskyCallback()` to detect pending invite context, call `InvitationService::attachMemberToInvite()`, set `accepted_via = 'oauth'`, and emit `invitation.accepted` with DID + channel metadata.  
+  - Log structured analytics (`invite_token`, `member_id`, `did`, `accepted_via`) for conversion dashboards.
+- **RSVP UX polish**:  
+  - Update the invite success template to acknowledge verified identity (handle + DID) and surface reauthorize prompts if `needs_reauth` flagged during callback.  
+  - Add resilience copy for fallback paths (email invites or Bluesky outage) so users know how to complete acceptance manually.
+
+### 12.2 Background Refresh & Worker Resilience
+
+- **Token refresh worker**:  
+  - `dev/scripts/refresh-bluesky-tokens.php` scans identities with `oauth_token_expires_at < NOW() + 2h` (override with `--window`) and forces a refresh via `BlueskyOAuthService::getAccessToken($userId, true)`, logging successes/failures plus `needs_reauth`. Wire this into cron/systemd with a 30-minute cadence and scrape logs for metrics.  
+  - When refresh fails, `needs_reauth = 1` is already set and `oauth_last_error` doubles as a human-readable summary; enqueue member notification events based on the script’s `needs_reauth` count.
+- **Job integration**:  
+  - Update follower/invitation workers to short-circuit when `needs_reauth` is true, incrementing `worker.bluesky_paused` metrics instead of retrying blindly.  
+  - Ensure legacy app-password fallback is only attempted when no OAuth tokens exist, avoiding thrash between credential types.
+
+### 12.3 Observability & Tooling
+
+- **Dashboards**: Create Grafana/Looker tiles for OAuth start vs callback counts, refresh success %, invite conversions, and paused worker totals.  
+- **Alerting**: Page on consecutive refresh failures per member (`>=3` within 24h) and on OAuth callback error rate >2% (5 min rolling window).  
+- **Runbooks**: Document recovery steps (rotate client keys, manually clear `needs_reauth`, re-trigger invite) in `../social_elonara-docs/bluesky-oauth.md`.
+
+### 12.4 Definition of Done
+
+1. Anonymous invitee can accept purely via OAuth across staging + prod behind flag.  
+2. Refresh worker keeps `needs_reauth` population <5% of connected members.  
+3. Dashboards reflect same-day metrics with alerts wired to on-call rotation.  
+4. Legacy app-password flow remains available but no longer the default path for new invites.
+
+---
+
 ## End State
 
 Every Bluesky-linked account on Elonara uses encrypted, renewable OAuth tokens; invitations automatically attach to verified DIDs; sessions persist across redirects; and legacy app-passwords are retired with measurable improvements in security and invite conversion performance.

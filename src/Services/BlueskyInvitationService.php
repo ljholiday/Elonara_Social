@@ -75,6 +75,12 @@ final class BlueskyInvitationService
                         ]);
                         if ($postResult['success']) {
                             $posted++;
+                        } elseif ($postResult['needs_reauth'] ?? false) {
+                            return $this->failure(
+                                $postResult['message'] ?? 'Bluesky authorization expired. Please reauthorize.',
+                                409,
+                                ['needs_reauth' => true]
+                            );
                         }
                     }
                 }
@@ -165,6 +171,12 @@ final class BlueskyInvitationService
                         ]);
                         if ($postResult['success']) {
                             $posted++;
+                        } elseif ($postResult['needs_reauth'] ?? false) {
+                            return $this->failure(
+                                $postResult['message'] ?? 'Bluesky authorization expired. Please reauthorize.',
+                                409,
+                                ['needs_reauth' => true]
+                            );
                         }
                     }
                 }
@@ -392,13 +404,13 @@ final class BlueskyInvitationService
     /**
      * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
      */
-    private function failure(string $message, int $status): array
+    private function failure(string $message, int $status, array $data = []): array
     {
         return [
             'success' => false,
             'status' => $status,
             'message' => $message,
-            'data' => [],
+            'data' => $data,
         ];
     }
 }

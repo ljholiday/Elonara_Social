@@ -141,7 +141,7 @@ final class BlueskyInvitationController
     private function fromServiceResult(array $result, ?int $viewerId = null): array
     {
         if (!$result['success']) {
-            return $this->error($result['message'], $result['status']);
+            return $this->error($result['message'], $result['status'], $result['data'] ?? []);
         }
 
         $data = $result['data'];
@@ -162,14 +162,14 @@ final class BlueskyInvitationController
     /**
      * @return array{status:int, body:array<string,mixed>}
      */
-    private function error(string $message, int $status): array
+    private function error(string $message, int $status, array $data = []): array
     {
         return [
             'status' => $status,
             'body' => [
                 'success' => false,
                 'message' => $message,
-                'data' => [],
+                'data' => $data,
             ],
         ];
     }

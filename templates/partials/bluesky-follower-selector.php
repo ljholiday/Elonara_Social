@@ -18,6 +18,19 @@ $blueskyService = function_exists('app_service') ? app_service('bluesky.service'
 $authService = function_exists('app_service') ? app_service('auth.service') : null;
 $currentUser = $authService ? $authService->getCurrentUser() : null;
 $isConnected = $blueskyService && $currentUser && $blueskyService->isConnected((int)$currentUser?->id);
+$needsReauth = false;
+$oauthService = null;
+if (function_exists('app_service') && app_config('bluesky.oauth.enabled', false)) {
+    try {
+        $oauthService = app_service('bluesky.oauth.service');
+        if ($oauthService && $oauthService->isEnabled() && $currentUser) {
+            $status = $oauthService->getIdentityStatus((int)$currentUser->id);
+            $needsReauth = (bool)($status['needs_reauth'] ?? false);
+        }
+    } catch (\Throwable $e) {
+        $needsReauth = false;
+    }
+}
 $assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
 ?>
 
@@ -26,6 +39,7 @@ $assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
     id="bluesky-follower-modal"
     class="app-modal app-bluesky-follower-modal"
     data-connected="<?= $isConnected ? '1' : '0'; ?>"
+    data-needs-reauth="<?= $needsReauth ? '1' : '0'; ?>"
     data-entity-type="<?= htmlspecialchars($entity_type, ENT_QUOTES, 'UTF-8'); ?>"
     data-entity-id="<?= (int)$entity_id; ?>"
     data-action-nonce="<?= htmlspecialchars($bluesky_nonce, ENT_QUOTES, 'UTF-8'); ?>"
@@ -39,6 +53,17 @@ $assetBase = rtrim((string)app_config('asset_url', '/assets'), '/');
         </div>
 
         <div class="app-modal-body">
+            <?php if ($needsReauth): ?>
+                <div class="app-alert app-alert-warning app-mb-4">
+                    Your Bluesky authorization expired. Please reauthorize before inviting followers.
+                    <div class="app-mt-3">
+                        <?php $reauthQuery = http_build_query(['redirect' => '/profile/edit#bluesky', 'reauthorize' => 1]); ?>
+                        <a class="app-btn app-btn-sm app-btn-secondary" href="/auth/bluesky/start?<?= htmlspecialchars($reauthQuery, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
+                            Reauthorize via Bluesky
+                        </a>
+                    </div>
+                </div>
+            <?php endif; ?>
             <?php if ($isConnected): ?>
                 <div class="app-mb-4">
                     <div class="app-flex app-items-center app-gap-2 app-mb-3">

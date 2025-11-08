@@ -238,7 +238,9 @@ final class InvitationService
 
         $postResult = $this->bluesky->createPost($viewerId, $message, $mentions);
         if (!$postResult['success']) {
-            return $this->failure($postResult['message'] ?? 'Unable to resend invitation via Bluesky.', 400);
+            $status = ($postResult['needs_reauth'] ?? false) ? 409 : 400;
+            $data = ($postResult['needs_reauth'] ?? false) ? ['needs_reauth' => true] : [];
+            return $this->failure($postResult['message'] ?? 'Unable to resend invitation via Bluesky.', $status, $data);
         }
 
         $pdo = $this->database->pdo();
@@ -1569,6 +1571,7 @@ final class InvitationService
                 'event_slug' => $eventSlug,
                 'rsvp_token' => $rsvpToken,
                 'already_guest' => true,
+                'redirect_url' => $rsvpToken !== '' ? '/rsvp/' . rawurlencode($rsvpToken) : '/events',
             ]);
         }
 
@@ -1600,6 +1603,79 @@ final class InvitationService
             'event_id' => $eventId,
             'event_slug' => $eventSlug,
             'rsvp_token' => $rsvpToken,
+            'redirect_url' => '/rsvp/' . rawurlencode($rsvpToken),
+        ]);
+    }
+
+    /**
+     * Link a Bluesky RSVP token to the authenticated member after OAuth.
+     *
+     * @return array{success:bool,status:int,message:string,data:array<string,mixed>}
+     */
+    public function attachEventInvitation(string $token, int $viewerId, string $acceptedVia = 'oauth'): array
+    {
+        $token = trim($token);
+        if ($token === '' || strlen($token) !== self::EVENT_TOKEN_LENGTH) {
+            return $this->failure('Invalid RSVP token.', 400);
+        }
+
+        if ($viewerId <= 0) {
+            return $this->failure('You must be logged in to continue.', 401);
+        }
+
+        $guest = $this->eventGuests->findGuestByToken($token);
+        if ($guest === null) {
+            return $this->failure('RSVP invitation not found.', 404);
+        }
+
+        $email = strtolower((string)($guest['email'] ?? ''));
+        if (!str_starts_with($email, 'bsky:')) {
+            return $this->success([
+                'message' => 'Invitation confirmed. Complete your RSVP to finish.',
+                'redirect_url' => '/rsvp/' . rawurlencode($token),
+                'accepted_via' => $acceptedVia,
+                'guest' => $guest,
+            ]);
+        }
+
+        $invitedDid = substr($email, 5);
+        if ($invitedDid === '') {
+            return $this->failure('Invalid Bluesky invitation.', 400);
+        }
+
+        $credentials = $this->bluesky->getCredentials($viewerId);
+        if ($credentials === null) {
+            return $this->failure('Bluesky authorization is required to continue.', 409);
+        }
+
+        $currentDid = strtolower((string)($credentials['did'] ?? ''));
+        if ($currentDid === '' || $currentDid !== strtolower($invitedDid)) {
+            return $this->failure('This invitation was sent to a different Bluesky account.', 403);
+        }
+
+        $user = $this->auth->getUserById($viewerId);
+        if ($user === null) {
+            return $this->failure('User not found.', 404);
+        }
+
+        $update = [
+            'converted_user_id' => $viewerId,
+        ];
+
+        if ((string)($guest['name'] ?? '') === '') {
+            $update['name'] = (string)($user->display_name ?? $user->email ?? '');
+        }
+
+        $update['invitation_source'] = 'bluesky';
+
+        $this->eventGuests->updateGuestByToken($token, $update);
+        $refreshed = $this->eventGuests->findGuestByToken($token) ?? $guest;
+
+        return $this->success([
+            'message' => 'Invitation linked to your account. Complete your RSVP to finish.',
+            'redirect_url' => '/rsvp/' . rawurlencode($token),
+            'accepted_via' => $acceptedVia,
+            'guest' => $refreshed,
         ]);
     }
 

@@ -91,6 +91,7 @@ final class BlueskyOAuthService
             'redirect_to' => $context['redirect_to'] ?? null,
             'invite_token' => $context['invite_token'] ?? null,
             'event_token' => $context['event_token'] ?? null,
+            'invite_channel' => $context['invite_channel'] ?? null,
             'reauthorize' => (bool)($context['reauthorize'] ?? false),
             'initiated_at' => time(),
         ]);
@@ -222,6 +223,7 @@ final class BlueskyOAuthService
             'redirect' => $redirect,
             'invite_token' => $context['invite_token'] ?? null,
             'event_token' => $context['event_token'] ?? null,
+            'invite_channel' => $context['invite_channel'] ?? null,
         ];
 
         $this->clearContext();

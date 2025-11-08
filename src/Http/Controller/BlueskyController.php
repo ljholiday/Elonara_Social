@@ -9,6 +9,7 @@ use App\Services\BlueskyService;
 use App\Services\SecurityService;
 use App\Services\BlueskyOAuthService;
 use App\Services\InvitationService;
+use App\Services\PendingInviteSessionStore;
 
 final class BlueskyController
 {
@@ -17,7 +18,8 @@ final class BlueskyController
         private BlueskyService $bluesky,
         private SecurityService $security,
         private BlueskyOAuthService $oauth,
-        private InvitationService $invitations
+        private InvitationService $invitations,
+        private PendingInviteSessionStore $pendingInvites
     ) {
     }
 
@@ -102,10 +104,17 @@ final class BlueskyController
             'invite_token' => (string)$request->query('invite_token', ''),
             'event_token' => (string)$request->query('event_token', ''),
             'reauthorize' => $request->query('reauthorize', '') === '1',
+            'invite_channel' => (string)$request->query('invite_channel', ''),
         ];
 
-        if ($context['invite_token'] !== '') {
-            $_SESSION['pending_invitation_token'] = $context['invite_token'];
+        if ($context['invite_channel'] === '' && $context['event_token'] !== '') {
+            $context['invite_channel'] = 'event';
+        } elseif ($context['invite_channel'] === '' && $context['invite_token'] !== '') {
+            $context['invite_channel'] = 'community';
+        }
+
+        if ($context['invite_channel'] !== null && $context['invite_channel'] !== '') {
+            $this->rememberPendingInviteContext($context, $redirectTo);
         }
 
         $result = $this->oauth->beginAuthorization($context);
@@ -133,17 +142,26 @@ final class BlueskyController
             return ['redirect' => '/profile/edit'];
         }
 
-        $redirect = $result['redirect'] ?? '/profile/edit';
+        $pending = $this->pendingInvites->pop();
+        $redirect = $pending['redirect'] ?? ($result['redirect'] ?? '/profile/edit');
         $userId = (int)($result['user_id'] ?? 0);
 
-        $inviteToken = (string)($result['invite_token'] ?? '');
-        if ($inviteToken !== '' && $userId > 0) {
-            $acceptance = $this->invitations->acceptCommunityInvitation($inviteToken, $userId);
-            if ($acceptance['success']) {
-                $data = $acceptance['data'];
-                $redirect = (string)($data['redirect_url'] ?? $redirect);
-                if (isset($data['message'])) {
-                    $_SESSION['flash_success'] = $data['message'];
+        $inviteToken = (string)($pending['invite_token'] ?? ($result['invite_token'] ?? ''));
+        $eventToken = (string)($pending['event_token'] ?? ($result['event_token'] ?? ''));
+        $inviteChannel = (string)($pending['channel'] ?? ($result['invite_channel'] ?? ''));
+
+        if ($userId > 0 && $inviteChannel !== '') {
+            $acceptance = $this->completePendingInvite($inviteChannel, $inviteToken, $eventToken, $userId);
+            if ($acceptance !== null) {
+                $this->logInviteAcceptanceResult($inviteChannel, $userId, $acceptance);
+                if ($acceptance['success']) {
+                    $data = $acceptance['data'] ?? [];
+                    $redirect = (string)($data['redirect_url'] ?? $redirect);
+                    if (isset($data['message'])) {
+                        $_SESSION['flash_success'] = (string)$data['message'];
+                    }
+                } else {
+                    $_SESSION['flash_error'] = $acceptance['message'] ?? 'Unable to accept invitation.';
                 }
             }
         }
@@ -206,7 +224,7 @@ final class BlueskyController
         }
 
         $result = $this->bluesky->syncFollowers($userId);
-        $status = $result['success'] ? 200 : 400;
+        $status = $result['success'] ? 200 : (($result['needs_reauth'] ?? false) ? 409 : 400);
 
         return [
             'status' => $status,
@@ -312,5 +330,94 @@ final class BlueskyController
         }
 
         return $redirect;
+    }
+
+    /**
+     * @param array<string,mixed> $context
+     */
+    private function rememberPendingInviteContext(array $context, string $redirect): void
+    {
+        $channel = (string)($context['invite_channel'] ?? '');
+        if ($channel === '') {
+            return;
+        }
+
+        if ($channel === 'event') {
+            $token = (string)($context['event_token'] ?? '');
+            if ($token !== '') {
+                $this->pendingInvites->captureEvent($token, $redirect, [
+                    'channel' => $channel,
+                    'metadata' => ['source' => 'guest.rsvp'],
+                ]);
+            }
+            return;
+        }
+
+        $token = (string)($context['invite_token'] ?? '');
+        if ($token === '') {
+            return;
+        }
+
+        $this->pendingInvites->captureCommunity($token, $redirect, [
+            'channel' => $channel,
+            'metadata' => ['source' => 'invitation.accept'],
+        ]);
+    }
+
+    /**
+     * @return array{success:bool,status:int,message:string,data:array<string,mixed>}|null
+     */
+    private function completePendingInvite(string $channel, string $inviteToken, string $eventToken, int $userId): ?array
+    {
+        if ($channel === 'community' && $inviteToken !== '') {
+            $result = $this->invitations->acceptCommunityInvitation($inviteToken, $userId);
+            if ($result['success']) {
+                if (!isset($result['data']) || !is_array($result['data'])) {
+                    $result['data'] = [];
+                }
+                $result['data']['accepted_via'] = 'oauth';
+            }
+            return $result;
+        }
+
+        if ($channel === 'event_share' && $inviteToken !== '') {
+            $result = $this->invitations->acceptEventShareInvitation($inviteToken, $userId);
+            if ($result['success']) {
+                if (!isset($result['data']) || !is_array($result['data'])) {
+                    $result['data'] = [];
+                }
+                if (!isset($result['data']['redirect_url'])) {
+                    $result['data']['redirect_url'] = isset($result['data']['rsvp_token'])
+                        ? '/rsvp/' . rawurlencode((string)$result['data']['rsvp_token'])
+                        : null;
+                }
+                $result['data']['accepted_via'] = 'oauth';
+            }
+            return $result;
+        }
+
+        if ($channel === 'event' && $eventToken !== '') {
+            return $this->invitations->attachEventInvitation($eventToken, $userId, 'oauth');
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array{success:bool,status:int,message?:string} $result
+     */
+    private function logInviteAcceptanceResult(string $channel, int $userId, array $result): void
+    {
+        $status = $result['success'] ? 'success' : 'failure';
+        $code = (int)($result['status'] ?? 0);
+        $message = (string)($result['message'] ?? '');
+        error_log(sprintf(
+            '[BlueskyOAuth] invite_accept channel=%s user_id=%d status=%s http=%d message=%s',
+            $channel,
+            $userId,
+            $status,
+            $code,
+            $message
+        ));
     }
 }
