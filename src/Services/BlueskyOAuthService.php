@@ -760,10 +760,10 @@ final class BlueskyOAuthService
         if ($exists) {
             $stmt = $pdo->prepare('
                 UPDATE member_identities
-                SET did = :did,
-                    handle = :handle,
-                    at_protocol_did = :did_at,
-                    at_protocol_handle = :handle_at,
+                SET did = :did_primary,
+                    handle = :handle_primary,
+                    at_protocol_did = :at_did,
+                    at_protocol_handle = :at_handle,
                     verification_method = :verification_method,
                     oauth_provider = :provider,
                     oauth_scopes = :scopes,
@@ -808,10 +808,10 @@ final class BlueskyOAuthService
                     :user_id,
                     :email,
                     :display_name,
-                    :did_at,
-                    :handle_at,
-                    :did,
-                    :handle,
+                    :did_primary,
+                    :handle_primary,
+                    :at_did,
+                    :at_handle,
                     :verification_method,
                     :provider,
                     :scopes,
@@ -832,8 +832,8 @@ final class BlueskyOAuthService
         }
 
         $stmt->bindValue(':user_id', $userId, \PDO::PARAM_INT);
-        $stmt->bindValue(':did', $did);
-        $stmt->bindValue(':handle', $handle);
+        $stmt->bindValue(':did_primary', $did);
+        $stmt->bindValue(':handle_primary', $handle);
         $stmt->bindValue(':verification_method', 'oauth');
         $stmt->bindValue(':provider', self::PROVIDER_NAME);
         $stmt->bindValue(':scopes', $scope);
@@ -841,8 +841,8 @@ final class BlueskyOAuthService
         $stmt->bindValue(':refresh_token', $encryptedRefresh);
         $stmt->bindValue(':expires_at', $expiresAt);
         $stmt->bindValue(':metadata', $metadata);
-        $stmt->bindValue(':did_at', $did);
-        $stmt->bindValue(':handle_at', $handle);
+        $stmt->bindValue(':at_did', $did);
+        $stmt->bindValue(':at_handle', $handle);
 
         $stmt->execute();
     }
