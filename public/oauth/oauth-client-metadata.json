@@ -19,6 +19,7 @@
   ],
   "logo_uri": "https://social.elonara.com/assets/img/logo.png",
   "tls_client_certificate_bound_access_tokens": false,
+  "dpop_bound_access_tokens": true,
   "client_uri": "https://social.elonara.com/",
   "policy_uri": "https://social.elonara.com/policies/privacy",
   "tos_uri": "https://social.elonara.com/policies/terms"
