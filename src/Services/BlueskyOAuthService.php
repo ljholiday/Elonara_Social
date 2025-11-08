@@ -105,7 +105,7 @@ final class BlueskyOAuthService
             ];
         }
 
-        $query = [
+        $requestParams = [
             'response_type' => 'code',
             'client_id' => $this->clientId(),
             'redirect_uri' => $this->redirectUri(),
@@ -116,10 +116,18 @@ final class BlueskyOAuthService
         ];
 
         if (!empty($context['login_hint'])) {
-            $query['login_hint'] = (string)$context['login_hint'];
+            $requestParams['login_hint'] = (string)$context['login_hint'];
         }
 
-        $authorizationUrl = $metadata['authorization_endpoint'] . '?' . http_build_query($query);
+        $authorizationResult = $this->buildAuthorizationRequestUrl($metadata, $requestParams);
+        if (!$authorizationResult['success']) {
+            return [
+                'success' => false,
+                'message' => $authorizationResult['message'] ?? 'Unable to initialize Bluesky OAuth.',
+            ];
+        }
+
+        $authorizationUrl = $authorizationResult['url'];
 
         return [
             'success' => true,
@@ -229,6 +237,101 @@ final class BlueskyOAuthService
         $this->clearContext();
 
         return $response;
+    }
+
+    /**
+     * @param array<string,mixed> $metadata
+     * @param array<string,string> $requestParams
+     * @return array{success:bool,url?:string,message?:string}
+     */
+    private function buildAuthorizationRequestUrl(array $metadata, array $requestParams): array
+    {
+        $parEndpoint = $metadata['par_endpoint'] ?? null;
+        if ($parEndpoint !== null) {
+            $parResult = $this->pushAuthorizationRequest($parEndpoint, $requestParams);
+            if (!$parResult['success']) {
+                return [
+                    'success' => false,
+                    'message' => $parResult['message'] ?? 'Unable to push authorization request.',
+                ];
+            }
+
+            $query = [
+                'client_id' => $this->clientId(),
+                'request_uri' => (string)$parResult['request_uri'],
+            ];
+
+            return [
+                'success' => true,
+                'url' => $metadata['authorization_endpoint'] . '?' . http_build_query($query),
+            ];
+        }
+
+        if (!empty($metadata['require_par'])) {
+            return [
+                'success' => false,
+                'message' => 'Authorization server requires pushed authorization requests.',
+            ];
+        }
+
+        return [
+            'success' => true,
+            'url' => $metadata['authorization_endpoint'] . '?' . http_build_query($requestParams),
+        ];
+    }
+
+    /**
+     * @param array<string,string> $requestParams
+     * @return array{success:bool,request_uri?:string,message?:string}
+     */
+    private function pushAuthorizationRequest(string $endpoint, array $requestParams): array
+    {
+        $form = $requestParams;
+        $options = [
+            'headers' => ['Accept' => 'application/json'],
+        ];
+
+        try {
+            $this->applyClientAuthentication($options, $form, $endpoint);
+        } catch (RuntimeException $e) {
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+
+        try {
+            $response = $this->http->post($endpoint, $options);
+        } catch (GuzzleException $e) {
+            return [
+                'success' => false,
+                'message' => 'Unable to push authorization request: ' . $e->getMessage(),
+            ];
+        }
+
+        $data = json_decode((string)$response->getBody(), true);
+        if ($response->getStatusCode() >= 400) {
+            $error = is_array($data)
+                ? ($data['error_description'] ?? $data['error'] ?? 'OAuth error')
+                : 'OAuth error';
+
+            return [
+                'success' => false,
+                'message' => 'Authorization request rejected: ' . $error,
+            ];
+        }
+
+        if (!is_array($data) || !isset($data['request_uri'])) {
+            return [
+                'success' => false,
+                'message' => 'Authorization server response missing request_uri.',
+            ];
+        }
+
+        return [
+            'success' => true,
+            'request_uri' => (string)$data['request_uri'],
+        ];
     }
 
     /**
@@ -446,6 +549,10 @@ final class BlueskyOAuthService
         $this->metadata = [
             'authorization_endpoint' => (string)$data['authorization_endpoint'],
             'token_endpoint' => (string)$data['token_endpoint'],
+            'par_endpoint' => isset($data['pushed_authorization_request_endpoint'])
+                ? (string)$data['pushed_authorization_request_endpoint']
+                : null,
+            'require_par' => (bool)($data['require_pushed_authorization_requests'] ?? false),
         ];
 
         return $this->metadata;
@@ -478,7 +585,7 @@ final class BlueskyOAuthService
             'headers' => ['Accept' => 'application/json'],
         ];
 
-        $this->applyTokenEndpointAuth($options, $form, $metadata['token_endpoint']);
+        $this->applyClientAuthentication($options, $form, $metadata['token_endpoint']);
 
         try {
             $response = $this->http->post($metadata['token_endpoint'], $options);
@@ -771,7 +878,7 @@ final class BlueskyOAuthService
             'headers' => ['Accept' => 'application/json'],
         ];
 
-        $this->applyTokenEndpointAuth($options, $form, $metadata['token_endpoint']);
+        $this->applyClientAuthentication($options, $form, $metadata['token_endpoint']);
 
         try {
             $response = $this->http->post($metadata['token_endpoint'], $options);
@@ -857,7 +964,7 @@ final class BlueskyOAuthService
         return JWT::encode($payload, $privateKey, 'RS256', $kid ?: null);
     }
 
-    private function applyTokenEndpointAuth(array &$options, array &$formParams, string $tokenEndpoint): void
+    private function applyClientAuthentication(array &$options, array &$formParams, string $audience): void
     {
         $authMethod = strtolower((string)($this->config['token_endpoint_auth_method'] ?? 'private_key_jwt'));
 
@@ -871,7 +978,7 @@ final class BlueskyOAuthService
             case 'private_key_jwt':
             default:
                 $formParams['client_assertion_type'] = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer';
-                $formParams['client_assertion'] = $this->buildClientAssertion($tokenEndpoint);
+                $formParams['client_assertion'] = $this->buildClientAssertion($audience);
                 break;
         }
 
