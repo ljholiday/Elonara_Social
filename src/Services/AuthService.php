@@ -526,6 +526,25 @@ final class AuthService
         $stmt->execute([':selector' => $selector]);
     }
 
+    public function loginUserById(int $userId): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+
+        $this->ensureSession();
+        $user = $this->loadActiveUserRow($userId);
+        if ($user === null) {
+            return false;
+        }
+
+        $this->establishSession($user['id'], (string)$user['email']);
+        $this->cachedUser = $user;
+        $this->updateLastLogin($user['id']);
+
+        return true;
+    }
+
     private function pruneExpiredRememberTokens(): void
     {
         $stmt = $this->database->pdo()->prepare(

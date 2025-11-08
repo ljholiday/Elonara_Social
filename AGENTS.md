@@ -1,24 +1,24 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-Elonara Social keeps application code under `src/`, grouped by domain (`App\Domain`), services (`App\Service*`), HTTP controllers (`App\Http`), and support modules (`Database`, `Security`, `Validation`). All classes autoload via PSR-4 from `composer.json`. Entry points live in `public/index.php` with `public/router.php` for the built-in server. Views are PHP templates in `templates/`, organized by feature and backed by `templates/layouts/`. Static assets sit in `public/assets/`; configuration lives in `config/` (copy `database.php.sample` to `database.php` before running). Database schema files are under `config/migrations` and `migrations/`, while developer tooling and seed scripts are in `dev/scripts/`. Reference-only historical files now live outside this repository. Executable smoke tests reside in `tests/`.
+Source lives in `src/`, organized by domain namespaces (`App\Domain`, `App\Service*`, `App\Http`, and supporting modules such as `Database`, `Security`, `Validation`). Public entry points are `public/index.php` for production and `public/router.php` for the built-in server; templates reside in `templates/` with shared layouts under `templates/layouts/`. Static assets are in `public/assets/`, configuration belongs in `config/`, and migrations are split between `config/migrations/` and `migrations/`. Developer helpers and data scripts sit in `dev/scripts/`, and executable smoke tests are under `tests/`.
 
 ## Build, Test, and Development Commands
-- `composer dump-autoload` refreshes the PSR-4 autoloader after refactoring `src/` classes.
-- `php -S localhost:8000 public/router.php` starts a routing-aware PHP development server.
-- `./install.sh` provisions the database using `config/schema.sql` and sanity checks connectivity.
-- `./test.sh` executes every automated PHP test script in `tests/`.
-- `php clear-cache.php` clears cached view/data artifacts after configuration or schema tweaks.
-- `php dev/scripts/seed-modern-demo.php` seeds sample events and communities for the modern routes.
-
-## External Documentation
-- Most supporting docs now live in the sibling repository `../social_elonara-docs/`. Check there for refactor plans, style guides, and operational runbooks before starting new work.
+- `composer dump-autoload` refreshes PSR-4 mappings after renaming or moving classes in `src/`.
+- `php -S localhost:8000 public/router.php` starts the lightweight router-aware dev server.
+- `./install.sh` provisions the database using `config/schema.sql` and validates connectivity.
+- `./test.sh` runs every `*-test.php` script in `tests/`; use before opening a pull request.
+- `php clear-cache.php` clears cached views/data when configuration or schema changes.
+- `php dev/scripts/seed-modern-demo.php` loads sample communities for UI smoke testing.
 
 ## Coding Style & Naming Conventions
-Follow PSR-12 with 4-space indentation, braces on new lines, and camelCase methods (reinforced in `dev/doctrine/php.xml`). Declare `<?php declare(strict_types=1); ?>` at the top of new files and use typed properties/arguments (PHP 8.1+). Mirror namespaces to directories (`App\Http\ControllerName`, `App\Service\...`). Templates should follow the `*-content.php` pattern; services end with `Service`; tests end in `*-test.php`. Front-end utilities use the `.app-` class prefix and live in `public/assets/css/app.css`.
+Follow PSR-12: 4-space indentation, braces on new lines, camelCase methods. Begin new PHP files with `<?php declare(strict_types=1); ?>` and prefer typed properties/params (PHP 8.1+). Keep namespaces aligned with paths (e.g., `src/App/Service/FooService.php` → `App\Service\FooService`). Templates end with `*-content.php`, services with `Service`, tests with `*-test.php`, and front-end helpers use the `.app-` prefix inside `public/assets/css/app.css`.
 
 ## Testing Guidelines
-Tests are standalone PHP scripts—name them `*-test.php` to stay compatible with `./test.sh`. Seed deterministic data with `dev/scripts/create-test-data.php` or `backfill-public-communities.php`. Point `config/database.php` to a disposable schema before running tests, and avoid side effects in assertions. Debug utilities belong in files prefixed `debug-`; the test harness skips them automatically.
+Author deterministic PHP scripts named `*-test.php`; they are executed via `./test.sh` without additional tooling. Seed predictable fixtures through `dev/scripts/create-test-data.php` or `backfill-public-communities.php`, and target a disposable schema in `config/database.php` before running tests. Avoid side effects in assertions, and keep debugging aids in files prefixed `debug-` so the harness skips them.
 
 ## Commit & Pull Request Guidelines
-Recent history favors short, sentence-style commit subjects (e.g., “Fix community invitation acceptance bugs”). Keep messages concise, cover the intent, and reference tickets when available. Every pull request should explain schema or configuration impacts, list new endpoints/templates, link related issues, and include screenshots or curl snippets for UI/API changes. Call out required follow-up scripts in `dev/scripts/` so reviewers can reproduce your setup.
+Use short, sentence-style commit subjects (e.g., “Tighten invitation acceptance validation”). Commits should explain intent and reference tickets when possible. Pull requests must describe schema/config impacts, list new endpoints/templates, link related issues, and include screenshots or curl snippets for UI/API changes. If reviewers need seeders or maintenance scripts, call out the exact `dev/scripts/` entry point.
+
+## Security & Configuration Tips
+Copy `config/database.php.sample` to `config/database.php` and keep credentials out of version control. Re-run `./install.sh` plus `php clear-cache.php` after schema or config edits to keep local data coherent. Operational runbooks, deployment checklists, and refactor plans live in `../social_elonara-docs/`; review them before making architectural changes.

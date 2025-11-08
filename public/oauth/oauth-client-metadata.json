@@ -1,0 +1,24 @@
+{
+  "client_name": "Elonara Social",
+  "redirect_uris": [
+    "https://social.elonara.com/auth/bluesky/callback"
+  ],
+  "grant_types": [
+    "authorization_code",
+    "refresh_token"
+  ],
+  "response_types": [
+    "code"
+  ],
+  "scope": "atproto transition:generic",
+  "token_endpoint_auth_method": "private_key_jwt",
+  "jwks_uri": "https://social.elonara.com/oauth/jwks.json",
+  "contacts": [
+    "support@elonara.com"
+  ],
+  "logo_uri": "https://social.elonara.com/assets/img/logo.png",
+  "tls_client_certificate_bound_access_tokens": true,
+  "client_uri": "https://social.elonara.com/",
+  "policy_uri": "https://social.elonara.com/policies/privacy",
+  "tos_uri": "https://social.elonara.com/policies/terms"
+}

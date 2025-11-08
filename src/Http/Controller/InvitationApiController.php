@@ -9,6 +9,7 @@ use App\Services\AuthService;
 use App\Services\InvitationService;
 use App\Services\CommunityMemberService;
 use App\Services\SecurityService;
+use App\Services\BlueskyOAuthService;
 
 require_once dirname(__DIR__, 3) . '/templates/_helpers.php';
 
@@ -19,7 +20,8 @@ final class InvitationApiController
         private AuthService $auth,
         private InvitationService $invitations,
         private SecurityService $security,
-        private CommunityMemberService $communityMembers
+        private CommunityMemberService $communityMembers,
+        private ?BlueskyOAuthService $blueskyOAuth = null
     ) {
     }
 
@@ -456,7 +458,13 @@ final class InvitationApiController
 
         $viewerId = (int)($this->auth->currentUserId() ?? 0);
         if ($viewerId <= 0) {
-            $redirect = '/auth?redirect_to=' . rawurlencode('/invitation/accept?token=' . rawurlencode($token));
+            if ($this->shouldForceOAuthInvite()) {
+                $_SESSION['pending_invitation_token'] = $token;
+                $redirect = $this->buildOAuthInviteRedirect($token);
+            } else {
+                $redirect = '/auth?redirect_to=' . rawurlencode('/invitation/accept?token=' . rawurlencode($token));
+            }
+
             return [
                 'status' => 302,
                 'redirect' => $redirect,
@@ -500,7 +508,13 @@ final class InvitationApiController
     {
         $viewerId = (int)($this->auth->currentUserId() ?? 0);
         if ($viewerId <= 0) {
-            $redirect = '/auth?redirect_to=' . rawurlencode('/invitation/accept?token=' . rawurlencode($token));
+            if ($this->shouldForceOAuthInvite()) {
+                $_SESSION['pending_invitation_token'] = $token;
+                $redirect = $this->buildOAuthInviteRedirect($token);
+            } else {
+                $redirect = '/auth?redirect_to=' . rawurlencode('/invitation/accept?token=' . rawurlencode($token));
+            }
+
             return [
                 'status' => 302,
                 'redirect' => $redirect,
@@ -751,4 +765,18 @@ final class InvitationApiController
         return sprintf('%s://%s/rsvp/%s', $scheme, $host, $token);
     }
 
+    private function shouldForceOAuthInvite(): bool
+    {
+        return $this->blueskyOAuth !== null && $this->blueskyOAuth->shouldForceOAuthForInvite();
+    }
+
+    private function buildOAuthInviteRedirect(string $token): string
+    {
+        $target = '/invitation/accept?token=' . rawurlencode($token);
+
+        return '/auth/bluesky/start?' . http_build_query([
+            'redirect' => $target,
+            'invite_token' => $token,
+        ]);
+    }
 }

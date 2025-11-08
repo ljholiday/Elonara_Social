@@ -168,6 +168,43 @@ return [
     ],
 
     // =========================================================================
+    // BLUESKY / AT PROTOCOL INTEGRATION
+    // =========================================================================
+    'bluesky' => [
+        // Legacy app-password connections remain enabled during the OAuth rollout.
+        'app_passwords' => [
+            'enabled' => true,
+            // When true, follower-fetch and invitation-post code paths stay unchanged unless explicitly toggled off.
+            'freeze_existing_integrations' => true,
+        ],
+
+        // OAuth client configuration. Fill these in config.php (never commit secrets).
+        'oauth' => [
+            'enabled' => filter_var(getenv('BLUESKY_OAUTH_ENABLED') ?: false, FILTER_VALIDATE_BOOLEAN),
+            'client_id' => getenv('BLUESKY_CLIENT_ID') ?: '',
+            'client_secret' => getenv('BLUESKY_CLIENT_SECRET') ?: '',
+            // PEM-encoded key used for private_key_jwt; pull from env so the file stays secret-free.
+            'client_private_key' => getenv('BLUESKY_CLIENT_PRIVATE_KEY') ?: '',
+            'client_key_id' => getenv('BLUESKY_CLIENT_KEY_ID') ?: '',
+            'token_endpoint_auth_method' => getenv('BLUESKY_TOKEN_AUTH_METHOD') ?: 'private_key_jwt',
+            'metadata_url' => getenv('BLUESKY_METADATA_URL') ?: 'https://bsky.social/.well-known/oauth-authorization-server',
+            'client_metadata_url' => getenv('BLUESKY_CLIENT_METADATA_URL') ?: 'https://social.elonara.com/oauth/oauth-client-metadata.json',
+            'redirect_uri' => getenv('BLUESKY_REDIRECT_URI') ?: 'https://social.elonara.com/auth/bluesky/callback',
+            'scopes' => getenv('BLUESKY_SCOPES') ?: 'atproto transition:generic',
+            'force_for_invites' => filter_var(getenv('BLUESKY_FORCE_FOR_INVITES') ?: true, FILTER_VALIDATE_BOOLEAN),
+            'allow_legacy_fallback' => filter_var(getenv('BLUESKY_ALLOW_LEGACY') ?: true, FILTER_VALIDATE_BOOLEAN),
+        ],
+
+        // Token encryption. BLUESKY_TOKEN_KEY env var overrides this value automatically.
+        'encryption' => [
+            // Set BLUESKY_TOKEN_KEY in your environment (.env, process manager, etc.) to avoid hardcoding secrets.
+            // This fallback is here so local developers can paste a disposable key if necessary.
+            'key' => getenv('BLUESKY_TOKEN_KEY') ?: '',
+            'cipher' => 'aes-256-gcm',
+        ],
+    ],
+
+    // =========================================================================
     // ENVIRONMENT-SPECIFIC PRESETS
     // =========================================================================
     // These are common configurations for different environments.

@@ -7,13 +7,17 @@ use App\Http\Request;
 use App\Services\AuthService;
 use App\Services\BlueskyService;
 use App\Services\SecurityService;
+use App\Services\BlueskyOAuthService;
+use App\Services\InvitationService;
 
 final class BlueskyController
 {
     public function __construct(
         private AuthService $auth,
         private BlueskyService $bluesky,
-        private SecurityService $security
+        private SecurityService $security,
+        private BlueskyOAuthService $oauth,
+        private InvitationService $invitations
     ) {
     }
 
@@ -77,6 +81,74 @@ final class BlueskyController
         );
 
         return ['redirect' => '/profile/edit'];
+    }
+
+    /**
+     * Redirect the user to Bluesky OAuth.
+     *
+     * @return array{redirect:string}
+     */
+    public function startOAuth(): array
+    {
+        if (!$this->oauth->isEnabled()) {
+            $_SESSION['flash_error'] = 'Bluesky OAuth is not enabled yet.';
+            return ['redirect' => '/profile/edit'];
+        }
+
+        $request = $this->request();
+        $redirectTo = $this->sanitizeRedirect((string)$request->query('redirect', '')) ?: '/profile/edit';
+        $context = [
+            'redirect_to' => $redirectTo,
+            'invite_token' => (string)$request->query('invite_token', ''),
+            'event_token' => (string)$request->query('event_token', ''),
+            'reauthorize' => $request->query('reauthorize', '') === '1',
+        ];
+
+        if ($context['invite_token'] !== '') {
+            $_SESSION['pending_invitation_token'] = $context['invite_token'];
+        }
+
+        $result = $this->oauth->beginAuthorization($context);
+
+        if (!$result['success']) {
+            $_SESSION['flash_error'] = $result['message'] ?? 'Unable to contact Bluesky.';
+            return ['redirect' => $redirectTo];
+        }
+
+        return ['redirect' => $result['redirect']];
+    }
+
+    /**
+     * Handle Bluesky OAuth callback response.
+     *
+     * @return array{redirect:string}
+     */
+    public function handleOAuthCallback(): array
+    {
+        $request = $this->request();
+        $result = $this->oauth->handleCallback($request->allQuery());
+
+        if (!$result['success']) {
+            $_SESSION['flash_error'] = $result['message'] ?? 'Unable to complete Bluesky authorization.';
+            return ['redirect' => '/profile/edit'];
+        }
+
+        $redirect = $result['redirect'] ?? '/profile/edit';
+        $userId = (int)($result['user_id'] ?? 0);
+
+        $inviteToken = (string)($result['invite_token'] ?? '');
+        if ($inviteToken !== '' && $userId > 0) {
+            $acceptance = $this->invitations->acceptCommunityInvitation($inviteToken, $userId);
+            if ($acceptance['success']) {
+                $data = $acceptance['data'];
+                $redirect = (string)($data['redirect_url'] ?? $redirect);
+                if (isset($data['message'])) {
+                    $_SESSION['flash_success'] = $data['message'];
+                }
+            }
+        }
+
+        return ['redirect' => $redirect];
     }
 
     /**
@@ -216,5 +288,29 @@ final class BlueskyController
                 'message' => $message,
             ],
         ];
+    }
+
+    private function sanitizeRedirect(string $redirect): string
+    {
+        $redirect = trim($redirect);
+        if ($redirect === '') {
+            return '';
+        }
+
+        if (str_starts_with($redirect, 'http')) {
+            $appUrl = (string)app_config('app.url', '');
+            if ($appUrl === '' || !str_starts_with($redirect, $appUrl)) {
+                return '';
+            }
+            $redirectPath = parse_url($redirect, PHP_URL_PATH) ?? '';
+            $query = parse_url($redirect, PHP_URL_QUERY);
+            return $redirectPath . ($query ? '?' . $query : '');
+        }
+
+        if (!str_starts_with($redirect, '/')) {
+            $redirect = '/' . $redirect;
+        }
+
+        return $redirect;
     }
 }

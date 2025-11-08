@@ -419,6 +419,18 @@ return static function (Router $router): void {
         exit;
     });
 
+    $router->get('/auth/bluesky/start', static function (Request $request) {
+        $response = app_service('controller.bluesky')->startOAuth();
+        header('Location: ' . ($response['redirect'] ?? '/profile/edit'));
+        exit;
+    });
+
+    $router->get('/auth/bluesky/callback', static function (Request $request) {
+        $response = app_service('controller.bluesky')->handleOAuthCallback();
+        header('Location: ' . ($response['redirect'] ?? '/profile/edit'));
+        exit;
+    });
+
     // API: Upload Image
     $router->post('/api/images/upload', static function (Request $request) {
         try {
@@ -1345,6 +1357,21 @@ return static function (Router $router): void {
         $guest = $data['guest'];
         $event = $data['event'];
         $isBluesky = (bool)($data['is_bluesky'] ?? false);
+
+        if ($isBluesky) {
+            $authService = app_service('auth.service');
+            $oauthService = app_service('bluesky.oauth.service');
+            $viewerId = (int)($authService->currentUserId() ?? 0);
+            if ($viewerId <= 0 && $oauthService->shouldForceOAuthForInvite()) {
+                $_SESSION['pending_invitation_token'] = $token;
+                $redirectQuery = http_build_query([
+                    'redirect' => '/rsvp/' . rawurlencode($token),
+                    'event_token' => $token,
+                ]);
+                header('Location: /auth/bluesky/start?' . $redirectQuery);
+                exit;
+            }
+        }
 
         $quickResponse = strtolower((string)$request->query('response', ''));
         $preselect = '';

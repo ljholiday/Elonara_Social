@@ -19,7 +19,8 @@ final class BlueskyService
     private Client $client;
 
     public function __construct(
-        private Database $database
+        private Database $database,
+        private ?BlueskyOAuthService $oauth = null
     ) {
         $this->client = new Client([
             'timeout' => 30,
@@ -144,12 +145,24 @@ final class BlueskyService
     }
 
     /**
-     * Get stored credentials for a user
+     * Get stored credentials for a user (prefers OAuth tokens, falls back to legacy app-password tokens)
      *
-     * @return array{did: string, handle: string, accessJwt: string, refreshJwt: string}|null
+     * @return array{did: string, handle: string, accessJwt: string, refreshJwt?: string, authSource: string}|null
      */
     public function getCredentials(int $userId): ?array
     {
+        if ($this->oauth !== null) {
+            $tokenResult = $this->oauth->getAccessToken($userId);
+            if ($tokenResult['success'] ?? false) {
+                return [
+                    'did' => (string)$tokenResult['did'],
+                    'handle' => (string)$tokenResult['handle'],
+                    'accessJwt' => (string)$tokenResult['access_token'],
+                    'authSource' => 'oauth',
+                ];
+            }
+        }
+
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare('
             SELECT did, handle, access_jwt as accessJwt, refresh_jwt as refreshJwt
@@ -159,7 +172,12 @@ final class BlueskyService
         $stmt->execute([$userId]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        return $result !== false ? $result : null;
+        if ($result === false) {
+            return null;
+        }
+
+        $result['authSource'] = 'legacy';
+        return $result;
     }
 
     /**
@@ -174,6 +192,28 @@ final class BlueskyService
             return [
                 'success' => false,
                 'message' => 'No credentials found',
+            ];
+        }
+
+        if (($credentials['authSource'] ?? '') === 'oauth') {
+            if ($this->oauth === null) {
+                return [
+                    'success' => false,
+                    'message' => 'OAuth service unavailable.',
+                ];
+            }
+
+            $token = $this->oauth->getAccessToken($userId, true);
+            if ($token['success'] ?? false) {
+                return [
+                    'success' => true,
+                    'accessJwt' => (string)$token['access_token'],
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $token['message'] ?? 'Unable to refresh OAuth token.',
             ];
         }
 
@@ -224,11 +264,28 @@ final class BlueskyService
         $pdo = $this->database->pdo();
         $stmt = $pdo->prepare('
             UPDATE member_identities
-            SET did = NULL, handle = NULL, access_jwt = NULL, refresh_jwt = NULL,
-                is_verified = 0, updated_at = NOW()
-            WHERE user_id = ?
+            SET did = NULL,
+                handle = NULL,
+                access_jwt = NULL,
+                refresh_jwt = NULL,
+                oauth_access_token = NULL,
+                oauth_refresh_token = NULL,
+                oauth_token_expires_at = NULL,
+                oauth_metadata = NULL,
+                oauth_connected_at = NULL,
+                needs_reauth = 0,
+                oauth_last_error = NULL,
+                oauth_provider = NULL,
+                oauth_scopes = NULL,
+                verification_method = :verification_method,
+                is_verified = 0,
+                updated_at = NOW()
+            WHERE user_id = :user_id
         ');
-        return $stmt->execute([$userId]);
+        return $stmt->execute([
+            ':verification_method' => 'none',
+            ':user_id' => $userId,
+        ]);
     }
 
     /**
@@ -468,15 +525,30 @@ final class BlueskyService
 
         // If token expired, refresh and retry once
         if (!$result['success'] && str_contains($result['message'] ?? '', 'ExpiredToken')) {
-            $refreshResult = $this->refreshSession($userId);
-            if ($refreshResult['success']) {
-                $credentials['accessJwt'] = $refreshResult['accessJwt'];
-                $result = $this->attemptCreatePost($userId, $credentials, $text, $mentions);
+            $authSource = $credentials['authSource'] ?? 'legacy';
+            if ($authSource === 'oauth' && $this->oauth !== null) {
+                $refreshResult = $this->oauth->getAccessToken($userId, true);
+                if ($refreshResult['success'] ?? false) {
+                    $credentials['accessJwt'] = (string)$refreshResult['access_token'];
+                    $result = $this->attemptCreatePost($userId, $credentials, $text, $mentions);
+                } else {
+                    return [
+                        'success' => false,
+                        'message' => $refreshResult['message'] ?? 'Token expired and refresh failed. Please reauthorize your Bluesky account.',
+                    ];
+                }
             } else {
-                return [
-                    'success' => false,
-                    'message' => 'Token expired and refresh failed. Please reconnect your Bluesky account.',
-                ];
+                $refreshResult = $this->refreshSession($userId);
+                if ($refreshResult['success']) {
+                    $credentials['accessJwt'] = $refreshResult['accessJwt'];
+                    $credentials['refreshJwt'] = $refreshResult['refreshJwt'] ?? $credentials['refreshJwt'] ?? '';
+                    $result = $this->attemptCreatePost($userId, $credentials, $text, $mentions);
+                } else {
+                    return [
+                        'success' => false,
+                        'message' => 'Token expired and refresh failed. Please reconnect your Bluesky account.',
+                    ];
+                }
             }
         }
 

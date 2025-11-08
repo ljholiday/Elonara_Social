@@ -52,8 +52,10 @@ use App\Services\UserService;
 use App\Services\SearchService;
 use App\Services\BlueskyService;
 use App\Services\BlueskyInvitationService;
+use App\Services\BlueskyOAuthService;
 use App\Services\DefaultCommunityService;
 use App\Services\BlockService;
+use App\Security\TokenEncryptor;
 use PHPMailer\PHPMailer\PHPMailer;
 
 
@@ -485,6 +487,16 @@ if (!function_exists('app_container')) {
                 return new SecurityService();
             });
 
+            $container->register('security.token_encryptor', static function (): TokenEncryptor {
+                $key = app_config('bluesky.encryption.key');
+                $cipher = app_config('bluesky.encryption.cipher');
+
+                return new TokenEncryptor(
+                    is_string($key) && $key !== '' ? $key : null,
+                    is_string($cipher) && $cipher !== '' ? $cipher : null
+                );
+            });
+
             $container->register('user.service', static function (AppContainer $c): UserService {
                 return new UserService(
                     $c->get('database.connection'),
@@ -496,8 +508,27 @@ if (!function_exists('app_container')) {
                 return new SearchService($c->get('database.connection'));
             });
 
+            $container->register('bluesky.oauth.service', static function (AppContainer $c): BlueskyOAuthService {
+                $encryptor = null;
+                try {
+                    $encryptor = $c->get('security.token_encryptor');
+                } catch (\RuntimeException $e) {
+                    $encryptor = null;
+                }
+
+                return new BlueskyOAuthService(
+                    $c->get('database.connection'),
+                    $encryptor,
+                    $c->get('auth.service'),
+                    $c->get('security.service')
+                );
+            });
+
             $container->register('bluesky.service', static function (AppContainer $c): BlueskyService {
-                return new BlueskyService($c->get('database.connection'));
+                return new BlueskyService(
+                    $c->get('database.connection'),
+                    $c->get('bluesky.oauth.service')
+                );
             });
 
             $container->register('bluesky.invitation.service', static function (AppContainer $c): BlueskyInvitationService {
@@ -540,7 +571,9 @@ if (!function_exists('app_container')) {
                 return new BlueskyController(
                     $c->get('auth.service'),
                     $c->get('bluesky.service'),
-                    $c->get('security.service')
+                    $c->get('security.service'),
+                    $c->get('bluesky.oauth.service'),
+                    $c->get('invitation.service')
                 );
             }, false);
 
@@ -646,7 +679,8 @@ if (!function_exists('app_container')) {
                     $c->get('auth.service'),
                     $c->get('invitation.service'),
                     $c->get('security.service'),
-                    $c->get('community.member.service')
+                    $c->get('community.member.service'),
+                    $c->get('bluesky.oauth.service')
                 );
             }, false);
 

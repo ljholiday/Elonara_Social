@@ -3,13 +3,22 @@
         'name' => 'social/elonara',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '29a205725d4beb970e235ca77e35a3c22168c603',
+        'reference' => '454de7e82230663bad2c8e04cb5a0ceea9dc3376',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
         'dev' => true,
     ),
     'versions' => array(
+        'firebase/php-jwt' => array(
+            'pretty_version' => 'v6.11.1',
+            'version' => '6.11.1.0',
+            'reference' => 'd1e91ecf8c598d073d0995afa8cd5c75c6e19e66',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../firebase/php-jwt',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'graham-campbell/result-type' => array(
             'pretty_version' => 'v1.1.3',
             'version' => '1.1.3.0',
@@ -121,7 +130,7 @@
         'social/elonara' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '29a205725d4beb970e235ca77e35a3c22168c603',
+            'reference' => '454de7e82230663bad2c8e04cb5a0ceea9dc3376',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

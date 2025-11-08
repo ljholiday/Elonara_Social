@@ -180,6 +180,26 @@ $input = $input ?? [];
     $blueskyService = function_exists('app_service') ? app_service('bluesky.service') : null;
     $isConnected = $blueskyService && $blueskyService->isConnected((int)($u->id ?? 0));
     $credentials = $isConnected ? $blueskyService->getCredentials((int)($u->id ?? 0)) : null;
+
+    $oauthService = null;
+    $oauthEnabled = false;
+    $oauthStatus = ['connected' => false, 'needs_reauth' => false];
+
+    if (function_exists('app_service') && (bool)app_config('bluesky.oauth.enabled', false)) {
+        try {
+            $maybeService = app_service('bluesky.oauth.service');
+            if ($maybeService && $maybeService->isEnabled()) {
+                $oauthService = $maybeService;
+                $oauthEnabled = true;
+                $oauthStatus = $oauthService->getIdentityStatus((int)($u->id ?? 0));
+            }
+        } catch (\Throwable $e) {
+            $oauthService = null;
+            $oauthEnabled = false;
+            $oauthStatus = ['connected' => false, 'needs_reauth' => false];
+        }
+    }
+    $profileRedirect = '/profile/edit';
     ?>
 
     <section class="app-section">
@@ -200,6 +220,43 @@ $input = $input ?? [];
           <?= htmlspecialchars($_SESSION['flash_error'], ENT_QUOTES, 'UTF-8') ?>
         </div>
         <?php unset($_SESSION['flash_error']); ?>
+      <?php endif; ?>
+
+      <?php if ($oauthEnabled): ?>
+        <div class="app-card app-mb-4">
+          <div class="app-card-body app-flex app-flex-column app-gap-3">
+            <div class="app-flex app-justify-between app-items-center">
+              <div>
+                <div class="app-text-muted app-text-sm">OAuth Status</div>
+                <?php if ($oauthStatus['connected'] ?? false): ?>
+                  <div class="app-text-lg app-font-semibold">@<?= e($oauthStatus['handle'] ?? $credentials['handle'] ?? 'unknown') ?></div>
+                  <?php if (!empty($oauthStatus['did'])): ?>
+                    <div class="app-text-muted app-text-sm">DID: <?= e(substr((string)$oauthStatus['did'], 0, 24)) ?>...</div>
+                  <?php endif; ?>
+                  <?php if ($oauthStatus['needs_reauth'] ?? false): ?>
+                    <div class="app-alert app-alert-warning app-mt-3">
+                      OAuth token expired. Please reauthorize to continue posting and syncing followers.
+                    </div>
+                  <?php endif; ?>
+                <?php else: ?>
+                  <div class="app-text-lg app-font-semibold">Not authorized yet</div>
+                  <div class="app-text-muted app-text-sm">Authorize once to unlock verified Bluesky identity.</div>
+                <?php endif; ?>
+              </div>
+              <div>
+                <?php if ($oauthStatus['connected'] ?? false): ?>
+                  <?php $reauthQuery = http_build_query(['redirect' => $profileRedirect, 'reauthorize' => 1]); ?>
+                  <a href="/auth/bluesky/start?<?= htmlspecialchars($reauthQuery, ENT_QUOTES, 'UTF-8'); ?>"
+                     class="app-btn app-btn-secondary">Reauthorize via Bluesky</a>
+                <?php else: ?>
+                  <?php $authQuery = http_build_query(['redirect' => $profileRedirect]); ?>
+                  <a href="/auth/bluesky/start?<?= htmlspecialchars($authQuery, ENT_QUOTES, 'UTF-8'); ?>"
+                     class="app-btn app-btn-primary">Authorize via Bluesky</a>
+                <?php endif; ?>
+              </div>
+            </div>
+          </div>
+        </div>
       <?php endif; ?>
 
       <?php if ($isConnected && $credentials): ?>
