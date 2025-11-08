@@ -293,7 +293,7 @@ final class BlueskyOAuthService
         ];
 
         try {
-            $this->applyClientAuthentication($options, $form, $endpoint);
+            $this->applyClientAuthentication($options, $form, $this->audienceFromUrl($endpoint));
         } catch (RuntimeException $e) {
             return [
                 'success' => false,
@@ -586,7 +586,7 @@ final class BlueskyOAuthService
             'headers' => ['Accept' => 'application/json'],
         ];
 
-        $this->applyClientAuthentication($options, $form, $metadata['token_endpoint']);
+        $this->applyClientAuthentication($options, $form, $this->audienceFromUrl($metadata['token_endpoint']));
 
         try {
             $response = $this->http->post($metadata['token_endpoint'], $options);
@@ -879,7 +879,7 @@ final class BlueskyOAuthService
             'headers' => ['Accept' => 'application/json'],
         ];
 
-        $this->applyClientAuthentication($options, $form, $metadata['token_endpoint']);
+        $this->applyClientAuthentication($options, $form, $this->audienceFromUrl($metadata['token_endpoint']));
 
         try {
             $response = $this->http->post($metadata['token_endpoint'], $options);
@@ -984,6 +984,16 @@ final class BlueskyOAuthService
         }
 
         $options['form_params'] = $formParams;
+    }
+
+    private function audienceFromUrl(string $url): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) {
+            return $url;
+        }
+
+        return $parts['scheme'] . '://' . $parts['host'];
     }
 
     private function clientId(): string
