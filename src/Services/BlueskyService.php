@@ -684,6 +684,7 @@ final class BlueskyService
             ]);
 
             $data = json_decode((string)$response->getBody(), true);
+            error_log(sprintf('[BlueskyService] createPost success user_id=%d uri=%s', $userId, $data['uri'] ?? 'unknown'));
 
             return [
                 'success' => true,
@@ -702,6 +703,8 @@ final class BlueskyService
                     $message = $decoded['error'] . ': ' . ($decoded['message'] ?? '');
                 }
             }
+
+            error_log(sprintf('[BlueskyService] createPost error user_id=%d message=%s', $userId, $message));
 
             return [
                 'success' => false,
