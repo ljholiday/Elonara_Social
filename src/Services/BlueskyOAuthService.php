@@ -582,27 +582,16 @@ final class BlueskyOAuthService
             'client_id' => $this->clientId(),
         ];
 
-        $options = [
-            'form_params' => $form,
-            'headers' => [
-                'Accept' => 'application/json',
-                'DPoP' => $this->buildDpopProof((string)$metadata['token_endpoint'], 'POST'),
-            ],
-        ];
-
-        $this->applyClientAuthentication($options, $form, $this->audienceFromUrl($metadata['token_endpoint']));
-
-        try {
-            $response = $this->http->post($metadata['token_endpoint'], $options);
-        } catch (GuzzleException $e) {
+        $tokenResult = $this->performTokenRequest($metadata['token_endpoint'], $form);
+        if (isset($tokenResult['error'])) {
             return [
                 'success' => false,
-                'message' => 'Token exchange failed: ' . $e->getMessage(),
+                'message' => 'Token exchange failed: ' . $tokenResult['error'],
             ];
         }
 
-        $status = $response->getStatusCode();
-        $data = json_decode((string)$response->getBody(), true);
+        $status = (int)($tokenResult['status'] ?? 500);
+        $data = $tokenResult['data'];
         if ($status >= 400) {
             $error = is_array($data) ? ($data['error_description'] ?? $data['error'] ?? 'OAuth error') : 'OAuth error';
             return [
@@ -878,20 +867,9 @@ final class BlueskyOAuthService
             'client_id' => $this->clientId(),
         ];
 
-        $options = [
-            'form_params' => $form,
-            'headers' => [
-                'Accept' => 'application/json',
-                'DPoP' => $this->buildDpopProof((string)$metadata['token_endpoint'], 'POST'),
-            ],
-        ];
-
-        $this->applyClientAuthentication($options, $form, $this->audienceFromUrl($metadata['token_endpoint']));
-
-        try {
-            $response = $this->http->post($metadata['token_endpoint'], $options);
-        } catch (GuzzleException $e) {
-            $this->markNeedsReauth($userId, $e->getMessage());
+        $tokenResult = $this->performTokenRequest($metadata['token_endpoint'], $form);
+        if (isset($tokenResult['error'])) {
+            $this->markNeedsReauth($userId, $tokenResult['error']);
             return [
                 'success' => false,
                 'needs_reauth' => true,
@@ -899,8 +877,9 @@ final class BlueskyOAuthService
             ];
         }
 
-        $data = json_decode((string)$response->getBody(), true);
-        if ($response->getStatusCode() >= 400) {
+        $refreshStatus = (int)($tokenResult['status'] ?? 500);
+        $data = $tokenResult['data'];
+        if ($refreshStatus >= 400) {
             $error = is_array($data) ? ($data['error_description'] ?? $data['error'] ?? 'OAuth error') : 'OAuth error';
             $this->markNeedsReauth($userId, $error);
             return [
@@ -972,7 +951,52 @@ final class BlueskyOAuthService
         return JWT::encode($payload, $privateKey, 'RS256', $kid ?: null);
     }
 
-    private function buildDpopProof(string $url, string $method): string
+    private function performTokenRequest(string $endpoint, array $form): array
+    {
+        $initial = $this->sendTokenRequest($endpoint, $form, null);
+        if (isset($initial['error'])) {
+            return $initial;
+        }
+
+        $status = (int)($initial['status'] ?? 500);
+        $nonce = (string)($initial['nonce'] ?? '');
+
+        if ($status >= 400 && $nonce !== '') {
+            $retry = $this->sendTokenRequest($endpoint, $form, $nonce);
+            return $retry;
+        }
+
+        return $initial;
+    }
+
+    private function sendTokenRequest(string $endpoint, array $form, ?string $nonce): array
+    {
+        $options = [
+            'form_params' => $form,
+            'headers' => [
+                'Accept' => 'application/json',
+                'DPoP' => $this->buildDpopProof($endpoint, 'POST', $nonce),
+            ],
+        ];
+
+        $this->applyClientAuthentication($options, $form, $this->audienceFromUrl($endpoint));
+
+        try {
+            $response = $this->http->post($endpoint, $options);
+        } catch (GuzzleException $e) {
+            return ['error' => $e->getMessage()];
+        }
+
+        $data = json_decode((string)$response->getBody(), true);
+
+        return [
+            'status' => $response->getStatusCode(),
+            'data' => $data,
+            'nonce' => $response->getHeaderLine('DPoP-Nonce'),
+        ];
+    }
+
+    private function buildDpopProof(string $url, string $method, ?string $nonce = null): string
     {
         $privateKey = (string)($this->config['client_private_key'] ?? '');
         if ($privateKey === '') {
@@ -985,6 +1009,10 @@ final class BlueskyOAuthService
             'iat' => time(),
             'jti' => bin2hex(random_bytes(16)),
         ];
+
+        if ($nonce !== null) {
+            $payload['nonce'] = $nonce;
+        }
 
         $header = [
             'typ' => 'dpop+jwt',
