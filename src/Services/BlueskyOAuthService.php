@@ -293,7 +293,7 @@ final class BlueskyOAuthService
         ];
 
         try {
-            $this->applyClientAuthentication($options, $form, (string)$metadata['token_endpoint']);
+            $this->applyClientAuthentication($options, $form, $endpoint);
         } catch (RuntimeException $e) {
             return [
                 'success' => false,
