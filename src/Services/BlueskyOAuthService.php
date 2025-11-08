@@ -24,6 +24,7 @@ final class BlueskyOAuthService
     private Client $http;
     private array $config;
     private ?array $metadata = null;
+    private ?array $publicJwk = null;
 
     public function __construct(
         Database $database,
@@ -583,7 +584,10 @@ final class BlueskyOAuthService
 
         $options = [
             'form_params' => $form,
-            'headers' => ['Accept' => 'application/json'],
+            'headers' => [
+                'Accept' => 'application/json',
+                'DPoP' => $this->buildDpopProof((string)$metadata['token_endpoint'], 'POST'),
+            ],
         ];
 
         $this->applyClientAuthentication($options, $form, $this->audienceFromUrl($metadata['token_endpoint']));
@@ -876,7 +880,10 @@ final class BlueskyOAuthService
 
         $options = [
             'form_params' => $form,
-            'headers' => ['Accept' => 'application/json'],
+            'headers' => [
+                'Accept' => 'application/json',
+                'DPoP' => $this->buildDpopProof((string)$metadata['token_endpoint'], 'POST'),
+            ],
         ];
 
         $this->applyClientAuthentication($options, $form, $this->audienceFromUrl($metadata['token_endpoint']));
@@ -965,6 +972,29 @@ final class BlueskyOAuthService
         return JWT::encode($payload, $privateKey, 'RS256', $kid ?: null);
     }
 
+    private function buildDpopProof(string $url, string $method): string
+    {
+        $privateKey = (string)($this->config['client_private_key'] ?? '');
+        if ($privateKey === '') {
+            throw new RuntimeException('client_private_key is required for DPoP authentication.');
+        }
+
+        $payload = [
+            'htu' => $url,
+            'htm' => strtoupper($method),
+            'iat' => time(),
+            'jti' => bin2hex(random_bytes(16)),
+        ];
+
+        $header = [
+            'typ' => 'dpop+jwt',
+            'alg' => 'RS256',
+            'jwk' => $this->publicJwk(),
+        ];
+
+        return JWT::encode($payload, $privateKey, 'RS256', null, $header);
+    }
+
     private function applyClientAuthentication(array &$options, array &$formParams, string $audience): void
     {
         $authMethod = strtolower((string)($this->config['token_endpoint_auth_method'] ?? 'private_key_jwt'));
@@ -994,6 +1024,54 @@ final class BlueskyOAuthService
         }
 
         return $parts['scheme'] . '://' . $parts['host'];
+    }
+
+    /**
+     * @return array<string,string>
+     */
+    private function publicJwk(): array
+    {
+        if ($this->publicJwk !== null) {
+            return $this->publicJwk;
+        }
+
+        $privateKey = (string)($this->config['client_private_key'] ?? '');
+        if ($privateKey === '') {
+            throw new RuntimeException('client_private_key is required to derive JWKS.');
+        }
+
+        $resource = openssl_pkey_get_private($privateKey);
+        if ($resource === false) {
+            throw new RuntimeException('Unable to parse client private key.');
+        }
+
+        $details = openssl_pkey_get_details($resource);
+        if ($details === false || !isset($details['rsa']['n'], $details['rsa']['e'])) {
+            throw new RuntimeException('Invalid RSA private key.');
+        }
+
+        $kid = (string)($this->config['client_key_id'] ?? '');
+
+        $jwk = [
+            'kty' => 'RSA',
+            'alg' => 'RS256',
+            'use' => 'sig',
+            'n' => $this->base64UrlEncode($details['rsa']['n']),
+            'e' => $this->base64UrlEncode($details['rsa']['e']),
+        ];
+
+        if ($kid !== '') {
+            $jwk['kid'] = $kid;
+        }
+
+        $this->publicJwk = $jwk;
+
+        return $jwk;
+    }
+
+    private function base64UrlEncode(string $data): string
+    {
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 
     private function clientId(): string
