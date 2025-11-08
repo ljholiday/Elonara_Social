@@ -651,8 +651,11 @@ final class BlueskyOAuthService
     private function resolveUserId(string $did, string $handle, string $displayName, bool $reauthorize): int
     {
         $pdo = $this->database->pdo();
-        $stmt = $pdo->prepare('SELECT user_id FROM member_identities WHERE at_protocol_did = :did OR did = :did LIMIT 1');
-        $stmt->execute([':did' => $did]);
+        $stmt = $pdo->prepare('SELECT user_id FROM member_identities WHERE at_protocol_did = :did_at OR did = :did_primary LIMIT 1');
+        $stmt->execute([
+            ':did_at' => $did,
+            ':did_primary' => $did,
+        ]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         $currentUserId = (int)($this->auth->currentUserId() ?? 0);
