@@ -1,5 +1,5 @@
 // Version bump triggers Chrome to refresh the cache
-const CACHE_NAME = 'elonara-cache-v4';
+const CACHE_NAME = 'elonara-cache-v5';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -20,10 +20,14 @@ self.addEventListener('install', event => {
 
 // Fetch event: try network first, fall back to cache, then offline page
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Cache fetched responses for reuse
         const clone = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         return response;
@@ -43,4 +47,3 @@ self.addEventListener('activate', event => {
   );
   self.clients.claim();
 });
-
