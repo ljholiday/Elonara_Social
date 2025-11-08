@@ -606,23 +606,47 @@ function initInvitationForm() {
 /**
  * Initialize pending invitations loading
  */
-function initPendingInvitations() {
+function resolveInvitationContext() {
     const wrapper = getInvitationsWrapper();
     if (wrapper && wrapper.dataset.entityType && wrapper.dataset.entityId) {
-        loadPendingInvitations(wrapper.dataset.entityType, wrapper.dataset.entityId);
-        return;
+        return {
+            entityType: wrapper.dataset.entityType,
+            entityId: wrapper.dataset.entityId
+        };
     }
 
     const form = document.getElementById('send-invitation-form');
-    if (!form) return;
+    if (form) {
+        const entityType = form.getAttribute('data-entity-type');
+        const entityId = form.getAttribute('data-entity-id');
 
-    const entityType = form.getAttribute('data-entity-type');
-    const entityId = form.getAttribute('data-entity-id');
-
-    if (entityType && entityId) {
-        loadPendingInvitations(entityType, entityId);
+        if (entityType && entityId) {
+            return { entityType, entityId };
+        }
     }
+
+    return null;
 }
+
+function initPendingInvitations() {
+    const context = resolveInvitationContext();
+    if (!context) {
+        return;
+    }
+
+    loadPendingInvitations(context.entityType, context.entityId);
+}
+
+function refreshInvitations() {
+    const context = resolveInvitationContext();
+    if (!context) {
+        return;
+    }
+
+    loadPendingInvitations(context.entityType, context.entityId);
+}
+
+window.refreshInvitations = refreshInvitations;
 
 /**
  * Load and display pending invitations
