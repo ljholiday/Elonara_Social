@@ -762,8 +762,8 @@ final class BlueskyOAuthService
                 UPDATE member_identities
                 SET did = :did,
                     handle = :handle,
-                    at_protocol_did = :did,
-                    at_protocol_handle = :handle,
+                    at_protocol_did = :did_at,
+                    at_protocol_handle = :handle_at,
                     verification_method = :verification_method,
                     oauth_provider = :provider,
                     oauth_scopes = :scopes,
@@ -808,8 +808,8 @@ final class BlueskyOAuthService
                     :user_id,
                     :email,
                     :display_name,
-                    :did,
-                    :handle,
+                    :did_at,
+                    :handle_at,
                     :did,
                     :handle,
                     :verification_method,
@@ -841,6 +841,8 @@ final class BlueskyOAuthService
         $stmt->bindValue(':refresh_token', $encryptedRefresh);
         $stmt->bindValue(':expires_at', $expiresAt);
         $stmt->bindValue(':metadata', $metadata);
+        $stmt->bindValue(':did_at', $did);
+        $stmt->bindValue(':handle_at', $handle);
 
         $stmt->execute();
     }
