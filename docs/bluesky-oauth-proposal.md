@@ -22,6 +22,21 @@ Elonara Social already talks to Bluesky for follower sync and directed invitatio
 
 ---
 
+## 0.1 Current Implementation Status (Jan 2025 checkpoint)
+
+| Area | Status | Notes |
+|------|--------|-------|
+| OAuth service & encryption | ✅ Done | `BlueskyOAuthService` issues tokens, refreshes, encrypts at rest, and flags `needs_reauth`; `BlueskyService` now prefers OAuth tokens with legacy fallback. |
+| Config & secrets | ✅ Done | `config/config.php` mirrors sample; `.env` placeholders for `BLUESKY_CLIENT_*` variables + `BLUESKY_TOKEN_KEY`. |
+| Profile UX | ✅ Done | “Authorize/Reauthorize via Bluesky” CTAs live behind `BLUESKY_OAUTH_ENABLED`; legacy app-password form remains for migration. |
+| Invite/RSVP flows | 🚧 In progress | Session storage + OAuth redirect scaffolding exists, but callback auto-accept/`accepted_via` logic still pending. Non-Bluesky invites untouched. |
+| Background jobs | 🚧 In progress | Follower/invite posting still use legacy JWTs unless OAuth tokens exist; need refresh-aware worker + telemetry. |
+| Real OAuth redirect test | ❌ Not yet | Must deploy to staging/production host to run the actual Bluesky redirect loop once remaining work is complete. |
+
+Use this table after a restart to see what’s landed versus what still blocks staging/production rollout.
+
+---
+
 ## 1. Context & Problem Statement
 
 ### 1.1 Current Integration Surfaces
@@ -94,16 +109,15 @@ Elonara Social already talks to Bluesky for follower sync and directed invitatio
 3. **Implement OAuth foundation**  
    - Add `/auth/bluesky/start` and `/auth/bluesky/callback`, PKCE + DPoP, encrypted token storage, and refresh handling.  
    - Serve `public/oauth/oauth-client-metadata.json` for dynamic registration.
-4. **Update member profile UX**  
-   - Replace legacy connect UI with “Authorize via Bluesky” + “Reauthorize” states; surface “Reconnect via OAuth” prompt if still on app-password.  
-   - Ensure app-password credentials can be deleted only after OAuth binding succeeds.
-5. **Invitation flow integration**  
-   - Modify `/rsvp/{token}` and `/invitation/accept` controllers to detect session state.  
-   - If anonymous, persist the invite token + intended action in session, redirect to OAuth, then continue acceptance on callback by DID.  
-   - Continue to support logged-in legacy members unchanged.
-6. **Token migration & cleanup**  
-   - Background job iterates app-password identities, nudging members via notifications/email to reconnect.  
-   - Once threshold met, disable app-password creation and purge unused credentials.
+4. **Update member profile UX** *(status: DONE in dev)*  
+   - Profile edit page now shows “Authorize via Bluesky” / “Reauthorize” buttons gated by `BLUESKY_OAUTH_ENABLED`, while the legacy app-password form remains for the freeze period.  
+   - Next: add banner when `needs_reauth` is set and hide the legacy form once adoption passes the target threshold.
+5. **Invitation flow integration** *(status: IN PROGRESS)*  
+   - OAuth endpoints exist and tokens can survive redirects, but `/invitation/accept` + `/rsvp/{token}` still rely on legacy DID checks.  
+   - Remaining work: force anonymous Bluesky invitees through OAuth, auto-accept on callback, add `accepted_via = 'oauth'`, and keep email/link invites unchanged.
+6. **Token migration & cleanup** *(status: PARTIAL)*  
+   - `BlueskyOAuthService` now encrypts and refreshes tokens, marks `needs_reauth`, and `BlueskyService` prefers OAuth tokens while falling back to app-passwords.  
+   - Still needed: background job/metrics plus UI prompt to nudge remaining users, then sunset app-password creation.
 7. **Testing & rollout**  
    - Execute automated + manual flows (see Section 9).  
    - Deploy in phases: staging, limited production cohort, full rollout, app-password sunset.  
@@ -120,14 +134,17 @@ Elonara Social already talks to Bluesky for follower sync and directed invitatio
 |-------|------|-------|
 | `id` | BIGINT | PK |
 | `member_id` | BIGINT | FK → `app_members` |
-| `provider` | VARCHAR(64) | `'bluesky-oauth'` |
+| `provider` | VARCHAR(64) | `'bluesky-oauth'` or legacy identifiers |
 | `did` | VARCHAR(255) | Verified identifier (unique with provider) |
 | `handle` | VARCHAR(255) | Canonical Bluesky handle |
 | `pds_host` | VARCHAR(255) | Resolved host |
-| `access_token` | TEXT | Encrypted via existing crypto helper |
-| `refresh_token` | TEXT | Encrypted |
-| `token_expires_at` | DATETIME | UTC expiry |
-| `scopes` | VARCHAR(255) | Stored for audits |
+| `access_jwt` / `refresh_jwt` | TEXT | Legacy app-password tokens (kept until sunset) |
+| `oauth_provider` | VARCHAR(64) | `'bluesky-oauth'` |
+| `oauth_access_token` / `oauth_refresh_token` | LONGTEXT | AES-256-GCM encrypted |
+| `oauth_token_expires_at` | DATETIME | UTC expiry for OAuth access token |
+| `oauth_scopes` | VARCHAR(255) | Stored for audits |
+| `needs_reauth` | TINYINT(1) | Flag when refresh fails or tokens revoked |
+| `oauth_last_error` | VARCHAR(255) | Last refresh error summary |
 | `created_at` / `updated_at` | DATETIME | Timestamps |
 
 ### 5.2 `app_invitations`
@@ -146,7 +163,7 @@ Elonara Social already talks to Bluesky for follower sync and directed invitatio
 4. **Callback** – Validate `state`, exchange `code` using PKCE + DPoP, decrypt/store tokens with expiry, and emit domain events for downstream services.  
 5. **Member linking** – Lookup by DID; update tokens if found, else create member record + identity row.  
 6. **Invitation continuation** – If session tracked an invite token, call `InvitationService::attachMemberToInvite()` and redirect to the success page.  
-7. **Token refresh** – Scheduled job refreshes tokens prior to expiry, logging success/failure for metrics; on refresh failure, mark identity as `needs_reauth`.
+7. **Token refresh** – `BlueskyOAuthService::getAccessToken()` already refreshes and sets `needs_reauth` when refresh fails; remaining work is to run a cron/queue worker plus telemetry so expirations are handled proactively.
 
 ---
 
