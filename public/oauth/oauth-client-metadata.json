@@ -1,4 +1,5 @@
 {
+  "client_id": "https://social.elonara.com/oauth/oauth-client-metadata.json",
   "client_name": "Elonara Social",
   "redirect_uris": [
     "https://social.elonara.com/auth/bluesky/callback"
