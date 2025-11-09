@@ -910,11 +910,13 @@ final class BlueskyService
 
     private function buildResourceRequestHeaders(array $credentials, string $url, string $method, ?string $nonce = null): array
     {
+        $isOauth = ($credentials['authSource'] ?? '') === 'oauth';
+        $authScheme = $isOauth ? 'DPoP' : 'Bearer';
         $headers = [
-            'Authorization' => 'Bearer ' . $credentials['accessJwt'],
+            'Authorization' => $authScheme . ' ' . $credentials['accessJwt'],
         ];
 
-        if (($credentials['authSource'] ?? '') === 'oauth') {
+        if ($isOauth) {
             if ($this->oauth === null) {
                 throw new RuntimeException('OAuth service not available for DPoP signing.');
             }
