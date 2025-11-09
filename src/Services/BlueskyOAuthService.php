@@ -202,6 +202,13 @@ final class BlueskyOAuthService
             ];
         }
 
+        $providerScope = (string)($tokenResult['scope'] ?? ($tokenResult['raw']['scope'] ?? ''));
+        $scopeToStore = $providerScope !== ''
+            ? $providerScope
+            : ($this->config['scopes'] ?? self::DEFAULT_SCOPE);
+
+        BlueskyLogger::log(sprintf('[BlueskyOAuthService] provider_scope exchange user_id=%d scope="%s"', $userId, $providerScope !== '' ? $providerScope : '(none returned)'));
+
         $this->upsertIdentity(
             $userId,
             $did,
@@ -209,7 +216,7 @@ final class BlueskyOAuthService
             $tokenResult['access_token'],
             $tokenResult['refresh_token'],
             (int)($tokenResult['expires_in'] ?? 0),
-            $tokenResult['scope'] ?? ($this->config['scopes'] ?? self::DEFAULT_SCOPE),
+            $scopeToStore,
             $identity,
             $tokenResult['raw']
         );
@@ -919,6 +926,11 @@ final class BlueskyOAuthService
 
         $expiresIn = isset($data['expires_in']) ? (int)$data['expires_in'] : 0;
         $expiresAt = $expiresIn > 0 ? date('Y-m-d H:i:s', time() + $expiresIn - 30) : null;
+
+        $providerScope = (string)($data['scope'] ?? '');
+        if ($providerScope !== '') {
+            BlueskyLogger::log(sprintf('[BlueskyOAuthService] provider_scope refresh user_id=%d scope="%s"', $userId, $providerScope));
+        }
 
         $encryptedAccess = $this->encryptor?->encrypt((string)$data['access_token']) ?? null;
         $encryptedRefresh = isset($data['refresh_token'])
