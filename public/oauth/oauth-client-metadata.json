@@ -11,7 +11,7 @@
   "response_types": [
     "code"
   ],
-  "scope": "repo:app.bsky.feed.post blob:*/* rpc:com.atproto.repo.createRecord?aud=did:web:bsky.social",
+  "scope": "atproto repo:app.bsky.feed.post blob:*/* rpc:com.atproto.repo.createRecord?aud=did:web:bsky.social",
   "token_endpoint_auth_method": "private_key_jwt",
   "token_endpoint_auth_signing_alg": "RS256",
   "jwks_uri": "https://social.elonara.com/oauth/jwks.json",
