@@ -601,7 +601,7 @@ final class BlueskyService
                 $refreshResult = $this->oauth->getAccessToken($userId, true);
                 if ($refreshResult['success'] ?? false) {
                     $credentials['accessJwt'] = (string)$refreshResult['access_token'];
-                    $result = $this->attemptCreatePost($userId, $credentials, $text, $mentions);
+                    $result = $this->attemptCreatePost($userId, $credentials, $text, $mentions, $links);
                 } else {
                     return [
                         'success' => false,
@@ -614,7 +614,7 @@ final class BlueskyService
                 if ($refreshResult['success']) {
                     $credentials['accessJwt'] = $refreshResult['accessJwt'];
                     $credentials['refreshJwt'] = $refreshResult['refreshJwt'] ?? $credentials['refreshJwt'] ?? '';
-                    $result = $this->attemptCreatePost($userId, $credentials, $text, $mentions);
+                    $result = $this->attemptCreatePost($userId, $credentials, $text, $mentions, $links);
                 } else {
                     return [
                         'success' => false,
