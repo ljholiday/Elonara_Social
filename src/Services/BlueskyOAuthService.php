@@ -5,6 +5,7 @@ namespace App\Services;
 
 use App\Database\Database;
 use App\Security\TokenEncryptor;
+use App\Support\BlueskyLogger;
 use Firebase\JWT\JWT;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
@@ -358,7 +359,9 @@ final class BlueskyOAuthService
             ];
         }
 
-        if (!$this->scopesSatisfyRequirements((string)($identity['oauth_scopes'] ?? ''))) {
+        $storedScopes = (string)($identity['oauth_scopes'] ?? '');
+        if (!$this->scopesSatisfyRequirements($storedScopes)) {
+            BlueskyLogger::log(sprintf('[BlueskyOAuthService] scope_mismatch user_id=%d stored="%s"', $userId, $storedScopes));
             $this->markNeedsReauth($userId, 'missing_required_scopes');
             return [
                 'success' => false,
@@ -857,6 +860,8 @@ final class BlueskyOAuthService
         $stmt->bindValue(':at_handle', $handle);
 
         $stmt->execute();
+
+        BlueskyLogger::log(sprintf('[BlueskyOAuthService] stored_scopes user_id=%d scopes="%s"', $userId, $scope));
     }
 
     /**
