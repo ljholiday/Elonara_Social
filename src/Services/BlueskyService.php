@@ -706,6 +706,15 @@ final class BlueskyService
                     $message = $this->formatBlueskyError($e);
                     BlueskyLogger::log(sprintf('[BlueskyService] createPost error user_id=%d message=%s', $userId, $message));
 
+                    if ($this->oauth !== null && $this->isScopeError($message)) {
+                        $this->oauth->markNeedsReauth($userId, 'missing_required_scopes');
+                        return [
+                            'success' => false,
+                            'needs_reauth' => true,
+                            'message' => 'Bluesky authorization is missing required permissions. Please reauthorize.',
+                        ];
+                    }
+
                     return [
                         'success' => false,
                         'message' => $message,
@@ -751,5 +760,11 @@ final class BlueskyService
         }
 
         return $headers;
+    }
+
+    private function isScopeError(string $message): bool
+    {
+        $lower = strtolower($message);
+        return str_contains($lower, 'bad token scope') || str_contains($lower, 'invalidtoken');
     }
 }

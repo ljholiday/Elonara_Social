@@ -358,6 +358,15 @@ final class BlueskyOAuthService
             ];
         }
 
+        if (!$this->scopesSatisfyRequirements((string)($identity['oauth_scopes'] ?? ''))) {
+            $this->markNeedsReauth($userId, 'missing_required_scopes');
+            return [
+                'success' => false,
+                'needs_reauth' => true,
+                'message' => 'Bluesky permissions changed. Please reauthorize to continue.',
+            ];
+        }
+
         $needsReauth = (bool)($identity['needs_reauth'] ?? false);
         if ($needsReauth) {
             return [
@@ -932,6 +941,45 @@ final class BlueskyOAuthService
             'success' => true,
             'access_token' => (string)$data['access_token'],
         ];
+    }
+
+    private function scopesSatisfyRequirements(string $granted): bool
+    {
+        $requiredScopeString = (string)($this->config['scopes'] ?? self::DEFAULT_SCOPE);
+        $required = $this->normalizeScopes($requiredScopeString);
+        if ($required === []) {
+            return true;
+        }
+
+        $grantedSet = $this->normalizeScopes($granted);
+        if ($grantedSet === []) {
+            return false;
+        }
+
+        foreach ($required as $mustHave) {
+            if (!in_array($mustHave, $grantedSet, true)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function normalizeScopes(string $scopeList): array
+    {
+        $parts = preg_split('/\s+/', trim($scopeList)) ?: [];
+        $normalized = [];
+        foreach ($parts as $scope) {
+            $scope = trim($scope);
+            if ($scope !== '') {
+                $normalized[] = $scope;
+            }
+        }
+
+        return array_values(array_unique($normalized));
     }
 
     private function buildClientAssertion(string $audience): string
