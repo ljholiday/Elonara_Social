@@ -51,6 +51,8 @@ use App\Services\SecurityService;
 use App\Services\UserService;
 use App\Services\SearchService;
 use App\Services\BlueskyService;
+use App\Services\BlueskyAgent\BlueskyAgentFactory;
+use App\Services\BlueskyAgent\BlueskyAgentInterface;
 use App\Services\BlueskyInvitationService;
 use App\Services\BlueskyOAuthService;
 use App\Services\DefaultCommunityService;
@@ -536,11 +538,20 @@ if (!function_exists('app_container')) {
                 );
             });
 
+            $container->register('bluesky.agent.factory', static function (AppContainer $c): BlueskyAgentFactory {
+                return new BlueskyAgentFactory($c->get('bluesky.service'));
+            });
+
+            $container->register('bluesky.agent', static function (AppContainer $c): BlueskyAgentInterface {
+                return $c->get('bluesky.agent.factory')->make();
+            });
+
             $container->register('bluesky.invitation.service', static function (AppContainer $c): BlueskyInvitationService {
                 return new BlueskyInvitationService(
                     $c->get('database.connection'),
                     $c->get('auth.service'),
                     $c->get('bluesky.service'),
+                    $c->get('bluesky.agent'),
                     $c->get('event.guest.service'),
                     $c->get('community.member.service')
                 );

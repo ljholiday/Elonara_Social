@@ -5,6 +5,8 @@ namespace App\Services;
 
 use App\Database\Database;
 use App\Support\BlueskyLogger;
+use App\Services\BlueskyAgent\BlueskyAgentInterface;
+use App\Services\BlueskyAgent\BlueskyResult;
 
 final class BlueskyInvitationService
 {
@@ -15,6 +17,7 @@ final class BlueskyInvitationService
         private Database $database,
         private AuthService $auth,
         private BlueskyService $bluesky,
+        private BlueskyAgentInterface $blueskyAgent,
         private EventGuestService $eventGuests,
         private CommunityMemberService $communityMembers
     ) {
@@ -71,15 +74,12 @@ final class BlueskyInvitationService
                     if ($handle !== '') {
                         $inviteUrl = $this->buildInvitationUrl('event', $token);
                         $postText = "@{$handle} You've been invited to {$eventName}! RSVP: {$inviteUrl}";
-                        $postResult = $this->bluesky->createPost($viewerId, $postText, [
-                            ['handle' => $handle, 'did' => $did],
-                        ]);
-                        BlueskyLogger::log(sprintf('[BlueskyInvitationService] invite event user=%d follower=%s result=%s', $viewerId, $did, json_encode($postResult)));
-                        if ($postResult['success']) {
+                        $postResult = $this->dispatchInvitePost($viewerId, $postText, $handle, $did, 'event', $inviteUrl);
+                        if ($postResult->success) {
                             $posted++;
-                        } elseif ($postResult['needs_reauth'] ?? false) {
+                        } elseif ($postResult->needsReauth) {
                             return $this->failure(
-                                $postResult['message'] ?? 'Bluesky authorization expired. Please reauthorize.',
+                                $postResult->message ?? 'Bluesky authorization expired. Please reauthorize.',
                                 409,
                                 ['needs_reauth' => true]
                             );
@@ -168,15 +168,12 @@ final class BlueskyInvitationService
                     if ($handle !== '') {
                         $inviteUrl = $this->buildInvitationUrl('community', $token);
                         $postText = "@{$handle} You've been invited to join {$communityName} on {$appName}! {$inviteUrl}";
-                        $postResult = $this->bluesky->createPost($viewerId, $postText, [
-                            ['handle' => $handle, 'did' => $did],
-                        ]);
-                        BlueskyLogger::log(sprintf('[BlueskyInvitationService] invite community user=%d follower=%s result=%s', $viewerId, $did, json_encode($postResult)));
-                        if ($postResult['success']) {
+                        $postResult = $this->dispatchInvitePost($viewerId, $postText, $handle, $did, 'community', $inviteUrl);
+                        if ($postResult->success) {
                             $posted++;
-                        } elseif ($postResult['needs_reauth'] ?? false) {
+                        } elseif ($postResult->needsReauth) {
                             return $this->failure(
-                                $postResult['message'] ?? 'Bluesky authorization expired. Please reauthorize.',
+                                $postResult->message ?? 'Bluesky authorization expired. Please reauthorize.',
                                 409,
                                 ['needs_reauth' => true]
                             );
@@ -388,6 +385,29 @@ final class BlueskyInvitationService
         }
 
         return $message;
+    }
+
+    private function dispatchInvitePost(int $viewerId, string $text, string $handle, string $did, string $context, string $url): BlueskyResult
+    {
+        $result = $this->blueskyAgent->createPostForMember($viewerId, [
+            'text' => $text,
+            'mentions' => [
+                ['handle' => $handle, 'did' => $did],
+            ],
+            'links' => [
+                ['url' => $url],
+            ],
+        ]);
+
+        BlueskyLogger::log(sprintf(
+            '[BlueskyInvitationService] invite %s user=%d follower=%s result=%s',
+            $context,
+            $viewerId,
+            $did,
+            json_encode($result->toArray())
+        ));
+
+        return $result;
     }
 
     /**

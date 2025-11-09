@@ -281,7 +281,7 @@ final class BlueskyService
      * @param int $limit Number of results per page (max 100)
      * @return array{success: bool, followers?: array, cursor?: string|null, message?: string}
      */
-    public function getFollowers(string $actor, ?string $cursor = null, int $limit = 100): array
+    public function getFollowers(string $actor, ?string $cursor = null, int $limit = 100, ?string $accessToken = null): array
     {
         try {
             $params = [
@@ -294,7 +294,29 @@ final class BlueskyService
             }
 
             $url = self::PUBLIC_API_BASE . '/xrpc/app.bsky.graph.getFollowers?' . http_build_query($params);
-            $response = $this->client->get($url);
+            $options = [];
+
+            if ($accessToken !== null && $accessToken !== '') {
+                $headers = [
+                    'Accept' => 'application/json',
+                    'Authorization' => 'Bearer ' . $accessToken,
+                ];
+
+                if ($this->oauth !== null) {
+                    try {
+                        $headers['DPoP'] = $this->oauth->buildResourceProof($url, 'GET');
+                    } catch (\RuntimeException $e) {
+                        return [
+                            'success' => false,
+                            'message' => 'Failed to sign Bluesky request: ' . $e->getMessage(),
+                        ];
+                    }
+                }
+
+                $options['headers'] = $headers;
+            }
+
+            $response = $this->client->get($url, $options);
             $data = json_decode((string)$response->getBody(), true);
 
             return [
@@ -354,16 +376,43 @@ final class BlueskyService
      */
     public function syncFollowers(int $userId): array
     {
-        $credentialResult = $this->resolveCredentials($userId);
-        if (!$credentialResult['success']) {
-            return [
-                'success' => false,
-                'message' => $credentialResult['message'] ?? 'Bluesky account not connected',
-                'needs_reauth' => $credentialResult['needs_reauth'] ?? false,
-            ];
+        $tokenDetails = null;
+        if ($this->oauth !== null && $this->oauth->isEnabled()) {
+            $tokenResult = $this->oauth->getAccessToken($userId);
+            if ($tokenResult['success'] ?? false) {
+                $tokenDetails = [
+                    'did' => (string)$tokenResult['did'],
+                    'handle' => (string)$tokenResult['handle'],
+                    'access_token' => (string)$tokenResult['access_token'],
+                    'source' => 'oauth',
+                ];
+            } elseif (($tokenResult['needs_reauth'] ?? false) === true) {
+                return [
+                    'success' => false,
+                    'message' => $tokenResult['message'] ?? 'Bluesky authorization expired. Please reauthorize.',
+                    'needs_reauth' => true,
+                ];
+            }
         }
 
-        $credentials = $credentialResult['credentials'];
+        if ($tokenDetails === null) {
+            $credentialResult = $this->resolveCredentials($userId, 'legacy');
+            if (!$credentialResult['success']) {
+                return [
+                    'success' => false,
+                    'message' => $credentialResult['message'] ?? 'Bluesky account not connected',
+                    'needs_reauth' => $credentialResult['needs_reauth'] ?? false,
+                ];
+            }
+
+            $credentials = $credentialResult['credentials'];
+            $tokenDetails = [
+                'did' => (string)($credentials['did'] ?? ''),
+                'handle' => (string)($credentials['handle'] ?? ''),
+                'access_token' => null,
+                'source' => $credentials['authSource'] ?? 'legacy',
+            ];
+        }
 
         $allFollowers = [];
         $cursor = null;
@@ -371,9 +420,15 @@ final class BlueskyService
         $page = 0;
 
         do {
-            $result = $this->getFollowers($credentials['did'], $cursor);
+            $result = $this->getFollowers($tokenDetails['did'], $cursor, 100, $tokenDetails['access_token']);
 
             if (!$result['success']) {
+                if (($result['message'] ?? '') !== '') {
+                    return [
+                        'success' => false,
+                        'message' => $result['message'],
+                    ];
+                }
                 break;
             }
 
@@ -384,13 +439,13 @@ final class BlueskyService
         } while ($cursor !== null && $page < $maxPages);
 
         // Store in social table
-        $this->cacheFollowers($userId, $credentials['did'], $credentials['handle'], $allFollowers);
+        $this->cacheFollowers($userId, $tokenDetails['did'], $tokenDetails['handle'], $allFollowers);
 
         return [
             'success' => true,
             'count' => count($allFollowers),
             'followers' => $allFollowers,
-            'auth_source' => $credentials['authSource'] ?? 'legacy',
+            'auth_source' => $tokenDetails['source'],
         ];
     }
 
@@ -493,7 +548,23 @@ final class BlueskyService
      */
     public function createPost(int $userId, string $text, array $mentions = []): array
     {
-        $credentialResult = $this->resolveCredentials($userId);
+        $mode = (string)app_config('bluesky.writes.mode', 'legacy');
+        return $this->createPostInternal($userId, $text, $mentions, $mode);
+    }
+
+    public function createPostLegacy(int $userId, string $text, array $mentions = [], array $links = []): array
+    {
+        return $this->createPostInternal($userId, $text, $mentions, 'legacy', $links);
+    }
+
+    public function createPostOauth(int $userId, string $text, array $mentions = [], array $links = []): array
+    {
+        return $this->createPostInternal($userId, $text, $mentions, 'oauth', $links);
+    }
+
+    private function createPostInternal(int $userId, string $text, array $mentions, string $mode = 'auto', array $links = []): array
+    {
+        $credentialResult = $this->resolveCredentials($userId, $mode);
         if (!$credentialResult['success']) {
             return [
                 'success' => false,
@@ -503,11 +574,8 @@ final class BlueskyService
         }
 
         $credentials = $credentialResult['credentials'];
+        $result = $this->attemptCreatePost($userId, $credentials, $text, $mentions, $links);
 
-        // Try to create post, refresh token if expired
-        $result = $this->attemptCreatePost($userId, $credentials, $text, $mentions);
-
-        // If token expired, refresh and retry once
         if (!$result['success'] && str_contains($result['message'] ?? '', 'ExpiredToken')) {
             $authSource = $credentials['authSource'] ?? 'legacy';
             if ($authSource === 'oauth' && $this->oauth !== null) {
@@ -519,6 +587,7 @@ final class BlueskyService
                     return [
                         'success' => false,
                         'message' => $refreshResult['message'] ?? 'Token expired and refresh failed. Please reauthorize your Bluesky account.',
+                        'needs_reauth' => $refreshResult['needs_reauth'] ?? false,
                     ];
                 }
             } else {
@@ -553,10 +622,21 @@ final class BlueskyService
      *   message?:string
      * }
      */
-    private function resolveCredentials(int $userId): array
+    private function resolveCredentials(int $userId, string $mode = 'auto'): array
     {
-        $oauthEnabled = $this->oauth !== null && $this->oauth->isEnabled();
-        $fallbackAllowed = !$oauthEnabled || $this->oauth->allowLegacyFallback();
+        $resolvedMode = strtolower($mode === 'auto' ? (string)app_config('bluesky.writes.mode', 'legacy') : $mode);
+        $forceLegacy = $resolvedMode === 'legacy';
+        $forceOauth = $resolvedMode === 'oauth';
+
+        $oauthEnabled = $this->oauth !== null && $this->oauth->isEnabled() && !$forceLegacy;
+
+        if ($forceLegacy) {
+            $fallbackAllowed = true;
+        } elseif ($forceOauth) {
+            $fallbackAllowed = $this->oauth !== null && $this->oauth->allowLegacyFallback();
+        } else {
+            $fallbackAllowed = !$oauthEnabled || $this->oauth->allowLegacyFallback();
+        }
         $lastError = null;
 
         if ($oauthEnabled) {
@@ -599,7 +679,7 @@ final class BlueskyService
 
         if ($legacy !== false && (string)($legacy['accessJwt'] ?? '') !== '' && $fallbackAllowed) {
             $legacy['authSource'] = 'legacy';
-            if ($oauthEnabled) {
+            if ($oauthEnabled && !$forceLegacy) {
                 $this->logCredentialIssue('legacy_fallback', $userId, 'Using app-password credentials for Bluesky jobs.');
             }
             return [
@@ -624,7 +704,7 @@ final class BlueskyService
     /**
      * Attempt to create a post (internal helper)
      */
-    private function attemptCreatePost(int $userId, array $credentials, string $text, array $mentions): array
+    private function attemptCreatePost(int $userId, array $credentials, string $text, array $mentions, array $links = []): array
     {
         try {
             $facets = [];
@@ -672,6 +752,10 @@ final class BlueskyService
 
             if (!empty($facets)) {
                 $record['facets'] = $facets;
+            }
+
+            if (!empty($links)) {
+                $record = $this->applyLinkFacets($record, (array)$links);
             }
 
             $endpoint = self::BSKY_SOCIAL_BASE . '/xrpc/com.atproto.repo.createRecord';
@@ -728,6 +812,66 @@ final class BlueskyService
                 'message' => 'Unable to sign Bluesky request: ' . $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * @param array<int,array<string,string>> $links
+     * @return array<string,mixed>
+     */
+    private function applyLinkFacets(array $record, array $links): array
+    {
+        $text = (string)($record['text'] ?? '');
+        if ($text === '') {
+            return $record;
+        }
+
+        $facets = $record['facets'] ?? [];
+
+        foreach ($links as $link) {
+            if (!is_array($link)) {
+                continue;
+            }
+
+            $url = isset($link['url']) ? trim((string)$link['url']) : '';
+            if ($url === '' || !str_contains($text, $url)) {
+                continue;
+            }
+
+            $byteStart = $this->utf8ByteOffset($text, $url);
+            if ($byteStart === null) {
+                continue;
+            }
+
+            $facets[] = [
+                'index' => [
+                    'byteStart' => $byteStart,
+                    'byteEnd' => $byteStart + strlen($url),
+                ],
+                'features' => [
+                    [
+                        '$type' => 'app.bsky.richtext.facet#link',
+                        'uri' => $url,
+                    ],
+                ],
+            ];
+        }
+
+        if (!empty($facets)) {
+            $record['facets'] = $facets;
+        }
+
+        return $record;
+    }
+
+    private function utf8ByteOffset(string $haystack, string $needle): ?int
+    {
+        $charPos = mb_strpos($haystack, $needle);
+        if ($charPos === false) {
+            return null;
+        }
+
+        $before = mb_substr($haystack, 0, $charPos);
+        return strlen($before);
     }
 
     private function formatBlueskyError(GuzzleException $e): string
