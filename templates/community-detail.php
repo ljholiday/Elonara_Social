@@ -50,7 +50,9 @@ $status = $status ?? (empty($community) ? 404 : 200);
       <?php if ($viewer['is_creator'] ?? false): ?>
         <p class="app-text-accent app-mt-2">You created this community.</p>
       <?php elseif ($viewer['is_member'] ?? false): ?>
-        <p class="app-text-accent app-mt-2">You are a member of this community.</p>
+        <p class="app-alert app-alert-success app-mt-2">
+          Welcome back! You now have full access to this community.
+        </p>
       <?php elseif ($privacy === 'public'): ?>
         <p class="app-text-muted app-mt-2">You can view this community because it is public.</p>
       <?php else: ?>
