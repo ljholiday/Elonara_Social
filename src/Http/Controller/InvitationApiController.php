@@ -9,8 +9,6 @@ use App\Services\AuthService;
 use App\Services\InvitationService;
 use App\Services\CommunityMemberService;
 use App\Services\SecurityService;
-use App\Services\BlueskyOAuthService;
-use App\Services\PendingInviteSessionStore;
 
 require_once dirname(__DIR__, 3) . '/templates/_helpers.php';
 
@@ -21,9 +19,7 @@ final class InvitationApiController
         private AuthService $auth,
         private InvitationService $invitations,
         private SecurityService $security,
-        private CommunityMemberService $communityMembers,
-        private ?BlueskyOAuthService $blueskyOAuth = null,
-        private ?PendingInviteSessionStore $pendingInvites = null
+        private CommunityMemberService $communityMembers
     ) {
     }
 
@@ -460,17 +456,7 @@ final class InvitationApiController
 
         $viewerId = (int)($this->auth->currentUserId() ?? 0);
         if ($viewerId <= 0) {
-            if ($this->shouldForceOAuthInvite()) {
-                $redirectTarget = '/invitation/accept?token=' . rawurlencode($token);
-                $this->rememberPendingInvite('community', $token, $redirectTarget);
-                $redirect = $this->buildOAuthInviteRedirect($token, [
-                    'redirect' => $redirectTarget,
-                    'channel' => 'community',
-                ]);
-            } else {
-                $redirect = '/auth?redirect_to=' . rawurlencode('/invitation/accept?token=' . rawurlencode($token));
-            }
-
+            $redirect = '/auth?redirect_to=' . rawurlencode('/invitation/accept?token=' . rawurlencode($token));
             return [
                 'status' => 302,
                 'redirect' => $redirect,
@@ -514,17 +500,7 @@ final class InvitationApiController
     {
         $viewerId = (int)($this->auth->currentUserId() ?? 0);
         if ($viewerId <= 0) {
-            if ($this->shouldForceOAuthInvite()) {
-                $redirectTarget = '/invitation/accept?token=' . rawurlencode($token);
-                $this->rememberPendingInvite('event_share', $token, $redirectTarget);
-                $redirect = $this->buildOAuthInviteRedirect($token, [
-                    'redirect' => $redirectTarget,
-                    'channel' => 'event_share',
-                ]);
-            } else {
-                $redirect = '/auth?redirect_to=' . rawurlencode('/invitation/accept?token=' . rawurlencode($token));
-            }
-
+            $redirect = '/auth?redirect_to=' . rawurlencode('/invitation/accept?token=' . rawurlencode($token));
             return [
                 'status' => 302,
                 'redirect' => $redirect,
@@ -775,56 +751,4 @@ final class InvitationApiController
         return sprintf('%s://%s/rsvp/%s', $scheme, $host, $token);
     }
 
-    private function shouldForceOAuthInvite(): bool
-    {
-        return $this->blueskyOAuth !== null && $this->blueskyOAuth->shouldForceOAuthForInvite();
-    }
-
-    private function rememberPendingInvite(string $channel, string $token, string $redirect): void
-    {
-        if ($this->pendingInvites === null) {
-            return;
-        }
-
-        $metadata = [
-            'channel' => $channel,
-            'metadata' => [
-                'source' => 'invitation.accept',
-            ],
-        ];
-
-        if ($channel === 'event') {
-            $this->pendingInvites->captureEvent($token, $redirect, $metadata);
-            return;
-        }
-
-        $this->pendingInvites->captureCommunity($token, $redirect, $metadata);
-    }
-
-    /**
-     * @param array{redirect?:string,channel?:string,invite_token?:string,event_token?:string} $context
-     */
-    private function buildOAuthInviteRedirect(string $token, array $context = []): string
-    {
-        $channel = (string)($context['channel'] ?? 'community');
-        $target = (string)(
-            $context['redirect']
-            ?? ($channel === 'event'
-                ? '/rsvp/' . rawurlencode((string)($context['event_token'] ?? $token))
-                : '/invitation/accept?token=' . rawurlencode($token))
-        );
-
-        $query = [
-            'redirect' => $target,
-            'invite_channel' => $channel,
-        ];
-
-        if ($channel === 'event') {
-            $query['event_token'] = $context['event_token'] ?? $token;
-        } else {
-            $query['invite_token'] = $context['invite_token'] ?? $token;
-        }
-
-        return '/auth/bluesky/start?' . http_build_query($query);
-    }
 }

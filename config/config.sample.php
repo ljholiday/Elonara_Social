@@ -190,7 +190,9 @@ return [
             'metadata_url' => getenv('BLUESKY_METADATA_URL') ?: 'https://bsky.social/.well-known/oauth-authorization-server',
             'client_metadata_url' => getenv('BLUESKY_CLIENT_METADATA_URL') ?: 'https://social.elonara.com/oauth/oauth-client-metadata.json',
             'redirect_uri' => getenv('BLUESKY_REDIRECT_URI') ?: 'https://social.elonara.com/auth/bluesky/callback',
-            'scopes' => getenv('BLUESKY_SCOPES') ?: 'atproto transition:generic',
+            // Default to granular scopes covering posts + media; override via BLUESKY_SCOPES in production.
+            'scopes' => getenv('BLUESKY_SCOPES')
+                ?: 'repo:app.bsky.feed.post blob:*/* rpc:com.atproto.repo.createRecord?aud=did:web:bsky.social',
             'force_for_invites' => filter_var(getenv('BLUESKY_FORCE_FOR_INVITES') ?: true, FILTER_VALIDATE_BOOLEAN),
             'allow_legacy_fallback' => filter_var(getenv('BLUESKY_ALLOW_LEGACY') ?: true, FILTER_VALIDATE_BOOLEAN),
         ],

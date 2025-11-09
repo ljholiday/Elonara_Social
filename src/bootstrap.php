@@ -696,9 +696,7 @@ if (!function_exists('app_container')) {
                     $c->get('auth.service'),
                     $c->get('invitation.service'),
                     $c->get('security.service'),
-                    $c->get('community.member.service'),
-                    $c->get('bluesky.oauth.service'),
-                    $c->get('pending.invite.store')
+                    $c->get('community.member.service')
                 );
             }, false);
 
