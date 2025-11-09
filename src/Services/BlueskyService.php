@@ -270,7 +270,26 @@ final class BlueskyService
      */
     public function isConnected(int $userId): bool
     {
-        return $this->getCredentials($userId) !== null;
+        if ($this->oauth !== null && $this->oauth->isEnabled()) {
+            $status = $this->oauth->getIdentityStatus($userId);
+            if (($status['connected'] ?? false) && !($status['needs_reauth'] ?? false)) {
+                return true;
+            }
+        }
+
+        $pdo = $this->database->pdo();
+        $stmt = $pdo->prepare('SELECT access_jwt FROM member_identities WHERE user_id = :user LIMIT 1');
+        $stmt->execute([':user' => $userId]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if ($row !== false) {
+            $accessJwt = (string)($row['access_jwt'] ?? '');
+            if ($accessJwt !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
