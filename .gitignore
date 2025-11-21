@@ -23,6 +23,7 @@ assets/css/dev.css
 uploads/
 public/uploads/*
 !public/uploads/.htaccess
+public/robots.txt
 storage/
 cache/
 tmp/
@@ -87,3 +88,4 @@ migrate.php
 
 config/database.php
 .env
+robots.
